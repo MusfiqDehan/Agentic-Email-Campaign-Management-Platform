@@ -1,0 +1,7 @@
+# Base requirements - shared across all environments
+Django==5.2.8
+djangorestframework==3.15.2
+djangorestframework-simplejwt==5.3.1
+psycopg2-binary==2.9.9
+python-decouple==3.8
+whitenoise==6.6.0
