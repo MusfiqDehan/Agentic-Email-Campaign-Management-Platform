@@ -1,0 +1,63 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: email_campaign_db_dev
+    environment:
+      POSTGRES_DB: ${DB_NAME:-email_campaign_dev}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-email_campaign_dev}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../../..
+      dockerfile: deployments/docker/build/Dockerfile
+      target: development
+    container_name: email_campaign_web_dev
+    environment:
+      - DJANGO_ENV=development
+      - DEBUG=True
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-email_campaign_dev}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_PORT=5432
+    volumes:
+      - ../../..:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8001:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command: >
+      sh -c "
+        python manage.py migrate &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+
+  redis:
+    image: redis:7-alpine
+    container_name: email_campaign_redis_dev
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data_dev:/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data_dev:
+  redis_data_dev:
+  static_volume:
+  media_volume:

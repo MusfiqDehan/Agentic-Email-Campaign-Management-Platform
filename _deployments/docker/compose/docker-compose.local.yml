@@ -1,0 +1,65 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: email_campaign_db_local
+    environment:
+      POSTGRES_DB: ${DB_NAME:-email_campaign_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+    ports:
+      - "25432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-email_campaign_db}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../../..
+      dockerfile: _deployments/docker/build/Dockerfile
+      target: development
+    container_name: email_campaign_web_local
+    environment:
+      - DJANGO_ENV=development
+      - DEBUG=True
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-email_campaign_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_PORT=5432
+    volumes:
+      - ../../../backend:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "28000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+
+  redis:
+    image: redis:7-alpine
+    container_name: email_campaign_redis_local
+    ports:
+      - "26379:6379"
+    volumes:
+      - redis_data_local:/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data_local:
+  redis_data_local:
+  static_volume:
+  media_volume:
