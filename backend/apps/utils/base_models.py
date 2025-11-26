@@ -1,0 +1,1 @@
+# Common base models and mixins for Django models
