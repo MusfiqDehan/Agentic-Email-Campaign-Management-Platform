@@ -1,6 +1,9 @@
 from django.apps import AppConfig
 
 
-class Email_setupConfig(AppConfig):
+class NotifyHubConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.email_setup'
+    name = 'automation_rule'
+
+    def ready(self):  # pragma: no cover - side-effect import
+        from . import ses_event_handlers  # noqa: F401
