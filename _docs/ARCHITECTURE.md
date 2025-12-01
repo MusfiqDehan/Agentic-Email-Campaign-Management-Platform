@@ -16,7 +16,7 @@
 │  │  │   Web Container      │  │  DB Container    │  │    │
 │  │  │                      │  │                  │  │    │
 │  │  │  Django Dev Server   │  │  PostgreSQL 16   │  │    │
-│  │  │  Port: 8000         │──│  Port: 5432      │  │    │
+│  │  │  Port: 8000          │──│  Port: 5432      │  │    │
 │  │  │                      │  │                  │  │    │
 │  │  │  - Hot reload        │  │  - Health checks │  │    │
 │  │  │  - Debug mode        │  │  - Data volume   │  │    │
