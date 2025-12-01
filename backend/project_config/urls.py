@@ -11,4 +11,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/auth/', include('apps.authentication.api.v1.urls')),
     path('api/', include('apps.authentication.urls')),  # Keep old paths for backward compatibility
+    path('api/v1/campaigns/', include('apps.campaigns.api.v1.urls')),
 ]
