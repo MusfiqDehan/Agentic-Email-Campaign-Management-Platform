@@ -308,11 +308,42 @@ class Command(BaseCommand):
         )
 EOF
 
+# Add app to INSTALLED_APPS in settings/base.py
+SETTINGS_FILE="$BACKEND_DIR/project_config/settings/base.py"
+if [ -f "$SETTINGS_FILE" ]; then
+    # Check if app is already in INSTALLED_APPS
+    if ! grep -q "\"apps.$APP_NAME\"" "$SETTINGS_FILE"; then
+        # Find the line with "apps.utils", and add the new app after it
+        sed -i "/\"apps\.utils\",/a\\    \"apps.$APP_NAME\"," "$SETTINGS_FILE"
+        echo "✅ Added 'apps.$APP_NAME' to INSTALLED_APPS in settings/base.py"
+    else
+        echo "ℹ️  'apps.$APP_NAME' already exists in INSTALLED_APPS"
+    fi
+else
+    echo "⚠️  Could not find settings/base.py file"
+fi
+
+# Add app URLs to project_config/urls.py
+URLS_FILE="$BACKEND_DIR/project_config/urls.py"
+if [ -f "$URLS_FILE" ]; then
+    # Check if app URL is already included
+    if ! grep -q "path('api/v1/$APP_NAME/'," "$URLS_FILE"; then
+        # Find the line with the last path() entry and add the new URL pattern after it
+        sed -i "/path('api\/', include('apps\.authentication\.urls')),/a\\    path('api/v1/$APP_NAME/', include('apps.$APP_NAME.api.v1.urls'))," "$URLS_FILE"
+        echo "✅ Added 'api/v1/$APP_NAME/' URL pattern to project_config/urls.py"
+    else
+        echo "ℹ️  'api/v1/$APP_NAME/' URL pattern already exists in urls.py"
+    fi
+else
+    echo "⚠️  Could not find project_config/urls.py file"
+fi
+
+echo ""
 echo "✅ Successfully created app '$APP_NAME' in apps directory!"
 echo ""
 echo "📝 Next steps:"
-echo "1. Add 'apps.$APP_NAME' to INSTALLED_APPS in your settings"
-echo "2. Include the app URLs in your main URL configuration"
+echo "1. ✅ Added 'apps.$APP_NAME' to INSTALLED_APPS"
+echo "2. ✅ Added URL patterns to project_config/urls.py"
 echo "3. Create your models and run migrations"
 echo ""
 echo "🗂️  App structure created:"
