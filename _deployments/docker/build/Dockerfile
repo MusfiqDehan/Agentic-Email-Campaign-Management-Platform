@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for Email Campaign Management Platform
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -23,13 +23,13 @@ WORKDIR /app
 COPY backend/requirements/ requirements/
 
 # Development stage
-FROM base as development
+FROM base AS development
 RUN pip install --no-cache-dir -r requirements/dev.txt
 USER appuser
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
 # Production stage
-FROM base as production
+FROM base AS production
 RUN pip install --no-cache-dir -r requirements/prod.txt
 
 # Copy backend application code
