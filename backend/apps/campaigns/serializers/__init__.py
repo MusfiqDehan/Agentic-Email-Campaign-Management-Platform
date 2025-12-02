@@ -1,53 +1,123 @@
-# Import all serializers from the base_serializers.py file (moved from original serializers.py)
+"""
+Serializers Package for Campaigns Application
+
+Exports all serializers organized by purpose:
+- Base serializers: Core models (templates, rules, SMS)
+- Enhanced serializers: Provider and tracking related
+- Campaign serializers: Campaign management features
+"""
+
+# Import from base_serializers.py
 from .base_serializers import (
+    # Email Templates
     EmailTemplateSerializer,
-    GlobalEmailTemplateSerializer,
+    
+    # Automation Rules
     AutomationRuleSerializer,
-    GlobalAutomationRuleSerializer,
+    
+    # Email Triggering
     TriggerEmailSerializer,
-    GlobalTriggerEmailSerializer,
+    EnhancedTriggerEmailSerializer,
+    
+    # SMS
     SMSConfigurationSerializer,
     SMSTemplateSerializer,
     TriggerSMSSerializer,
-    TenantEmailConfigurationSerializer,
+    
+    # Organization Config
+    OrganizationEmailConfigurationSerializer,
+    
+    # Providers
     EmailProviderSerializer,
+    
+    # Delivery Logs
     EnhancedEmailDeliveryLogSerializer,
-    EnhancedTriggerEmailSerializer
 )
 
-# Import from enhanced_serializers.py in this directory
+# Import from enhanced_serializers.py
 from .enhanced_serializers import (
-    TenantEmailProviderSerializer,
-    TenantOwnEmailProviderSerializer,
+    # Organization Email Provider
+    TenantEmailProviderSerializer as OrganizationEmailProviderSerializer,
+    
+    # Email Tracking
     EmailValidationSerializer,
     EmailQueueSerializer,
     EmailActionSerializer,
     EmailDeliveryLogSerializer,
+    
+    # Enhanced Rule
     EnhancedAutomationRuleSerializer,
-    TriggerEmailEnhancedSerializer
+    TriggerEmailEnhancedSerializer,
 )
 
-# Make all serializers available when importing from this package
+# Import from campaign_serializers.py
+from .campaign_serializers import (
+    # Contact Lists
+    ContactListSerializer,
+    ContactListSummarySerializer,
+    
+    # Contacts
+    ContactSerializer,
+    ContactMinimalSerializer,
+    BulkContactCreateSerializer,
+    
+    # Campaigns
+    CampaignSerializer,
+    CampaignListSerializer,
+    CampaignPreviewSerializer,
+    CampaignTestSendSerializer,
+    CampaignDuplicateSerializer,
+    CampaignScheduleSerializer,
+    CampaignAnalyticsSerializer,
+    
+    # Public Actions
+    UnsubscribeSerializer,
+    GDPRForgetSerializer,
+)
+
+# Backward compatibility aliases (deprecated - use new names)
+TenantEmailConfigurationSerializer = OrganizationEmailConfigurationSerializer
+TenantEmailProviderSerializer = OrganizationEmailProviderSerializer
+
 __all__ = [
+    # Base serializers
     'EmailTemplateSerializer',
-    'GlobalEmailTemplateSerializer',
     'AutomationRuleSerializer',
-    'GlobalAutomationRuleSerializer',
     'TriggerEmailSerializer',
-    'GlobalTriggerEmailSerializer',
+    'EnhancedTriggerEmailSerializer',
     'SMSConfigurationSerializer',
     'SMSTemplateSerializer',
     'TriggerSMSSerializer',
-    'TenantEmailConfigurationSerializer',
+    'OrganizationEmailConfigurationSerializer',
     'EmailProviderSerializer',
     'EnhancedEmailDeliveryLogSerializer',
-    'EnhancedTriggerEmailSerializer',
-    'TenantEmailProviderSerializer',
-    'TenantOwnEmailProviderSerializer',
+    
+    # Enhanced serializers
+    'OrganizationEmailProviderSerializer',
     'EmailValidationSerializer',
     'EmailQueueSerializer',
     'EmailActionSerializer',
     'EmailDeliveryLogSerializer',
     'EnhancedAutomationRuleSerializer',
-    'TriggerEmailEnhancedSerializer'
+    'TriggerEmailEnhancedSerializer',
+    
+    # Campaign serializers
+    'ContactListSerializer',
+    'ContactListSummarySerializer',
+    'ContactSerializer',
+    'ContactMinimalSerializer',
+    'BulkContactCreateSerializer',
+    'CampaignSerializer',
+    'CampaignListSerializer',
+    'CampaignPreviewSerializer',
+    'CampaignTestSendSerializer',
+    'CampaignDuplicateSerializer',
+    'CampaignScheduleSerializer',
+    'CampaignAnalyticsSerializer',
+    'UnsubscribeSerializer',
+    'GDPRForgetSerializer',
+    
+    # Backward compatibility (deprecated)
+    'TenantEmailConfigurationSerializer',
+    'TenantEmailProviderSerializer',
 ]
