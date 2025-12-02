@@ -26,10 +26,9 @@ class BaseModel(models.Model):
     created_by = models.UUIDField(blank=True, null=True)
     updated_by = models.UUIDField(blank=True, null=True)
 
-    # Activation Status
-    activated_by_td = models.BooleanField(default=False)
-    activated_by_tmd = models.BooleanField(default=False)
-    activated_by_root = models.BooleanField(default=True)
+    # Activation & Publication Status
+    is_active = models.BooleanField(default=True, help_text="Whether this item is active and usable")
+    is_published = models.BooleanField(default=False, help_text="Whether this item is published/visible")
 
     # Soft Delete fields
     is_deleted = models.BooleanField(default=False)
