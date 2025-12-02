@@ -1,3 +1,6 @@
+"""
+Automation rule model for triggering automated communications.
+"""
 import json
 import uuid
 
@@ -8,61 +11,42 @@ from django_celery_beat.models import PeriodicTask, IntervalSchedule, CrontabSch
 
 from .email_config_models import EmailTemplate
 from .sms_config_models import SMSConfigurationModel, SMSTemplate
-from .tenant_email_config import TenantEmailConfiguration
-from .provider_models import TenantEmailProvider
-from utils.base_models import BaseModel
-from authentication.models import Organization
+from .organization_email_config import OrganizationEmailConfiguration
+from .provider_models import OrganizationEmailProvider, EmailProvider
+from apps.utils.base_models import BaseModel
+from apps.authentication.models import Organization
 
 
 class AutomationRule(BaseModel):
     """
     Defines rules for triggering automated communications.
     Links to a PeriodicTask for scheduled rules.
-
-    Attributes:
-        automation_name (str): Unique name for the automation rule.
-        product_id (UUIDField): Optional product ID to associate with this rule.
-        reason_name (str): Name of the reason for triggering this rule.
-        action_name (str): Name of the action to be taken.
-        communication_type (str): Type of communication (EMAIL, SMS, etc.).
-        short_description (str): Brief description of the automation rule.
-        email_template_id (ForeignKey): Link to the EmailTemplate for EMAIL communication.
-        sms_template_id (ForeignKey): Link to the SMSTemplate for SMS communication.
-        sms_config_id (ForeignKey): Link to the SMSConfigurationModel for SMS communication.
-        tenant_email_config (ForeignKey): Link to the TenantEmailConfiguration for tenant-specific email settings.
-        preferred_email_provider (ForeignKey): Link to TenantEmailProvider for tenant-scoped rules.
-        preferred_global_provider (ForeignKey): Link to EmailProvider for global rules or direct provider selection.
-        trigger_type (str): Type of trigger (IMMEDIATE, DELAY, SCHEDULE).
-        delay_amount (int): Amount of time to delay for DELAY trigger.
-        delay_unit (str): Unit of time for the delay (SECONDS, MINUTES, etc.).
-        schedule_frequency (str): Frequency of the schedule (INTERVAL, DAILY, WEEKLY, MONTHLY).
-        schedule_interval_amount (int): Amount for INTERVAL frequency.
-        schedule_interval_unit (str): Unit for INTERVAL frequency (SECONDS, MINUTES, etc.).
-        schedule_time (TimeField): Time of day to send for DAILY, WEEKLY, or MONTHLY frequency.
-        schedule_day_of_week (int): Day of the week for WEEKLY frequency (1=Monday, 7=Sunday).
-        schedule_day_of_month (int): Day of the month for MONTHLY frequency (1-31).
-        periodic_task (OneToOneField):
-            Link to the actual Celery Beat task that executes this rule.
-        
-    Meta:
-        verbose_name_plural (str): The plural name for the model in the admin interface.
-        unique_together (tuple): Ensure unique combination of automation_name and product_id.
+    
+    All rules are organization-scoped (no more GLOBAL/TENANT scope).
     """
+    
     class ReasonName(models.TextChoices):
-        TEST_TMD_INVITATION_SENT = 'TEST_TMD_INVITATION_SENT', 'Test TMD Invitation Sent'
-        TENANT_OTP_VERIFICATION = 'TENANT_OTP_VERIFICATION', 'Tenant OTP Verification'
-        TENANT_REGISTRATION_CONFIRMATION = 'TENANT_REGISTRATION_CONFIRMATION', 'Tenant Registration Confirmation'
-        TENANT_SUBSCRIPTION_CONFIRMATION = 'TENANT_SUBSCRIPTION_CONFIRMATION', 'Tenant Subscription Confirmation'
-        EMPLOYEE_WELCOME_EMAIL = 'EMPLOYEE_WELCOME_EMAIL', 'Employee Welcome Email'
-        CANDIDATE_EMAIL_VERIFICATION = 'CANDIDATE_EMAIL_VERIFICATION', 'Candidate Email Verification'
-        INVITATION_SENT = 'INVITATION_SENT', 'Invitation Sent'
-        INVITATION_RESEND = 'INVITATION_RESEND', 'Invitation Resend'
-        INVITATION_UPDATE = 'INVITATION_UPDATE', 'Invitation Update'
-        INVITATION_ACTIVATION = 'INVITATION_ACTIVATION', 'Invitation Activation'
-        INVITATION_DEACTIVATION = 'INVITATION_DEACTIVATION', 'Invitation Deactivation'
+        # Transactional emails
+        EMAIL_VERIFICATION = 'EMAIL_VERIFICATION', 'Email Verification'
         PASSWORD_RESET = 'PASSWORD_RESET', 'Password Reset'
-        ROLE_EXPIRATION_REMINDER = 'ROLE_EXPIRATION_REMINDER', 'Role Expiration Reminder'
-        INVITATION_EXPIRATION_REMINDER = 'INVITATION_EXPIRATION_REMINDER', 'Invitation Expiration Reminder'
+        WELCOME_EMAIL = 'WELCOME_EMAIL', 'Welcome Email'
+        
+        # Campaign-related
+        CAMPAIGN_LAUNCH = 'CAMPAIGN_LAUNCH', 'Campaign Launch'
+        CAMPAIGN_REMINDER = 'CAMPAIGN_REMINDER', 'Campaign Reminder'
+        CAMPAIGN_FOLLOWUP = 'CAMPAIGN_FOLLOWUP', 'Campaign Follow-up'
+        
+        # Subscription events
+        SUBSCRIPTION_CONFIRMATION = 'SUBSCRIPTION_CONFIRMATION', 'Subscription Confirmation'
+        SUBSCRIPTION_RENEWAL = 'SUBSCRIPTION_RENEWAL', 'Subscription Renewal'
+        SUBSCRIPTION_EXPIRING = 'SUBSCRIPTION_EXPIRING', 'Subscription Expiring'
+        
+        # User events
+        INVITATION_SENT = 'INVITATION_SENT', 'Invitation Sent'
+        INVITATION_REMINDER = 'INVITATION_REMINDER', 'Invitation Reminder'
+        MEMBER_ONBOARDING = 'MEMBER_ONBOARDING', 'Member Onboarding'
+        
+        # Custom/Other
         OTHER = 'OTHER', 'Other'
 
     class CommunicationType(models.TextChoices):
@@ -87,44 +71,81 @@ class AutomationRule(BaseModel):
         DAILY = 'DAILY', 'Daily'
         WEEKLY = 'WEEKLY', 'Weekly'
         MONTHLY = 'MONTHLY', 'Monthly'
-    
-    class RuleScope(models.TextChoices):
-        TENANT = 'TENANT', 'Tenant Specific'
-        GLOBAL = 'GLOBAL', 'Global Organization'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     automation_name = models.CharField(max_length=100)
-    org_id = models.ForeignKey(Organization, on_delete=models.CASCADE, help_text="Organization this rule belongs to")
-    rule_scope = models.CharField(max_length=10, choices=RuleScope.choices, default=RuleScope.TENANT, help_text="Whether this rule applies to a specific tenant or globally")
-    product_id = models.UUIDField(blank=True, null=True, db_index=True, help_text="Optional product ID for filtering")
+    
+    # Organization ownership (all rules are org-scoped now)
+    organization = models.ForeignKey(
+        Organization, 
+        on_delete=models.CASCADE, 
+        related_name='automation_rules',
+        help_text="Organization this rule belongs to"
+    )
+    
     reason_name = models.CharField(max_length=100, choices=ReasonName.choices)
     action_name = models.CharField(max_length=100, blank=True)
     communication_type = models.CharField(max_length=10, choices=CommunicationType.choices, default=CommunicationType.EMAIL)
     short_description = models.TextField(blank=True, help_text="A brief description of the automation rule.")
    
-    # Enhanced template fields with better relationships
-    email_template_id = models.ForeignKey(EmailTemplate, on_delete=models.CASCADE, null=True, blank=True)
-    sms_template_id = models.ForeignKey(SMSTemplate, on_delete=models.CASCADE, null=True, blank=True)
+    # Template references
+    email_template = models.ForeignKey(
+        EmailTemplate, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='automation_rules'
+    )
+    sms_template = models.ForeignKey(
+        SMSTemplate, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='automation_rules'
+    )
     
     # SMS configuration
-    sms_config_id = models.ForeignKey(SMSConfigurationModel, on_delete=models.CASCADE, null=True, blank=True)
+    sms_config = models.ForeignKey(
+        SMSConfigurationModel, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='automation_rules'
+    )
     
-    # Enhanced configuration fields for email
-    tenant_email_config = models.ForeignKey(TenantEmailConfiguration, on_delete=models.CASCADE, null=True, blank=True)
-    preferred_email_provider = models.ForeignKey(
-        TenantEmailProvider, 
+    # Email configuration and provider
+    email_config = models.ForeignKey(
+        OrganizationEmailConfiguration, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='automation_rules'
+    )
+    email_provider = models.ForeignKey(
+        OrganizationEmailProvider, 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True,
-        help_text="Tenant-specific provider configuration (for tenant-scoped rules)"
+        related_name='automation_rules',
+        help_text="Organization-specific provider configuration"
     )
-    preferred_global_provider = models.ForeignKey(
-        'EmailProvider',
+    
+    # Campaign and ContactList references (new)
+    campaign = models.ForeignKey(
+        'Campaign',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='automation_rules_using',
-        help_text="Global provider (for global rules or direct provider selection)"
+        related_name='automation_rules',
+        help_text="Campaign to launch when this rule triggers"
+    )
+    contact_list = models.ForeignKey(
+        'ContactList',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='automation_rules',
+        help_text="Contact list to target when this rule triggers"
     )
     
     # --- Dynamic scheduling fields ---
@@ -152,7 +173,7 @@ class AutomationRule(BaseModel):
     filter_conditions = models.JSONField(
         null=True, 
         blank=True, 
-        help_text="JSON conditions for advanced filtering. Example: {'user_status': 'active', 'plan_type': ['premium', 'enterprise']}"
+        help_text="JSON conditions for advanced filtering. Example: {'status': 'active', 'tags': ['premium']}"
     )
     
     # Status and metadata
@@ -161,10 +182,8 @@ class AutomationRule(BaseModel):
     # Link to the actual Celery Beat task
     periodic_task = models.OneToOneField(PeriodicTask, on_delete=models.SET_NULL, null=True, blank=True)
 
-
     def clean(self):
-        """Validate rule configuration"""
-            
+        """Validate rule configuration."""
         if self.trigger_type == self.TriggerType.DELAY:
             if not self.delay_amount or not self.delay_unit:
                 raise ValidationError("Delay amount and unit are required for DELAY trigger type")
@@ -172,6 +191,14 @@ class AutomationRule(BaseModel):
         if self.trigger_type == self.TriggerType.SCHEDULE:
             if not self.schedule_frequency:
                 raise ValidationError("Schedule frequency is required for SCHEDULE trigger type")
+        
+        # Validate template matches communication type
+        if self.communication_type == self.CommunicationType.EMAIL and not self.email_template:
+            if not self.campaign:  # Campaign can have its own content
+                raise ValidationError("Email template or campaign is required for EMAIL communication type")
+        
+        if self.communication_type == self.CommunicationType.SMS and not self.sms_template:
+            raise ValidationError("SMS template is required for SMS communication type")
 
     def save(self, *args, **kwargs):
         # Run validation
@@ -179,151 +206,112 @@ class AutomationRule(BaseModel):
 
         # Automatically create/update the PeriodicTask when the rule is saved
         if self.trigger_type == self.TriggerType.SCHEDULE:
-            # Choose task based on communication type
-            if self.communication_type == self.CommunicationType.EMAIL:
-                task_name = 'automation_rule.tasks.dispatch_scheduled_email_task'
-            elif self.communication_type == self.CommunicationType.SMS:
-                task_name = 'automation_rule.tasks.dispatch_scheduled_sms_task'
-            else:
-                task_name = 'automation_rule.tasks.dispatch_scheduled_whatsapp_task'
-                
-            task_args = json.dumps([self.id])
-
-            # Prepare defaults for the periodic task
-            defaults = {'task': task_name, 'args': task_args}
-
-            if self.schedule_frequency == self.ScheduleFrequency.INTERVAL:
-                schedule, _ = IntervalSchedule.objects.get_or_create(
-                    every=self.schedule_interval_amount,
-                    period=self.schedule_interval_unit.lower()[:-1],
-                )
-                defaults['interval'] = schedule
-                defaults['crontab'] = None # Ensure crontab is cleared
-            else:
-                crontab_data = {
-                    'minute': self.schedule_time.minute,
-                    'hour': self.schedule_time.hour,
-                    'day_of_week': '*' if self.schedule_frequency != self.ScheduleFrequency.WEEKLY else self.schedule_day_of_week,
-                    'day_of_month': '*' if self.schedule_frequency != self.ScheduleFrequency.MONTHLY else self.schedule_day_of_month,
-                    'month_of_year': '*',
-                }
-                schedule, _ = CrontabSchedule.objects.get_or_create(**crontab_data)
-                defaults['crontab'] = schedule
-                defaults['interval'] = None # Ensure interval is cleared
-
-            # Create or update the periodic task
-            if self.periodic_task:
-                # Update existing task
-                PeriodicTask.objects.filter(id=self.periodic_task.id).update(**defaults)
-                self.periodic_task.refresh_from_db()
-            else:
-                # Create new task
-                self.periodic_task = PeriodicTask.objects.create(
-                    name=f'Rule-{self.automation_name}-{self.id or timezone.now()}',
-                    **defaults
-                )
-            
-            self.periodic_task.enabled = True
-            self.periodic_task.save()
-
+            self._setup_periodic_task()
         elif self.periodic_task:
-            self.periodic_task.delete()
-            self.periodic_task = None
+            self._cleanup_periodic_task()
 
         super().save(*args, **kwargs)
+    
+    def _setup_periodic_task(self):
+        """Create or update the Celery Beat periodic task."""
+        # Choose task based on communication type
+        if self.communication_type == self.CommunicationType.EMAIL:
+            task_name = 'campaigns.tasks.dispatch_scheduled_email_task'
+        elif self.communication_type == self.CommunicationType.SMS:
+            task_name = 'campaigns.tasks.dispatch_scheduled_sms_task'
+        else:
+            task_name = 'campaigns.tasks.dispatch_scheduled_notification_task'
+            
+        task_args = json.dumps([str(self.id)])
+
+        # Prepare defaults for the periodic task
+        defaults = {'task': task_name, 'args': task_args}
+
+        if self.schedule_frequency == self.ScheduleFrequency.INTERVAL:
+            schedule, _ = IntervalSchedule.objects.get_or_create(
+                every=self.schedule_interval_amount,
+                period=self.schedule_interval_unit.lower()[:-1] if self.schedule_interval_unit else 'minutes',
+            )
+            defaults['interval'] = schedule
+            defaults['crontab'] = None
+        else:
+            crontab_data = {
+                'minute': self.schedule_time.minute if self.schedule_time else 0,
+                'hour': self.schedule_time.hour if self.schedule_time else 0,
+                'day_of_week': '*' if self.schedule_frequency != self.ScheduleFrequency.WEEKLY else str(self.schedule_day_of_week or 1),
+                'day_of_month': '*' if self.schedule_frequency != self.ScheduleFrequency.MONTHLY else str(self.schedule_day_of_month or 1),
+                'month_of_year': '*',
+            }
+            schedule, _ = CrontabSchedule.objects.get_or_create(**crontab_data)
+            defaults['crontab'] = schedule
+            defaults['interval'] = None
+
+        # Create or update the periodic task
+        if self.periodic_task:
+            PeriodicTask.objects.filter(id=self.periodic_task.id).update(**defaults)
+            self.periodic_task.refresh_from_db()
+        else:
+            self.periodic_task = PeriodicTask.objects.create(
+                name=f'Rule-{self.automation_name}-{self.id or timezone.now()}',
+                **defaults
+            )
+        
+        self.periodic_task.enabled = self.is_active
+        self.periodic_task.save()
+    
+    def _cleanup_periodic_task(self):
+        """Remove the Celery Beat periodic task."""
+        if self.periodic_task:
+            self.periodic_task.delete()
+            self.periodic_task = None
 
     def get_effective_email_provider(self):
         """
         Get the effective email provider for this rule.
         
-        Priority:
-        1. Tenant-specific provider (TenantEmailProvider) - for tenant rules
-        2. Global provider (EmailProvider) - for global rules or direct selection
-        3. Tenant's primary provider - fallback for tenant rules
-        
         Returns:
-            TenantEmailProvider or None
+            OrganizationEmailProvider or None
         """
-        # Priority 1: Explicit tenant-specific provider
-        if self.preferred_email_provider and self.preferred_email_provider.is_enabled:
-            return self.preferred_email_provider
+        # Priority 1: Explicit provider on rule
+        if self.email_provider and self.email_provider.is_enabled:
+            return self.email_provider
         
-        # Priority 2: Global provider (wrap in TenantEmailProvider if tenant exists)
-        if self.preferred_global_provider:
-            # For global rules (no tenant), we need to handle this differently
-            # The caller should use preferred_global_provider directly
-            if not self.tenant_id:
-                # Return None here, caller will check preferred_global_provider
-                return None
-            
-            # For tenant rules, try to find or create TenantEmailProvider
-            from .provider_models import TenantEmailProvider
-            tenant_provider = TenantEmailProvider.objects.filter(
-                tenant_id=self.tenant_id,
-                provider=self.preferred_global_provider,
-                is_enabled=True
-            ).first()
-            
-            if tenant_provider:
-                return tenant_provider
-        
-        # Priority 3: Tenant's primary provider (fallback)
-        if self.tenant_id:
-            from .provider_models import TenantEmailProvider
-            return TenantEmailProvider.objects.filter(
-                tenant_id=self.tenant_id,
-                is_enabled=True,
-                is_primary=True
-            ).first()
-        
-        return None
+        # Priority 2: Organization's primary provider
+        return OrganizationEmailProvider.objects.filter(
+            organization=self.organization,
+            is_enabled=True,
+            is_primary=True
+        ).first()
     
     def get_effective_config(self):
-        """Get the effective email configuration for this rule"""
-        if self.tenant_email_config:
-            return self.tenant_email_config
+        """Get the effective email configuration for this rule."""
+        if self.email_config:
+            return self.email_config
         
-        # Fallback to getting or creating default config for tenant scoped rules only
-        from .tenant_email_config import TenantEmailConfiguration
-
-        if not self.tenant_id:
-            # Global rules may not be tied to a tenant configuration.
-            # Caller should handle the None case and provide a suitable fallback.
-            return None
-
-        config, _ = TenantEmailConfiguration.objects.get_or_create(
-            tenant_id=self.tenant_id,
-            defaults={
-                'plan_type': 'FREE',
-                'activated_by_tmd': True
-            }
+        # Fallback to organization's config
+        config, _ = OrganizationEmailConfiguration.objects.get_or_create(
+            organization=self.organization,
+            defaults={'plan_type': 'FREE'}
         )
         return config
 
     class Meta:
         constraints = [
-            # Tenant-specific: Only one rule per reason_name + communication_type per tenant
+            # Only one rule per reason_name + communication_type per organization
             models.UniqueConstraint(
-                fields=['tenant_id', 'reason_name', 'communication_type'],
-                condition=models.Q(rule_scope='TENANT', is_deleted=False),
-                name='unique_tenant_automation_rule'
-            ),
-            # Global: Only one rule per reason_name + communication_type globally
-            models.UniqueConstraint(
-                fields=['reason_name', 'communication_type'],
-                condition=models.Q(rule_scope='GLOBAL', is_deleted=False),
-                name='unique_global_automation_rule'
+                fields=['organization', 'reason_name', 'communication_type'],
+                condition=models.Q(is_deleted=False),
+                name='unique_org_automation_rule'
             ),
         ]
         indexes = [
-            models.Index(fields=['tenant_id', 'activated_by_tmd']),
-            models.Index(fields=['rule_scope', 'activated_by_tmd']),
+            models.Index(fields=['organization', 'is_active']),
             models.Index(fields=['reason_name', 'communication_type']),
-            models.Index(fields=['product_id', 'activated_by_tmd']),
-            models.Index(fields=['trigger_type', 'activated_by_tmd']),
+            models.Index(fields=['trigger_type', 'is_active']),
+            models.Index(fields=['campaign', 'is_active']),
         ]
         verbose_name = "Automation Rule"
         verbose_name_plural = "Automation Rules"
 
     def __str__(self):
-        return self.automation_name
+        return f"{self.automation_name} ({self.organization.name})"

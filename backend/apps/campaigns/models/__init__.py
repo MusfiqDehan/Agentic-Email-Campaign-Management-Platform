@@ -1,8 +1,65 @@
-from .email_config_models import *
-from .automation_rule_model import *
-from .sms_config_models import *
+# Email models
+from .email_config_models import EmailTemplate
+from .email_tracking_models import (
+    EmailValidation,
+    EmailQueue,
+    EmailDeliveryLog,
+    EmailAction,
+)
+
+# Organization email configuration
+from .organization_email_config import (
+    OrganizationEmailConfiguration,
+    TenantEmailConfiguration,  # Legacy alias
+)
+
+# Provider models
+from .provider_models import (
+    EmailProvider,
+    OrganizationEmailProvider,
+    TenantEmailProvider,  # Legacy alias
+)
+
+# Automation models
+from .automation_rule_model import AutomationRule
+
+# Campaign models (new)
+from .campaign_models import Campaign
+from .contact_models import ContactList, Contact
+
+# SMS models
+from .sms_config_models import SMSConfigurationModel, SMSTemplate
+
+# Push notification models
 from .push_notification_config_models import *
-from .provider_models import *
-from .tenant_email_config import *
-from .email_tracking_models import *
-from .service_integration_bridge import *
+
+# All exportable models
+__all__ = [
+    # Core models
+    'EmailTemplate',
+    'EmailValidation',
+    'EmailQueue',
+    'EmailDeliveryLog',
+    'EmailAction',
+    
+    # Organization config
+    'OrganizationEmailConfiguration',
+    'TenantEmailConfiguration',  # Legacy alias
+    
+    # Providers
+    'EmailProvider',
+    'OrganizationEmailProvider',
+    'TenantEmailProvider',  # Legacy alias
+    
+    # Automation
+    'AutomationRule',
+    
+    # Campaign
+    'Campaign',
+    'ContactList',
+    'Contact',
+    
+    # SMS
+    'SMSConfigurationModel',
+    'SMSTemplate',
+]

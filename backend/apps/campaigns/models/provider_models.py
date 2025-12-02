@@ -1,14 +1,22 @@
+"""
+Email provider models for managing different email service providers.
+"""
 import uuid
 import json
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.conf import settings
-from utils.base_models import BaseModel
-from authentication.models import Organization
+from apps.utils.base_models import BaseModel
+from apps.authentication.models import Organization
 
 
 class EmailProvider(BaseModel):
-    """Abstract email provider configuration for different email services"""
+    """
+    Email provider configuration for different email services.
+    
+    Providers can be:
+    - Shared (platform-wide, managed by platform admins)
+    - Organization-owned (specific to one organization)
+    """
     
     PROVIDER_TYPES = [
         ('AWS_SES', 'Amazon SES'),
@@ -29,10 +37,20 @@ class EmailProvider(BaseModel):
     name = models.CharField(max_length=100)
     provider_type = models.CharField(max_length=20, choices=PROVIDER_TYPES)
     
-    org_id = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='organizations')
-    is_global = models.BooleanField(
-        default=True,
-        help_text="Whether this is a global provider (accessible by all tenants)"
+    # Organization ownership - null for shared/platform providers
+    organization = models.ForeignKey(
+        Organization, 
+        on_delete=models.CASCADE, 
+        related_name='email_providers',
+        null=True,
+        blank=True,
+        help_text="Organization that owns this provider (null for shared providers)"
+    )
+    
+    # Shared provider flag
+    is_shared = models.BooleanField(
+        default=False,
+        help_text="Whether this is a shared platform provider accessible by all organizations"
     )
     
     # Provider configuration (encrypted JSON)
@@ -62,24 +80,27 @@ class EmailProvider(BaseModel):
     last_used_at = models.DateTimeField(null=True, blank=True)
     
     def save(self, *args, **kwargs):
+        # Validate shared vs organization-owned
+        if self.is_shared and self.organization:
+            raise ValidationError("Shared providers cannot be owned by an organization")
+        
         if self.is_default:
-            # Ensure only one provider is default per scope (tenant-owned or global)
-            if self.tenant_id:
-                # For tenant-owned providers: unset default ONLY for same tenant
+            # Ensure only one default per organization or globally
+            if self.organization:
                 EmailProvider.objects.filter(
-                    tenant_id=self.tenant_id,
+                    organization=self.organization,
                     is_default=True
                 ).exclude(pk=self.pk).update(is_default=False)
-            else:
-                # For global providers: unset default ONLY for global providers
+            elif self.is_shared:
                 EmailProvider.objects.filter(
-                    tenant_id__isnull=True,
+                    is_shared=True,
                     is_default=True
                 ).exclude(pk=self.pk).update(is_default=False)
+        
         super().save(*args, **kwargs)
     
     def encrypt_config(self, config_dict):
-        """Encrypt configuration dictionary"""
+        """Encrypt configuration dictionary."""
         try:
             from ..utils.crypto import encrypt_data
             config_json = json.dumps(config_dict)
@@ -88,7 +109,7 @@ class EmailProvider(BaseModel):
             raise ValidationError(f"Failed to encrypt configuration: {str(e)}")
     
     def decrypt_config(self):
-        """Decrypt configuration dictionary"""
+        """Decrypt configuration dictionary."""
         try:
             if not self.encrypted_config:
                 return {}
@@ -99,9 +120,9 @@ class EmailProvider(BaseModel):
             raise ValidationError(f"Failed to decrypt configuration: {str(e)}")
     
     def can_send_email(self):
-        """Check if provider can send email based on rate limits and health"""
-        if not self.activated_by_root or not self.activated_by_tmd:
-            return False, "Provider is not activated"
+        """Check if provider can send email based on rate limits and health."""
+        if not self.is_active:
+            return False, "Provider is not active"
         
         if self.health_status == 'UNHEALTHY':
             return False, "Provider is unhealthy"
@@ -116,40 +137,67 @@ class EmailProvider(BaseModel):
     
     class Meta:
         ordering = ['priority', 'name']
-        unique_together = [
-            ['name', 'tenant_id'],  # Name unique per tenant (or globally if tenant_id is NULL)
+        constraints = [
+            # Name unique per organization (or globally for shared)
+            models.UniqueConstraint(
+                fields=['name', 'organization'],
+                condition=models.Q(organization__isnull=False),
+                name='unique_provider_per_organization'
+            ),
+            models.UniqueConstraint(
+                fields=['name'],
+                condition=models.Q(organization__isnull=True, is_shared=True),
+                name='unique_shared_provider_name'
+            ),
         ]
         indexes = [
-            models.Index(fields=['tenant_id', 'is_global']),
-            models.Index(fields=['is_global', 'is_default']),
+            models.Index(fields=['organization', 'is_active']),
+            models.Index(fields=['is_shared', 'is_default']),
+            models.Index(fields=['provider_type', 'is_active']),
         ]
         verbose_name = "Email Provider"
         verbose_name_plural = "Email Providers"
     
     def __str__(self):
-        scope = f" (Tenant: {self.tenant_id})" if self.tenant_id else " (Global)"
-        return f"{self.name} ({self.provider_type}){scope}"
+        if self.is_shared:
+            return f"{self.name} ({self.provider_type}) [Shared]"
+        elif self.organization:
+            return f"{self.name} ({self.provider_type}) [{self.organization.name}]"
+        return f"{self.name} ({self.provider_type})"
 
 
-class TenantEmailProvider(BaseModel):
-    """Tenant-specific email provider configuration and overrides"""
+class OrganizationEmailProvider(BaseModel):
+    """
+    Organization-specific email provider configuration and overrides.
     
-    tenant_id = models.UUIDField(db_index=True, help_text="Reference to tenant from tenant microservice")
-    provider = models.ForeignKey(EmailProvider, on_delete=models.CASCADE, related_name='tenant_configs')
+    Links an organization to a provider (shared or owned) with custom settings.
+    """
     
-    # Tenant-specific settings
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='provider_configs'
+    )
+    provider = models.ForeignKey(
+        EmailProvider, 
+        on_delete=models.CASCADE, 
+        related_name='organization_configs'
+    )
+    
+    # Organization-specific settings
     is_enabled = models.BooleanField(default=True)
-    is_primary = models.BooleanField(default=False, help_text="Primary provider for this tenant")
+    is_primary = models.BooleanField(default=False, help_text="Primary provider for this organization")
     
     # Custom configuration overrides (encrypted)
-    custom_encrypted_config = models.TextField(blank=True, help_text="Tenant-specific config overrides")
+    custom_encrypted_config = models.TextField(blank=True, help_text="Organization-specific config overrides")
     
-    # Tenant-specific rate limits (override provider defaults)
+    # Organization-specific rate limits (override provider defaults)
     custom_max_emails_per_minute = models.PositiveIntegerField(null=True, blank=True)
     custom_max_emails_per_hour = models.PositiveIntegerField(null=True, blank=True)
     custom_max_emails_per_day = models.PositiveIntegerField(null=True, blank=True)
     
-    # Usage tracking for this tenant-provider combination
+    # Usage tracking for this organization-provider combination
     emails_sent_today = models.PositiveIntegerField(default=0)
     emails_sent_this_hour = models.PositiveIntegerField(default=0)
     last_used_at = models.DateTimeField(null=True, blank=True)
@@ -161,15 +209,15 @@ class TenantEmailProvider(BaseModel):
     
     def save(self, *args, **kwargs):
         if self.is_primary:
-            # Ensure only one provider is primary per tenant
-            TenantEmailProvider.objects.filter(
-                tenant_id=self.tenant_id, 
+            # Ensure only one primary per organization
+            OrganizationEmailProvider.objects.filter(
+                organization=self.organization, 
                 is_primary=True
             ).exclude(pk=self.pk).update(is_primary=False)
         super().save(*args, **kwargs)
     
     def encrypt_custom_config(self, config_dict):
-        """Encrypt tenant-specific configuration dictionary"""
+        """Encrypt organization-specific configuration dictionary."""
         try:
             if not config_dict:
                 self.custom_encrypted_config = ""
@@ -182,7 +230,7 @@ class TenantEmailProvider(BaseModel):
             raise ValidationError(f"Failed to encrypt custom configuration: {str(e)}")
     
     def decrypt_custom_config(self):
-        """Decrypt tenant-specific configuration dictionary"""
+        """Decrypt organization-specific configuration dictionary."""
         try:
             if not self.custom_encrypted_config:
                 return {}
@@ -193,7 +241,7 @@ class TenantEmailProvider(BaseModel):
             raise ValidationError(f"Failed to decrypt custom configuration: {str(e)}")
     
     def get_effective_config(self):
-        """Get merged configuration (provider + tenant overrides)"""
+        """Get merged configuration (provider + organization overrides)."""
         base_config = self.provider.decrypt_config()
         custom_config = self.decrypt_custom_config()
         
@@ -202,7 +250,7 @@ class TenantEmailProvider(BaseModel):
         return effective_config
     
     def get_rate_limits(self):
-        """Get effective rate limits for this tenant-provider combination"""
+        """Get effective rate limits for this organization-provider combination."""
         return {
             'emails_per_minute': self.custom_max_emails_per_minute or self.provider.max_emails_per_minute,
             'emails_per_hour': self.custom_max_emails_per_hour or self.provider.max_emails_per_hour,
@@ -210,9 +258,9 @@ class TenantEmailProvider(BaseModel):
         }
     
     def can_send_email(self):
-        """Check if this tenant can send email via this provider"""
-        if not self.is_enabled or not self.provider.activated_by_root or not self.provider.activated_by_tmd:
-            return False, "Provider is disabled or not activated"
+        """Check if this organization can send email via this provider."""
+        if not self.is_enabled or not self.provider.is_active:
+            return False, "Provider is disabled or not active"
         
         limits = self.get_rate_limits()
         
@@ -230,13 +278,17 @@ class TenantEmailProvider(BaseModel):
         return True, "OK"
     
     class Meta:
-        unique_together = ['tenant_id', 'provider']
+        unique_together = ['organization', 'provider']
         indexes = [
-            models.Index(fields=['tenant_id', 'is_enabled']),
-            models.Index(fields=['tenant_id', 'is_primary']),
+            models.Index(fields=['organization', 'is_enabled']),
+            models.Index(fields=['organization', 'is_primary']),
         ]
-        verbose_name = "Tenant Email Provider"
-        verbose_name_plural = "Tenant Email Providers"
+        verbose_name = "Organization Email Provider"
+        verbose_name_plural = "Organization Email Providers"
     
     def __str__(self):
-        return f"Tenant {self.tenant_id} - {self.provider.name}"
+        return f"{self.organization.name} - {self.provider.name}"
+
+
+# Legacy alias for backward compatibility during migration
+TenantEmailProvider = OrganizationEmailProvider

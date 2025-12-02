@@ -1,12 +1,15 @@
+"""
+Email tracking models for delivery logs, validation, queue, and actions.
+"""
 import uuid
 from django.db import models
 from django.core.validators import EmailValidator
-from utils.base_models import BaseModel
-from authentication.models import Organization
+from apps.utils.base_models import BaseModel
+from apps.authentication.models import Organization
 
 
 class EmailValidation(BaseModel):
-    """Email validation and quality checks"""
+    """Email validation and quality checks."""
     
     VALIDATION_STATUS = [
         ('VALID', 'Valid'),
@@ -42,20 +45,20 @@ class EmailValidation(BaseModel):
     validation_provider = models.CharField(max_length=50, blank=True, help_text="Service used for validation")
     
     def calculate_reputation_score(self):
-        """Calculate email reputation score based on delivery history"""
+        """Calculate email reputation score based on delivery history."""
         total_attempts = self.bounce_count + self.complaint_count + self.successful_deliveries
         if total_attempts == 0:
-            return 100.0  # New email, assume good
+            return 100.0
         
         success_rate = (self.successful_deliveries / total_attempts) * 100
         bounce_penalty = (self.bounce_count / total_attempts) * 50
         complaint_penalty = (self.complaint_count / total_attempts) * 80
         
         score = success_rate - bounce_penalty - complaint_penalty
-        return max(0.0, min(100.0, score))  # Clamp between 0-100
+        return max(0.0, min(100.0, score))
     
     def update_reputation(self, event_type):
-        """Update reputation based on delivery event"""
+        """Update reputation based on delivery event."""
         if event_type == 'delivered':
             self.successful_deliveries += 1
         elif event_type == 'bounced':
@@ -63,10 +66,8 @@ class EmailValidation(BaseModel):
         elif event_type == 'complained':
             self.complaint_count += 1
         
-        # Recalculate validation score
         self.validation_score = self.calculate_reputation_score()
         
-        # Update validation status based on score
         if self.validation_score >= 80:
             self.validation_status = 'VALID'
         elif self.validation_score >= 50:
@@ -80,7 +81,6 @@ class EmailValidation(BaseModel):
         indexes = [
             models.Index(fields=['email_address']),
             models.Index(fields=['validation_status', 'is_blacklisted']),
-            models.Index(fields=['is_blacklisted', 'last_validated_at']),
         ]
         verbose_name = "Email Validation"
         verbose_name_plural = "Email Validations"
@@ -90,7 +90,7 @@ class EmailValidation(BaseModel):
 
 
 class EmailQueue(BaseModel):
-    """Email queue for batch processing and retry management"""
+    """Email queue for batch processing and retry management."""
     
     QUEUE_STATUS = [
         ('PENDING', 'Pending'),
@@ -103,13 +103,35 @@ class EmailQueue(BaseModel):
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
-    # Relationships - reference tenant by ID only
+    # Organization ownership
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='email_queue_items'
+    )
+    
+    # Related objects
     automation_rule = models.ForeignKey(
         'AutomationRule', 
         on_delete=models.CASCADE, 
-        related_name='queued_emails'
+        related_name='queued_emails',
+        null=True,
+        blank=True
     )
-    tenant_id = models.UUIDField(null=True, blank=True, db_index=True, help_text="Reference to tenant from tenant microservice (null for global emails)")
+    campaign = models.ForeignKey(
+        'Campaign',
+        on_delete=models.CASCADE,
+        related_name='queued_emails',
+        null=True,
+        blank=True
+    )
+    contact = models.ForeignKey(
+        'Contact',
+        on_delete=models.SET_NULL,
+        related_name='queued_emails',
+        null=True,
+        blank=True
+    )
     
     # Email details
     recipient_email = models.EmailField(db_index=True)
@@ -149,9 +171,8 @@ class EmailQueue(BaseModel):
     class Meta:
         ordering = ['priority', 'scheduled_at']
         indexes = [
-            models.Index(fields=['status', 'scheduled_at']),
-            models.Index(fields=['tenant_id', 'status']),
-            models.Index(fields=['tenant_id', 'automation_rule', 'status']),
+            models.Index(fields=['organization', 'status']),
+            models.Index(fields=['campaign', 'status']),
             models.Index(fields=['scheduled_at', 'priority']),
         ]
         verbose_name = "Email Queue Item"
@@ -162,7 +183,7 @@ class EmailQueue(BaseModel):
 
 
 class EmailDeliveryLog(BaseModel):
-    """Comprehensive email delivery tracking and analytics"""
+    """Comprehensive email delivery tracking and analytics."""
     
     DELIVERY_STATUS = [
         ('QUEUED', 'Queued'),
@@ -181,15 +202,17 @@ class EmailDeliveryLog(BaseModel):
         ('SOFT', 'Soft Bounce'),
         ('COMPLAINT', 'Complaint'),
     ]
-
-    LOG_SCOPE_CHOICES = [
-        ('TENANT', 'Tenant'),
-        ('GLOBAL', 'Global'),
-    ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
-    # Relationships
+    # Organization ownership
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='email_delivery_logs'
+    )
+    
+    # Related objects
     queue_item = models.OneToOneField(
         EmailQueue, 
         on_delete=models.CASCADE, 
@@ -203,22 +226,35 @@ class EmailDeliveryLog(BaseModel):
         null=True,
         blank=True
     )
-    tenant_id = models.UUIDField(null=True, blank=True, db_index=True, help_text="Reference to tenant from tenant microservice")
-    product_id = models.UUIDField(null=True, blank=True, db_index=True, help_text="Associated product for this dispatch")
-    reason_name = models.CharField(max_length=100, blank=True, help_text="Snapshot of automation reason at send time")
-    trigger_type = models.CharField(max_length=20, blank=True, help_text="Snapshot of trigger type at send time")
+    campaign = models.ForeignKey(
+        'Campaign',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='delivery_logs'
+    )
+    contact = models.ForeignKey(
+        'Contact',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='delivery_logs'
+    )
     email_template = models.ForeignKey(
         'EmailTemplate',
         on_delete=models.SET_NULL,
         null=True,
-        blank=True,
-        help_text="Email template used when rendering the message"
+        blank=True
     )
     email_validation = models.ForeignKey(
         EmailValidation, 
         on_delete=models.SET_NULL, 
         null=True
     )
+    
+    # Snapshot data (for historical record)
+    reason_name = models.CharField(max_length=100, blank=True, help_text="Snapshot of automation reason at send time")
+    trigger_type = models.CharField(max_length=20, blank=True, help_text="Snapshot of trigger type at send time")
     
     # Provider information
     email_provider = models.ForeignKey(
@@ -235,7 +271,6 @@ class EmailDeliveryLog(BaseModel):
     
     # Delivery tracking
     delivery_status = models.CharField(max_length=20, choices=DELIVERY_STATUS, db_index=True)
-    log_scope = models.CharField(max_length=10, choices=LOG_SCOPE_CHOICES, default='TENANT', db_index=True)
     
     # Timestamps
     sent_at = models.DateTimeField(auto_now_add=True)
@@ -277,22 +312,98 @@ class EmailDeliveryLog(BaseModel):
     
     class Meta:
         indexes = [
-            models.Index(fields=['tenant_id', 'delivery_status']),
-            models.Index(fields=['tenant_id', 'sent_at']),
+            models.Index(fields=['organization', 'delivery_status']),
+            models.Index(fields=['organization', 'sent_at']),
+            models.Index(fields=['campaign', 'delivery_status']),
+            models.Index(fields=['campaign', 'sent_at']),
             models.Index(fields=['recipient_email', 'sent_at']),
-            models.Index(fields=['automation_rule', 'sent_at']),
             models.Index(fields=['delivery_status', 'sent_at']),
             models.Index(fields=['provider_message_id']),
-            models.Index(fields=['log_scope', 'sent_at']),
-            models.Index(fields=['product_id', 'sent_at']),
-            models.Index(fields=['email_template', 'sent_at']),
         ]
         verbose_name = "Email Delivery Log"
         verbose_name_plural = "Email Delivery Logs"
     
     def __str__(self):
-        scope = self.log_scope or 'TENANT'
-        return f"[{scope}] Email to {self.recipient_email} - {self.delivery_status}"
+        return f"Email to {self.recipient_email} - {self.delivery_status}"
+    
+    def record_event(self, event_type: str, details: dict = None):
+        """Record an event in the event history."""
+        from django.utils import timezone
+        
+        event = {
+            'type': event_type,
+            'timestamp': timezone.now().isoformat(),
+            'details': details or {}
+        }
+        
+        if not self.event_history:
+            self.event_history = []
+        
+        self.event_history.append(event)
+        self.save(update_fields=['event_history'])
+    
+    def mark_opened(self, user_agent: str = None, ip_address: str = None):
+        """Mark email as opened."""
+        from django.utils import timezone
+        
+        if self.delivery_status not in ['OPENED', 'CLICKED']:
+            self.delivery_status = 'OPENED'
+            self.opened_at = timezone.now()
+        
+        self.open_count += 1
+        
+        if user_agent:
+            self.user_agent = user_agent
+        if ip_address:
+            self.ip_address = ip_address
+        
+        self.record_event('opened', {'user_agent': user_agent, 'ip': ip_address})
+        self.save()
+        
+        # Update contact stats if linked
+        if self.contact:
+            self.contact.record_email_opened()
+    
+    def mark_clicked(self, url: str = None, user_agent: str = None, ip_address: str = None):
+        """Mark email as clicked."""
+        from django.utils import timezone
+        
+        is_first_click = self.click_count == 0
+        
+        self.delivery_status = 'CLICKED'
+        self.clicked_at = timezone.now()
+        self.click_count += 1
+        
+        if is_first_click:
+            self.unique_click_count += 1
+        
+        if user_agent:
+            self.user_agent = user_agent
+        if ip_address:
+            self.ip_address = ip_address
+        
+        self.record_event('clicked', {'url': url, 'user_agent': user_agent, 'ip': ip_address})
+        self.save()
+        
+        # Update contact stats if linked
+        if self.contact:
+            self.contact.record_email_clicked()
+    
+    def mark_bounced(self, bounce_type: str, reason: str = ""):
+        """Mark email as bounced."""
+        from django.utils import timezone
+        
+        self.delivery_status = 'BOUNCED'
+        self.bounce_type = bounce_type
+        self.bounce_reason = reason
+        self.bounced_at = timezone.now()
+        
+        self.record_event('bounced', {'type': bounce_type, 'reason': reason})
+        self.save()
+        
+        # Update contact status if linked
+        if self.contact:
+            self.contact.mark_bounced(reason, bounce_type)
 
 
 class EmailAction(BaseModel):

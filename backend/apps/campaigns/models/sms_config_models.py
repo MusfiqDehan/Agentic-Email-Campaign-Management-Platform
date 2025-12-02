@@ -1,8 +1,8 @@
 from django.db import models
 import uuid
 
-from utils.base_models import BaseModel
-from authentication.models import Organization
+from apps.utils.base_models import BaseModel
+from apps.authentication.models import Organization
 
 class SMSConfigurationModel(BaseModel):
     """
