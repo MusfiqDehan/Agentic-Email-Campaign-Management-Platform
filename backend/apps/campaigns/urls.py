@@ -9,21 +9,55 @@ Simplified URL structure organized into clear sections:
 5. SMS/WhatsApp Automation
 6. Admin/Platform Operations
 7. Public Endpoints (Unsubscribe, Tracking)
+
+All endpoints use APIView for explicit control.
 """
 
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
 
 # Import campaign views
 from .views import (
-    # Campaign ViewSets (new)
-    ContactListViewSet,
-    ContactViewSet,
-    CampaignViewSet,
+    # Contact List Views
+    ContactListListCreateView,
+    ContactListDetailView,
+    ContactListRefreshStatsView,
     
-    # Admin ViewSets (new)
-    AdminEmailProviderViewSet,
-    AdminOrganizationConfigViewSet,
+    # Contact Views
+    ContactListView as ContactsListView,  # Renamed to avoid confusion
+    ContactDetailView,
+    ContactBulkImportView,
+    
+    # Campaign Views
+    CampaignListCreateView,
+    CampaignDetailView,
+    CampaignLaunchView,
+    CampaignScheduleView,
+    CampaignPauseView,
+    CampaignResumeView,
+    CampaignCancelView,
+    CampaignPreviewView,
+    CampaignTestSendView,
+    CampaignDuplicateView,
+    CampaignAnalyticsView,
+    CampaignRefreshStatsView,
+    
+    # Public Views
+    UnsubscribeView,
+    GDPRForgetView,
+    
+    # Admin Views
+    AdminEmailProviderListCreateView,
+    AdminEmailProviderDetailView,
+    AdminEmailProviderSetDefaultView,
+    AdminEmailProviderHealthCheckView,
+    AdminEmailProviderTestSendView,
+    AdminOrganizationConfigListView,
+    AdminOrganizationConfigDetailView,
+    AdminOrganizationSuspendView,
+    AdminOrganizationUnsuspendView,
+    AdminOrganizationUpgradePlanView,
+    AdminPlatformStatsView,
+    IsPlatformAdmin,
     
     # Email Template Views
     EmailTemplateListCreateView,
@@ -90,25 +124,35 @@ from .views.enhanced_views import (
     EnhancedTriggerEmailView,
 )
 
-# Setup routers for ViewSets
-router = DefaultRouter()
-router.register(r'contact-lists', ContactListViewSet, basename='contact-list')
-router.register(r'contacts', ContactViewSet, basename='contact')
-router.register(r'campaigns', CampaignViewSet, basename='campaign')
-
-# Admin router
-admin_router = DefaultRouter()
-admin_router.register(r'providers', AdminEmailProviderViewSet, basename='admin-provider')
-admin_router.register(r'organizations', AdminOrganizationConfigViewSet, basename='admin-org')
-
 
 urlpatterns = [
     # ========================================================================
-    # SECTION 1: CAMPAIGN MANAGEMENT (New REST ViewSets)
+    # SECTION 1: CAMPAIGN MANAGEMENT
     # ========================================================================
     
-    # Include router URLs (campaigns, contacts, contact lists)
-    path('', include(router.urls)),
+    # Campaigns
+    path('campaigns/', CampaignListCreateView.as_view(), name='campaign-list-create'),
+    path('campaigns/<uuid:pk>/', CampaignDetailView.as_view(), name='campaign-detail'),
+    path('campaigns/<uuid:pk>/launch/', CampaignLaunchView.as_view(), name='campaign-launch'),
+    path('campaigns/<uuid:pk>/schedule/', CampaignScheduleView.as_view(), name='campaign-schedule'),
+    path('campaigns/<uuid:pk>/pause/', CampaignPauseView.as_view(), name='campaign-pause'),
+    path('campaigns/<uuid:pk>/resume/', CampaignResumeView.as_view(), name='campaign-resume'),
+    path('campaigns/<uuid:pk>/cancel/', CampaignCancelView.as_view(), name='campaign-cancel'),
+    path('campaigns/<uuid:pk>/preview/', CampaignPreviewView.as_view(), name='campaign-preview'),
+    path('campaigns/<uuid:pk>/test-send/', CampaignTestSendView.as_view(), name='campaign-test-send'),
+    path('campaigns/<uuid:pk>/duplicate/', CampaignDuplicateView.as_view(), name='campaign-duplicate'),
+    path('campaigns/<uuid:pk>/analytics/', CampaignAnalyticsView.as_view(), name='campaign-analytics'),
+    path('campaigns/<uuid:pk>/refresh-stats/', CampaignRefreshStatsView.as_view(), name='campaign-refresh-stats'),
+    
+    # Contacts
+    path('contacts/', ContactsListView.as_view(), name='contact-list-create'),
+    path('contacts/bulk/', ContactBulkImportView.as_view(), name='contact-bulk-import'),
+    path('contacts/<uuid:pk>/', ContactDetailView.as_view(), name='contact-detail'),
+    
+    # Contact Lists
+    path('contact-lists/', ContactListListCreateView.as_view(), name='contact-list-list-create'),
+    path('contact-lists/<uuid:pk>/', ContactListDetailView.as_view(), name='contact-list-detail'),
+    path('contact-lists/<uuid:pk>/refresh-stats/', ContactListRefreshStatsView.as_view(), name='contact-list-refresh-stats'),
     
     # ========================================================================
     # SECTION 2: EMAIL CONFIGURATION
@@ -194,10 +238,32 @@ urlpatterns = [
     # Requires platform admin permissions
     # ========================================================================
     
-    path('admin/', include(admin_router.urls)),
+    # Admin Email Providers
+    path('admin/providers/', AdminEmailProviderListCreateView.as_view(), name='admin-provider-list-create'),
+    path('admin/providers/<uuid:pk>/', AdminEmailProviderDetailView.as_view(), name='admin-provider-detail'),
+    path('admin/providers/<uuid:pk>/set-default/', AdminEmailProviderSetDefaultView.as_view(), name='admin-provider-set-default'),
+    path('admin/providers/<uuid:pk>/health-check/', AdminEmailProviderHealthCheckView.as_view(), name='admin-provider-health-check'),
+    path('admin/providers/<uuid:pk>/test-send/', AdminEmailProviderTestSendView.as_view(), name='admin-provider-test-send'),
+    
+    # Admin Organization Configs
+    path('admin/organizations/', AdminOrganizationConfigListView.as_view(), name='admin-org-config-list'),
+    path('admin/organizations/<uuid:pk>/', AdminOrganizationConfigDetailView.as_view(), name='admin-org-config-detail'),
+    path('admin/organizations/<uuid:pk>/suspend/', AdminOrganizationSuspendView.as_view(), name='admin-org-suspend'),
+    path('admin/organizations/<uuid:pk>/unsuspend/', AdminOrganizationUnsuspendView.as_view(), name='admin-org-unsuspend'),
+    path('admin/organizations/<uuid:pk>/upgrade-plan/', AdminOrganizationUpgradePlanView.as_view(), name='admin-org-upgrade-plan'),
+    
+    # Admin Platform Stats
+    path('admin/stats/', AdminPlatformStatsView.as_view(), name='admin-platform-stats'),
     
     # ========================================================================
-    # SECTION 7: MONITORING & DEBUGGING
+    # SECTION 7: PUBLIC ENDPOINTS
+    # ========================================================================
+    
+    path('unsubscribe/', UnsubscribeView.as_view(), name='unsubscribe'),
+    path('gdpr/forget/', GDPRForgetView.as_view(), name='gdpr-forget'),
+    
+    # ========================================================================
+    # SECTION 8: MONITORING & DEBUGGING
     # ========================================================================
     
     path('stats/', AutomationStatsView.as_view(), name='automation-stats'),
