@@ -21,10 +21,15 @@ class IsPlatformAdmin(IsAdminUser):
     Permission class for platform administrators.
     
     Platform admins can manage shared providers and view all organizations.
+    Checks is_platform_admin field on User model (not is_staff).
     """
     
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.is_staff
+        return (
+            request.user and 
+            request.user.is_authenticated and 
+            getattr(request.user, 'is_platform_admin', False)
+        )
 
 
 # =============================================================================
