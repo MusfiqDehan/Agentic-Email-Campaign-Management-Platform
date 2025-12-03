@@ -20,7 +20,7 @@ services:
   web:
     build:
       context: ../../..
-      dockerfile: deployments/docker/build/Dockerfile
+      dockerfile: _deployments/docker/build/Dockerfile
       target: development
     container_name: email_campaign_web_dev
     environment:
