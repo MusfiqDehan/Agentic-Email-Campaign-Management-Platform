@@ -1,7 +1,20 @@
-from django.urls import path, include
-
-app_name = 'authentication'
+from django.urls import path
+from .views import (
+    SignupView,
+    EmailVerifyView,
+    LoginView,
+    LogoutView,
+    ChangePasswordView,
+    RequestPasswordResetView,
+    ResetPasswordView,
+)
 
 urlpatterns = [
-    path('api/v1/', include('apps.authentication.api.v1.urls')),
+    path("signup/", SignupView.as_view(), name="signup"),
+    path("login/", LoginView.as_view(), name="login"),
+    path("logout/", LogoutView.as_view(), name="logout"),
+    path("verify-email/", EmailVerifyView.as_view(), name="verify-email"),
+    path("change-password/", ChangePasswordView.as_view(), name="change-password"),
+    path("request-password-reset/", RequestPasswordResetView.as_view(), name="request-password-reset"),
+    path("reset-password/", ResetPasswordView.as_view(), name="reset-password"),
 ]
