@@ -6,6 +6,8 @@ Exports all views organized by purpose:
 - Campaign views: Campaigns, contacts, lists
 - Admin views: Platform admin operations
 - Enhanced views: Advanced provider and tracking features
+
+All views use APIView for explicit control over request handling.
 """
 
 # Core views - Email Templates & Automation Rules
@@ -36,20 +38,60 @@ from .debug_views import (
     DebugAutoHealthCheckView,
 )
 
-# Campaign views (new)
+# Campaign views - Contact Lists
 from .campaign_views import (
-    ContactListViewSet,
-    ContactViewSet,
-    CampaignViewSet,
+    ContactListListCreateView,
+    ContactListDetailView,
+    ContactListRefreshStatsView,
+)
+
+# Campaign views - Contacts
+from .campaign_views import (
+    ContactListView,
+    ContactDetailView,
+    ContactBulkImportView,
+)
+
+# Campaign views - Campaigns
+from .campaign_views import (
+    CampaignListCreateView,
+    CampaignDetailView,
+    CampaignLaunchView,
+    CampaignScheduleView,
+    CampaignPauseView,
+    CampaignResumeView,
+    CampaignCancelView,
+    CampaignPreviewView,
+    CampaignTestSendView,
+    CampaignDuplicateView,
+    CampaignAnalyticsView,
+    CampaignRefreshStatsView,
+)
+
+# Campaign views - Public
+from .campaign_views import (
     UnsubscribeView,
     GDPRForgetView,
 )
 
-# Admin views (new)
+# Admin views - Providers
 from .admin_views import (
-    AdminEmailProviderViewSet,
-    AdminOrganizationConfigViewSet,
     IsPlatformAdmin,
+    AdminEmailProviderListCreateView,
+    AdminEmailProviderDetailView,
+    AdminEmailProviderSetDefaultView,
+    AdminEmailProviderHealthCheckView,
+    AdminEmailProviderTestSendView,
+)
+
+# Admin views - Organizations
+from .admin_views import (
+    AdminOrganizationConfigListView,
+    AdminOrganizationConfigDetailView,
+    AdminOrganizationSuspendView,
+    AdminOrganizationUnsuspendView,
+    AdminOrganizationUpgradePlanView,
+    AdminPlatformStatsView,
 )
 
 # Activation views (simplified - is_active/is_published toggles)
@@ -79,15 +121,47 @@ __all__ = [
     # Debug Views
     'DebugAutoHealthCheckView',
     
-    # Campaign Views (new)
-    'ContactListViewSet',
-    'ContactViewSet',
-    'CampaignViewSet',
+    # Contact List Views
+    'ContactListListCreateView',
+    'ContactListDetailView',
+    'ContactListRefreshStatsView',
+    
+    # Contact Views
+    'ContactListView',
+    'ContactDetailView',
+    'ContactBulkImportView',
+    
+    # Campaign Views
+    'CampaignListCreateView',
+    'CampaignDetailView',
+    'CampaignLaunchView',
+    'CampaignScheduleView',
+    'CampaignPauseView',
+    'CampaignResumeView',
+    'CampaignCancelView',
+    'CampaignPreviewView',
+    'CampaignTestSendView',
+    'CampaignDuplicateView',
+    'CampaignAnalyticsView',
+    'CampaignRefreshStatsView',
+    
+    # Public Views
     'UnsubscribeView',
     'GDPRForgetView',
     
-    # Admin Views (new)
-    'AdminEmailProviderViewSet',
-    'AdminOrganizationConfigViewSet',
+    # Admin Views - Providers
     'IsPlatformAdmin',
+    'AdminEmailProviderListCreateView',
+    'AdminEmailProviderDetailView',
+    'AdminEmailProviderSetDefaultView',
+    'AdminEmailProviderHealthCheckView',
+    'AdminEmailProviderTestSendView',
+    
+    # Admin Views - Organizations
+    'AdminOrganizationConfigListView',
+    'AdminOrganizationConfigDetailView',
+    'AdminOrganizationSuspendView',
+    'AdminOrganizationUnsuspendView',
+    'AdminOrganizationUpgradePlanView',
+    'AdminPlatformStatsView',
 ]

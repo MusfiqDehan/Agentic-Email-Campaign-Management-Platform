@@ -2,11 +2,15 @@
 Admin views for platform administrators.
 
 These endpoints are for platform-level operations like managing shared providers.
+All views use APIView for explicit control over request handling.
 """
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.views import APIView
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from django.shortcuts import get_object_or_404
+from django.db.models import Count, Sum, Avg
+from django.utils import timezone
 
 from ..models import EmailProvider, OrganizationEmailConfiguration
 from ..serializers import EmailProviderSerializer
@@ -23,60 +27,122 @@ class IsPlatformAdmin(IsAdminUser):
         return request.user and request.user.is_authenticated and request.user.is_staff
 
 
-class AdminEmailProviderViewSet(viewsets.ModelViewSet):
+# =============================================================================
+# ADMIN EMAIL PROVIDER VIEWS
+# =============================================================================
+
+class AdminEmailProviderListCreateView(APIView):
     """
-    ViewSet for platform admins to manage shared email providers.
+    List all providers or create a new shared provider.
     
-    Endpoints:
-    - GET /admin/providers/ - List all providers (shared and org-owned)
-    - POST /admin/providers/ - Create a shared provider
-    - GET /admin/providers/{id}/ - Get provider details
-    - PUT /admin/providers/{id}/ - Update provider
-    - DELETE /admin/providers/{id}/ - Delete provider
-    - POST /admin/providers/{id}/set-default/ - Set as default shared provider
-    - POST /admin/providers/{id}/health-check/ - Run health check
+    GET /admin/providers/
+    POST /admin/providers/
     """
-    
-    serializer_class = EmailProviderSerializer
     permission_classes = [IsPlatformAdmin]
     
-    def get_queryset(self):
+    def get_queryset(self, request):
         """Return shared providers or all providers for superusers."""
         queryset = EmailProvider.objects.filter(is_deleted=False)
         
         # Filter to shared providers only unless superuser
-        if not self.request.user.is_superuser:
+        if not request.user.is_superuser:
             queryset = queryset.filter(is_shared=True)
         
         # Filter by type
-        provider_type = self.request.query_params.get('type')
+        provider_type = request.query_params.get('type')
         if provider_type:
             queryset = queryset.filter(provider_type=provider_type)
         
         # Filter by health status
-        health = self.request.query_params.get('health')
+        health = request.query_params.get('health')
         if health:
             queryset = queryset.filter(health_status=health)
         
         return queryset.order_by('priority', 'name')
     
-    def perform_create(self, serializer):
-        """Create a shared provider."""
-        serializer.save(
-            is_shared=True,
-            organization=None  # Shared providers have no organization
-        )
+    def get(self, request):
+        """List all providers."""
+        providers = self.get_queryset(request)
+        serializer = EmailProviderSerializer(providers, many=True)
+        return Response(serializer.data)
     
-    @action(detail=True, methods=['post'])
-    def set_default(self, request, pk=None):
-        """Set provider as default shared provider."""
-        provider = self.get_object()
-        
-        if not provider.is_shared:
-            return Response(
-                {'error': 'Only shared providers can be set as default'},
-                status=status.HTTP_400_BAD_REQUEST
+    def post(self, request):
+        """Create a shared provider."""
+        serializer = EmailProviderSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(
+                is_shared=True,
+                organization=None  # Shared providers have no organization
             )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminEmailProviderDetailView(APIView):
+    """
+    Retrieve, update or delete a provider.
+    
+    GET /admin/providers/{id}/
+    PUT /admin/providers/{id}/
+    PATCH /admin/providers/{id}/
+    DELETE /admin/providers/{id}/
+    """
+    permission_classes = [IsPlatformAdmin]
+    
+    def get_object(self, pk, user):
+        queryset = EmailProvider.objects.filter(is_deleted=False)
+        if not user.is_superuser:
+            queryset = queryset.filter(is_shared=True)
+        return get_object_or_404(queryset, pk=pk)
+    
+    def get(self, request, pk):
+        """Retrieve a provider."""
+        provider = self.get_object(pk, request.user)
+        serializer = EmailProviderSerializer(provider)
+        return Response(serializer.data)
+    
+    def put(self, request, pk):
+        """Update a provider."""
+        provider = self.get_object(pk, request.user)
+        serializer = EmailProviderSerializer(provider, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request, pk):
+        """Partially update a provider."""
+        provider = self.get_object(pk, request.user)
+        serializer = EmailProviderSerializer(provider, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, pk):
+        """Soft delete a provider."""
+        provider = self.get_object(pk, request.user)
+        provider.is_deleted = True
+        provider.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminEmailProviderSetDefaultView(APIView):
+    """
+    Set provider as default shared provider.
+    
+    POST /admin/providers/{id}/set-default/
+    """
+    permission_classes = [IsPlatformAdmin]
+    
+    def post(self, request, pk):
+        """Set provider as default shared provider."""
+        provider = get_object_or_404(
+            EmailProvider,
+            pk=pk,
+            is_deleted=False,
+            is_shared=True
+        )
         
         provider.is_default = True
         provider.save()
@@ -85,16 +151,25 @@ class AdminEmailProviderViewSet(viewsets.ModelViewSet):
             'message': f'{provider.name} is now the default shared provider',
             'provider_id': str(provider.id)
         })
+
+
+class AdminEmailProviderHealthCheckView(APIView):
+    """
+    Run health check on provider.
     
-    @action(detail=True, methods=['post'])
-    def health_check(self, request, pk=None):
+    POST /admin/providers/{id}/health-check/
+    """
+    permission_classes = [IsPlatformAdmin]
+    
+    def post(self, request, pk):
         """Run health check on provider."""
-        provider = self.get_object()
+        queryset = EmailProvider.objects.filter(is_deleted=False)
+        if not request.user.is_superuser:
+            queryset = queryset.filter(is_shared=True)
+        
+        provider = get_object_or_404(queryset, pk=pk)
         
         # TODO: Implement actual health check logic
-        from django.utils import timezone
-        
-        # For now, just update last check time
         provider.last_health_check = timezone.now()
         provider.health_status = 'HEALTHY'
         provider.save()
@@ -105,11 +180,23 @@ class AdminEmailProviderViewSet(viewsets.ModelViewSet):
             'health_status': provider.health_status,
             'last_health_check': provider.last_health_check
         })
+
+
+class AdminEmailProviderTestSendView(APIView):
+    """
+    Send a test email using this provider.
     
-    @action(detail=True, methods=['post'])
-    def test_send(self, request, pk=None):
+    POST /admin/providers/{id}/test-send/
+    """
+    permission_classes = [IsPlatformAdmin]
+    
+    def post(self, request, pk):
         """Send a test email using this provider."""
-        provider = self.get_object()
+        queryset = EmailProvider.objects.filter(is_deleted=False)
+        if not request.user.is_superuser:
+            queryset = queryset.filter(is_shared=True)
+        
+        provider = get_object_or_404(queryset, pk=pk)
         
         test_email = request.data.get('email')
         if not test_email:
@@ -125,37 +212,68 @@ class AdminEmailProviderViewSet(viewsets.ModelViewSet):
         })
 
 
-class AdminOrganizationConfigViewSet(viewsets.ReadOnlyModelViewSet):
+# =============================================================================
+# ADMIN ORGANIZATION CONFIG VIEWS
+# =============================================================================
+
+class AdminOrganizationConfigListView(APIView):
     """
-    ViewSet for platform admins to view organization configurations.
+    List all organization configurations.
     
-    Endpoints:
-    - GET /admin/organizations/ - List all organization configs
-    - GET /admin/organizations/{id}/ - Get organization config details
-    - POST /admin/organizations/{id}/suspend/ - Suspend organization
-    - POST /admin/organizations/{id}/unsuspend/ - Unsuspend organization
-    - POST /admin/organizations/{id}/upgrade-plan/ - Upgrade organization plan
+    GET /admin/organizations/
     """
-    
     permission_classes = [IsPlatformAdmin]
     
-    def get_queryset(self):
-        return OrganizationEmailConfiguration.objects.filter(
+    def get(self, request):
+        """List all organization configurations."""
+        configs = OrganizationEmailConfiguration.objects.filter(
             is_deleted=False
         ).select_related('organization')
+        
+        from ..serializers import OrganizationEmailConfigurationSerializer
+        serializer = OrganizationEmailConfigurationSerializer(configs, many=True)
+        return Response(serializer.data)
+
+
+class AdminOrganizationConfigDetailView(APIView):
+    """
+    Retrieve organization configuration details.
     
-    def get_serializer_class(self):
-        from ..serializers import TenantEmailConfigurationSerializer
-        return TenantEmailConfigurationSerializer
+    GET /admin/organizations/{id}/
+    """
+    permission_classes = [IsPlatformAdmin]
     
-    @action(detail=True, methods=['post'])
-    def suspend(self, request, pk=None):
+    def get(self, request, pk):
+        """Retrieve organization configuration."""
+        config = get_object_or_404(
+            OrganizationEmailConfiguration,
+            pk=pk,
+            is_deleted=False
+        )
+        
+        from ..serializers import OrganizationEmailConfigurationSerializer
+        serializer = OrganizationEmailConfigurationSerializer(config)
+        return Response(serializer.data)
+
+
+class AdminOrganizationSuspendView(APIView):
+    """
+    Suspend an organization's email service.
+    
+    POST /admin/organizations/{id}/suspend/
+    """
+    permission_classes = [IsPlatformAdmin]
+    
+    def post(self, request, pk):
         """Suspend an organization's email service."""
-        config = self.get_object()
+        config = get_object_or_404(
+            OrganizationEmailConfiguration,
+            pk=pk,
+            is_deleted=False
+        )
         
         reason = request.data.get('reason', 'Suspended by platform admin')
         
-        from django.utils import timezone
         config.is_suspended = True
         config.suspension_reason = reason
         config.suspended_at = timezone.now()
@@ -165,11 +283,23 @@ class AdminOrganizationConfigViewSet(viewsets.ReadOnlyModelViewSet):
             'message': f'Organization {config.organization.name} has been suspended',
             'reason': reason
         })
+
+
+class AdminOrganizationUnsuspendView(APIView):
+    """
+    Unsuspend an organization's email service.
     
-    @action(detail=True, methods=['post'])
-    def unsuspend(self, request, pk=None):
+    POST /admin/organizations/{id}/unsuspend/
+    """
+    permission_classes = [IsPlatformAdmin]
+    
+    def post(self, request, pk):
         """Unsuspend an organization's email service."""
-        config = self.get_object()
+        config = get_object_or_404(
+            OrganizationEmailConfiguration,
+            pk=pk,
+            is_deleted=False
+        )
         
         config.is_suspended = False
         config.suspension_reason = ''
@@ -179,11 +309,23 @@ class AdminOrganizationConfigViewSet(viewsets.ReadOnlyModelViewSet):
         return Response({
             'message': f'Organization {config.organization.name} has been unsuspended'
         })
+
+
+class AdminOrganizationUpgradePlanView(APIView):
+    """
+    Upgrade an organization's plan.
     
-    @action(detail=True, methods=['post'])
-    def upgrade_plan(self, request, pk=None):
+    POST /admin/organizations/{id}/upgrade-plan/
+    """
+    permission_classes = [IsPlatformAdmin]
+    
+    def post(self, request, pk):
         """Upgrade an organization's plan."""
-        config = self.get_object()
+        config = get_object_or_404(
+            OrganizationEmailConfiguration,
+            pk=pk,
+            is_deleted=False
+        )
         
         new_plan = request.data.get('plan_type')
         if not new_plan:
@@ -207,13 +349,19 @@ class AdminOrganizationConfigViewSet(viewsets.ReadOnlyModelViewSet):
             'message': f'Organization {config.organization.name} upgraded from {old_plan} to {config.plan_type}',
             'new_limits': config.plan_limits
         })
+
+
+class AdminPlatformStatsView(APIView):
+    """
+    Get platform-wide statistics.
     
-    @action(detail=False, methods=['get'])
-    def stats(self, request):
+    GET /admin/stats/
+    """
+    permission_classes = [IsPlatformAdmin]
+    
+    def get(self, request):
         """Get platform-wide statistics."""
-        from django.db.models import Sum, Avg
-        
-        configs = self.get_queryset()
+        configs = OrganizationEmailConfiguration.objects.filter(is_deleted=False)
         
         stats = configs.aggregate(
             total_orgs=Count('id'),
@@ -238,7 +386,3 @@ class AdminOrganizationConfigViewSet(viewsets.ReadOnlyModelViewSet):
             'suspended_organizations': suspended_count,
             'plan_breakdown': list(plan_breakdown)
         })
-
-
-# Import Count for stats
-from django.db.models import Count

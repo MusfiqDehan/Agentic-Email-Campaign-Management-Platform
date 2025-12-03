@@ -1,13 +1,15 @@
 """
 Views for Campaign, Contact, and ContactList management.
+
+All views use APIView for explicit control over request handling.
 """
-from rest_framework import viewsets, status, generics
-from rest_framework.decorators import action
+from rest_framework.views import APIView
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 from django.db.models.functions import TruncHour, TruncDay
-from django.utils import timezone
 
 from ..models import Campaign, Contact, ContactList, EmailDeliveryLog
 from ..serializers import (
@@ -25,36 +27,111 @@ from ..serializers import (
     UnsubscribeSerializer,
     GDPRForgetSerializer,
 )
-from utils.throttles import OrganizationRateThrottle, EmailSendingRateThrottle
+from apps.utils.throttles import OrganizationRateThrottle, EmailSendingRateThrottle
 
 
-class ContactListViewSet(viewsets.ModelViewSet):
+# =============================================================================
+# CONTACT LIST VIEWS
+# =============================================================================
+
+class ContactListListCreateView(APIView):
     """
-    ViewSet for managing contact lists.
+    List all contact lists or create a new one.
     
-    Endpoints:
-    - GET /contacts/lists/ - List all contact lists
-    - POST /contacts/lists/ - Create a new contact list
-    - GET /contacts/lists/{id}/ - Get contact list details
-    - PUT /contacts/lists/{id}/ - Update contact list
-    - DELETE /contacts/lists/{id}/ - Delete contact list (soft delete)
-    - POST /contacts/lists/{id}/refresh-stats/ - Refresh list statistics
+    GET /contact-lists/
+    POST /contact-lists/
     """
-    
-    serializer_class = ContactListSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [OrganizationRateThrottle]
     
-    def get_queryset(self):
-        return ContactList.objects.filter(
-            organization=self.request.user.organization,
+    def get(self, request):
+        """List all contact lists for the organization."""
+        contact_lists = ContactList.objects.filter(
+            organization=request.user.organization,
             is_deleted=False
         ).order_by('-created_at')
+        
+        serializer = ContactListSummarySerializer(contact_lists, many=True)
+        return Response(serializer.data)
     
-    @action(detail=True, methods=['post'])
-    def refresh_stats(self, request, pk=None):
+    def post(self, request):
+        """Create a new contact list."""
+        serializer = ContactListSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save(organization=request.user.organization)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ContactListDetailView(APIView):
+    """
+    Retrieve, update or delete a contact list.
+    
+    GET /contact-lists/{id}/
+    PUT /contact-lists/{id}/
+    PATCH /contact-lists/{id}/
+    DELETE /contact-lists/{id}/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def get_object(self, pk, user):
+        return get_object_or_404(
+            ContactList,
+            pk=pk,
+            organization=user.organization,
+            is_deleted=False
+        )
+    
+    def get(self, request, pk):
+        """Retrieve a contact list."""
+        contact_list = self.get_object(pk, request.user)
+        serializer = ContactListSerializer(contact_list, context={'request': request})
+        return Response(serializer.data)
+    
+    def put(self, request, pk):
+        """Update a contact list."""
+        contact_list = self.get_object(pk, request.user)
+        serializer = ContactListSerializer(contact_list, data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request, pk):
+        """Partially update a contact list."""
+        contact_list = self.get_object(pk, request.user)
+        serializer = ContactListSerializer(contact_list, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, pk):
+        """Soft delete a contact list."""
+        contact_list = self.get_object(pk, request.user)
+        contact_list.is_deleted = True
+        contact_list.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ContactListRefreshStatsView(APIView):
+    """
+    Refresh contact list statistics.
+    
+    POST /contact-lists/{id}/refresh-stats/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def post(self, request, pk):
         """Refresh contact list statistics."""
-        contact_list = self.get_object()
+        contact_list = get_object_or_404(
+            ContactList,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
         contact_list.update_stats()
         return Response({
             'total_contacts': contact_list.total_contacts,
@@ -64,46 +141,43 @@ class ContactListViewSet(viewsets.ModelViewSet):
         })
 
 
-class ContactViewSet(viewsets.ModelViewSet):
+# =============================================================================
+# CONTACT VIEWS
+# =============================================================================
+
+class ContactListView(APIView):
     """
-    ViewSet for managing contacts.
+    List all contacts or create a new one.
     
-    Endpoints:
-    - GET /contacts/ - List all contacts
-    - POST /contacts/ - Create a new contact
-    - POST /contacts/bulk/ - Bulk import contacts (CSV/JSON)
-    - GET /contacts/{id}/ - Get contact details
-    - PUT /contacts/{id}/ - Update contact
-    - DELETE /contacts/{id}/ - Delete contact (soft delete)
+    GET /contacts/
+    POST /contacts/
     """
-    
-    serializer_class = ContactSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [OrganizationRateThrottle]
     
-    def get_queryset(self):
+    def get_queryset(self, request):
         queryset = Contact.objects.filter(
-            organization=self.request.user.organization,
+            organization=request.user.organization,
             is_deleted=False
         ).select_related('organization').prefetch_related('lists')
         
         # Filter by list
-        list_id = self.request.query_params.get('list')
+        list_id = request.query_params.get('list')
         if list_id:
             queryset = queryset.filter(lists__id=list_id)
         
         # Filter by status
-        status_filter = self.request.query_params.get('status')
+        status_filter = request.query_params.get('status')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
         
         # Filter by tag
-        tag = self.request.query_params.get('tag')
+        tag = request.query_params.get('tag')
         if tag:
             queryset = queryset.filter(tags__contains=[tag])
         
         # Search by email or name
-        search = self.request.query_params.get('search')
+        search = request.query_params.get('search')
         if search:
             queryset = queryset.filter(
                 Q(email__icontains=search) |
@@ -113,78 +187,212 @@ class ContactViewSet(viewsets.ModelViewSet):
         
         return queryset.order_by('-created_at')
     
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return ContactMinimalSerializer
-        return ContactSerializer
+    def get(self, request):
+        """List all contacts for the organization."""
+        contacts = self.get_queryset(request)
+        serializer = ContactMinimalSerializer(contacts, many=True)
+        return Response(serializer.data)
     
-    @action(detail=False, methods=['post'])
-    def bulk(self, request):
+    def post(self, request):
+        """Create a new contact."""
+        serializer = ContactSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save(organization=request.user.organization)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ContactDetailView(APIView):
+    """
+    Retrieve, update or delete a contact.
+    
+    GET /contacts/{id}/
+    PUT /contacts/{id}/
+    PATCH /contacts/{id}/
+    DELETE /contacts/{id}/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def get_object(self, pk, user):
+        return get_object_or_404(
+            Contact,
+            pk=pk,
+            organization=user.organization,
+            is_deleted=False
+        )
+    
+    def get(self, request, pk):
+        """Retrieve a contact."""
+        contact = self.get_object(pk, request.user)
+        serializer = ContactSerializer(contact, context={'request': request})
+        return Response(serializer.data)
+    
+    def put(self, request, pk):
+        """Update a contact."""
+        contact = self.get_object(pk, request.user)
+        serializer = ContactSerializer(contact, data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request, pk):
+        """Partially update a contact."""
+        contact = self.get_object(pk, request.user)
+        serializer = ContactSerializer(contact, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, pk):
+        """Soft delete a contact."""
+        contact = self.get_object(pk, request.user)
+        contact.is_deleted = True
+        contact.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ContactBulkImportView(APIView):
+    """
+    Bulk import contacts from CSV or JSON.
+    
+    POST /contacts/bulk/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def post(self, request):
         """Bulk import contacts from CSV or JSON."""
         serializer = BulkContactCreateSerializer(
             data=request.data,
             context={'request': request}
         )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.save()
-        
-        return Response(result, status=status.HTTP_201_CREATED)
+        if serializer.is_valid():
+            result = serializer.save()
+            return Response(result, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CampaignViewSet(viewsets.ModelViewSet):
+# =============================================================================
+# CAMPAIGN VIEWS
+# =============================================================================
+
+class CampaignListCreateView(APIView):
     """
-    ViewSet for managing email campaigns.
+    List all campaigns or create a new one.
     
-    Endpoints:
-    - GET /campaigns/ - List all campaigns
-    - POST /campaigns/ - Create a new campaign
-    - GET /campaigns/{id}/ - Get campaign details
-    - PUT /campaigns/{id}/ - Update campaign
-    - DELETE /campaigns/{id}/ - Delete campaign (soft delete)
-    - POST /campaigns/{id}/launch/ - Launch campaign immediately
-    - POST /campaigns/{id}/schedule/ - Schedule campaign
-    - POST /campaigns/{id}/pause/ - Pause sending campaign
-    - POST /campaigns/{id}/resume/ - Resume paused campaign
-    - POST /campaigns/{id}/cancel/ - Cancel campaign
-    - GET /campaigns/{id}/preview/ - Preview campaign email
-    - POST /campaigns/{id}/test-send/ - Send test email
-    - POST /campaigns/{id}/duplicate/ - Duplicate campaign
-    - GET /campaigns/{id}/analytics/ - Get campaign analytics
+    GET /campaigns/
+    POST /campaigns/
     """
-    
-    serializer_class = CampaignSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [OrganizationRateThrottle]
     
-    def get_queryset(self):
+    def get_queryset(self, request):
         queryset = Campaign.objects.filter(
-            organization=self.request.user.organization,
+            organization=request.user.organization,
             is_deleted=False
         ).select_related(
             'organization', 'email_template', 'email_provider'
         ).prefetch_related('contact_lists')
         
         # Filter by status
-        status_filter = self.request.query_params.get('status')
+        status_filter = request.query_params.get('status')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
         
         # Filter by tag
-        tag = self.request.query_params.get('tag')
+        tag = request.query_params.get('tag')
         if tag:
             queryset = queryset.filter(tags__contains=[tag])
         
         return queryset.order_by('-created_at')
     
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return CampaignListSerializer
-        return CampaignSerializer
+    def get(self, request):
+        """List all campaigns for the organization."""
+        campaigns = self.get_queryset(request)
+        serializer = CampaignListSerializer(campaigns, many=True, context={'request': request})
+        return Response(serializer.data)
     
-    @action(detail=True, methods=['post'], throttle_classes=[EmailSendingRateThrottle])
-    def launch(self, request, pk=None):
+    def post(self, request):
+        """Create a new campaign."""
+        serializer = CampaignSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save(organization=request.user.organization)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CampaignDetailView(APIView):
+    """
+    Retrieve, update or delete a campaign.
+    
+    GET /campaigns/{id}/
+    PUT /campaigns/{id}/
+    PATCH /campaigns/{id}/
+    DELETE /campaigns/{id}/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def get_object(self, pk, user):
+        return get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=user.organization,
+            is_deleted=False
+        )
+    
+    def get(self, request, pk):
+        """Retrieve a campaign."""
+        campaign = self.get_object(pk, request.user)
+        serializer = CampaignSerializer(campaign, context={'request': request})
+        return Response(serializer.data)
+    
+    def put(self, request, pk):
+        """Update a campaign."""
+        campaign = self.get_object(pk, request.user)
+        serializer = CampaignSerializer(campaign, data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request, pk):
+        """Partially update a campaign."""
+        campaign = self.get_object(pk, request.user)
+        serializer = CampaignSerializer(campaign, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, pk):
+        """Soft delete a campaign."""
+        campaign = self.get_object(pk, request.user)
+        campaign.is_deleted = True
+        campaign.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CampaignLaunchView(APIView):
+    """
+    Launch campaign immediately.
+    
+    POST /campaigns/{id}/launch/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [EmailSendingRateThrottle]
+    
+    def post(self, request, pk):
         """Launch campaign immediately."""
-        campaign = self.get_object()
+        campaign = get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
         
         try:
             campaign.launch()
@@ -198,11 +406,25 @@ class CampaignViewSet(viewsets.ModelViewSet):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+class CampaignScheduleView(APIView):
+    """
+    Schedule campaign for future send.
     
-    @action(detail=True, methods=['post'])
-    def schedule(self, request, pk=None):
+    POST /campaigns/{id}/schedule/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def post(self, request, pk):
         """Schedule campaign for future send."""
-        campaign = self.get_object()
+        campaign = get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
         
         if campaign.status not in ['DRAFT']:
             return Response(
@@ -211,7 +433,8 @@ class CampaignViewSet(viewsets.ModelViewSet):
             )
         
         serializer = CampaignScheduleSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         campaign.scheduled_at = serializer.validated_data['scheduled_at']
         campaign.status = 'SCHEDULED'
@@ -223,66 +446,145 @@ class CampaignViewSet(viewsets.ModelViewSet):
             'scheduled_at': campaign.scheduled_at,
             'total_recipients': campaign.stats_total_recipients
         })
+
+
+class CampaignPauseView(APIView):
+    """
+    Pause sending campaign.
     
-    @action(detail=True, methods=['post'])
-    def pause(self, request, pk=None):
+    POST /campaigns/{id}/pause/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def post(self, request, pk):
         """Pause sending campaign."""
-        campaign = self.get_object()
+        campaign = get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
         
         try:
             campaign.pause()
             return Response({'message': 'Campaign paused', 'status': campaign.status})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CampaignResumeView(APIView):
+    """
+    Resume paused campaign.
     
-    @action(detail=True, methods=['post'])
-    def resume(self, request, pk=None):
+    POST /campaigns/{id}/resume/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def post(self, request, pk):
         """Resume paused campaign."""
-        campaign = self.get_object()
+        campaign = get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
         
         try:
             campaign.resume()
             return Response({'message': 'Campaign resumed', 'status': campaign.status})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CampaignCancelView(APIView):
+    """
+    Cancel campaign.
     
-    @action(detail=True, methods=['post'])
-    def cancel(self, request, pk=None):
+    POST /campaigns/{id}/cancel/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def post(self, request, pk):
         """Cancel campaign."""
-        campaign = self.get_object()
+        campaign = get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
         
         try:
             campaign.cancel()
             return Response({'message': 'Campaign cancelled', 'status': campaign.status})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CampaignPreviewView(APIView):
+    """
+    Preview campaign email.
     
-    @action(detail=True, methods=['get', 'post'])
-    def preview(self, request, pk=None):
-        """Preview campaign email."""
-        campaign = self.get_object()
+    GET /campaigns/{id}/preview/
+    POST /campaigns/{id}/preview/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def get(self, request, pk):
+        """Preview campaign email with default settings."""
+        campaign = get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
+        preview = campaign.preview(None)
+        return Response(preview)
+    
+    def post(self, request, pk):
+        """Preview campaign email with specific contact."""
+        campaign = get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
         
         contact = None
-        if request.method == 'POST':
-            serializer = CampaignPreviewSerializer(
-                data=request.data,
-                context={'request': request}
-            )
-            serializer.is_valid(raise_exception=True)
+        serializer = CampaignPreviewSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
             contact_id = serializer.validated_data.get('contact_id')
             if contact_id:
                 contact = Contact.objects.filter(id=contact_id).first()
         
         preview = campaign.preview(contact)
         return Response(preview)
+
+
+class CampaignTestSendView(APIView):
+    """
+    Send test email.
     
-    @action(detail=True, methods=['post'], throttle_classes=[EmailSendingRateThrottle])
-    def test_send(self, request, pk=None):
+    POST /campaigns/{id}/test-send/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [EmailSendingRateThrottle]
+    
+    def post(self, request, pk):
         """Send test email."""
-        campaign = self.get_object()
+        campaign = get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
         
         serializer = CampaignTestSendSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         contact = None
         contact_id = serializer.validated_data.get('contact_id')
@@ -301,14 +603,29 @@ class CampaignViewSet(viewsets.ModelViewSet):
             'message': f"Test emails queued for {len(results)} recipients",
             'results': results
         })
+
+
+class CampaignDuplicateView(APIView):
+    """
+    Duplicate campaign.
     
-    @action(detail=True, methods=['post'])
-    def duplicate(self, request, pk=None):
+    POST /campaigns/{id}/duplicate/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def post(self, request, pk):
         """Duplicate campaign."""
-        campaign = self.get_object()
+        campaign = get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
         
         serializer = CampaignDuplicateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         new_campaign = campaign.duplicate(
             new_name=serializer.validated_data.get('new_name')
@@ -318,11 +635,25 @@ class CampaignViewSet(viewsets.ModelViewSet):
             CampaignSerializer(new_campaign, context={'request': request}).data,
             status=status.HTTP_201_CREATED
         )
+
+
+class CampaignAnalyticsView(APIView):
+    """
+    Get campaign analytics with time series data.
     
-    @action(detail=True, methods=['get'])
-    def analytics(self, request, pk=None):
+    GET /campaigns/{id}/analytics/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def get(self, request, pk):
         """Get campaign analytics with time series data."""
-        campaign = self.get_object()
+        campaign = get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
         
         period = request.query_params.get('period', 'day')
         
@@ -365,11 +696,25 @@ class CampaignViewSet(viewsets.ModelViewSet):
                 'delivery_rate': campaign.delivery_rate,
             }
         })
+
+
+class CampaignRefreshStatsView(APIView):
+    """
+    Refresh campaign statistics from delivery logs.
     
-    @action(detail=True, methods=['post'])
-    def refresh_stats(self, request, pk=None):
+    POST /campaigns/{id}/refresh-stats/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def post(self, request, pk):
         """Refresh campaign statistics from delivery logs."""
-        campaign = self.get_object()
+        campaign = get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
         campaign.update_stats_from_logs()
         
         return Response({
@@ -384,30 +729,18 @@ class CampaignViewSet(viewsets.ModelViewSet):
         })
 
 
-class UnsubscribeView(generics.GenericAPIView):
+# =============================================================================
+# PUBLIC VIEWS
+# =============================================================================
+
+class UnsubscribeView(APIView):
     """
     Public endpoint for unsubscribing contacts.
     
-    POST /unsubscribe/
+    GET /unsubscribe/?token=xxx - Get unsubscribe confirmation page data
+    POST /unsubscribe/ - Process unsubscription
     """
-    
     permission_classes = []  # Public endpoint
-    serializer_class = UnsubscribeSerializer
-    
-    def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        token = serializer.validated_data['token']
-        reason = serializer.validated_data.get('reason', '')
-        
-        contact = Contact.objects.get(unsubscribe_token=token)
-        contact.unsubscribe(reason)
-        
-        return Response({
-            'message': 'Successfully unsubscribed',
-            'email': contact.email
-        })
     
     def get(self, request):
         """Handle GET requests for unsubscribe links."""
@@ -434,22 +767,45 @@ class UnsubscribeView(generics.GenericAPIView):
             'status': contact.status,
             'confirm_url': f'/api/campaigns/unsubscribe/?token={token}'
         })
+    
+    def post(self, request):
+        """Process unsubscription."""
+        serializer = UnsubscribeSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        token = serializer.validated_data['token']
+        reason = serializer.validated_data.get('reason', '')
+        
+        contact = Contact.objects.filter(unsubscribe_token=token).first()
+        if not contact:
+            return Response(
+                {'error': 'Invalid token'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        contact.unsubscribe(reason)
+        
+        return Response({
+            'message': 'Successfully unsubscribed',
+            'email': contact.email
+        })
 
 
-class GDPRForgetView(generics.GenericAPIView):
+class GDPRForgetView(APIView):
     """
     GDPR forget endpoint for anonymizing contact data.
     
     POST /gdpr/forget/
     """
-    
     permission_classes = [IsAuthenticated]
-    serializer_class = GDPRForgetSerializer
     throttle_classes = [OrganizationRateThrottle]
     
     def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        """Anonymize contact data for GDPR compliance."""
+        serializer = GDPRForgetSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         email = serializer.validated_data['email']
         
