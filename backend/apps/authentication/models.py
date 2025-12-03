@@ -26,12 +26,36 @@ class User(AbstractUser):
     city = models.CharField(max_length=120, blank=True)
     address = models.TextField(blank=True)
     phone_number = models.CharField(max_length=20, blank=True)
+    
+    # Platform admin flag - separate from is_staff (Django admin access)
+    is_platform_admin = models.BooleanField(
+        default=False,
+        help_text="Designates whether this user can manage platform-wide settings like shared email providers and view all organizations."
+    )
 
     class Meta:
         unique_together = ("email", "organization")
 
     def __str__(self):
         return f"{self.username} ({self.email})"
+    
+    @property
+    def is_org_owner(self):
+        """Check if user owns their current organization."""
+        if self.organization:
+            return self.organization.owner_id == self.id
+        return False
+    
+    @property
+    def is_org_admin(self):
+        """Check if user is admin of their current organization."""
+        if self.organization:
+            membership = self.memberships.filter(
+                organization=self.organization,
+                is_active=True
+            ).first()
+            return membership and membership.role in ('owner', 'admin')
+        return False
 
 
 class Organization(models.Model):
