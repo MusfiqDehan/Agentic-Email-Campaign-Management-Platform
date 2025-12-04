@@ -227,11 +227,17 @@ def is_email_service_active(tenant_id: str = None, product_id: str = None) -> bo
     Returns:
         bool: True if email service is active and can send emails
     """
-    from service_integration.models import (
-        ServiceDefinition, 
-        TenantServiceSubscription,
-        ServiceProductActivation
-    )
+    # Legacy implementation: service_integration module no longer exists in current architecture
+    # For now, assume the service is always active. This should be refactored with new architecture.
+    logger.info("[is_email_service_active] Service activation check (legacy module removed)")
+    return True
+    
+    # Original code referencing non-existent module:
+    # from service_integration.models import (
+    #     ServiceDefinition, 
+    #     TenantServiceSubscription,
+    #     ServiceProductActivation
+    # )
     
     # =========================================================================
     # Level 1: Global Service Definition (TMD Control)

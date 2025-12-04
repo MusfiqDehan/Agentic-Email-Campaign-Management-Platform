@@ -7,9 +7,9 @@ from django.utils.html import strip_tags
 from ..models import AutomationRule, EmailTemplate, EmailProvider
 from ..backends import DynamicEmailBackend
 
-# Import both legacy and new models
-from service_integration.models import ServiceDefinition
-from service_integration.models import is_service_active_for_product
+# Legacy imports - commented out as we use the new unified approach
+# from service_integration.models import ServiceDefinition
+# from service_integration.models import is_service_active_for_product
 
 # Import the new unified email sender
 from .unified_email_sender import UnifiedEmailSender
