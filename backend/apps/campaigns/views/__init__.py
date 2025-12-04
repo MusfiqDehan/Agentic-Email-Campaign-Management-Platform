@@ -95,7 +95,9 @@ from .admin_views import (
 )
 
 # Activation views (simplified - is_active/is_published toggles)
-from .activation_views import *
+# Commented out: These views depend on automation_rule module which no longer exists
+# TODO: Refactor activation views with new architecture
+# from .activation_views import *
 
 __all__ = [
     # Email Template Views

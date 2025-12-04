@@ -150,7 +150,7 @@ class TenantEmailConfigurationUsageStatsView(CustomResponseMixin, APIView):
 class EmailProviderListCreateView(UniversalAutoFilterMixin, CustomResponseMixin, generics.ListCreateAPIView):
     """List and create email providers with universal filtering"""
     
-    queryset = EmailProvider.objects.filter(is_global=True)
+    queryset = EmailProvider.objects.filter(is_shared=True)
     serializer_class = EmailProviderSerializer
     permission_classes = [permissions.AllowAny]
     ordering = ['priority', 'name']
@@ -929,10 +929,10 @@ class TenantOwnEmailProviderListCreateView(CustomResponseMixin, generics.ListCre
         if not tenant_id:
             return EmailProvider.objects.none()
         
-        # Return ONLY tenant-owned providers (not global providers)
+        # Return ONLY organization-owned providers (not shared providers)
         return EmailProvider.objects.filter(
-            tenant_id=tenant_id,
-            is_global=False
+            organization_id=tenant_id,
+            is_shared=False
         )
     
     def _get_tenant_from_request(self):
@@ -981,7 +981,7 @@ class TenantOwnEmailProviderListCreateView(CustomResponseMixin, generics.ListCre
                 'tenant_id': f'Invalid tenant_id format. Must be a valid UUID, got: {tenant_id}'
             })
         
-        serializer.save(tenant_id=tenant_id, is_global=False)
+        serializer.save(organization_id=tenant_id, is_shared=False)
 
 class TenantOwnEmailProviderDetailView(CustomResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update and delete tenant-owned email provider configurations"""
@@ -998,8 +998,8 @@ class TenantOwnEmailProviderDetailView(CustomResponseMixin, generics.RetrieveUpd
             return EmailProvider.objects.none()
         
         return EmailProvider.objects.filter(
-            tenant_id=tenant_id,
-            is_global=False
+            organization_id=tenant_id,
+            is_shared=False
         )
     
     def _get_tenant_from_request(self):
@@ -1060,8 +1060,8 @@ class TenantOwnEmailProviderHealthCheckView(CustomResponseMixin, APIView):
         try:
             provider = EmailProvider.objects.get(
                 pk=pk,
-                tenant_id=tenant_id,
-                is_global=False
+                organization_id=tenant_id,
+                is_shared=False
             )
         except EmailProvider.DoesNotExist:
             return self.error_response(
@@ -1409,37 +1409,12 @@ class EnhancedTriggerEmailView(CustomResponseMixin, generics.GenericAPIView):
             # Ensure the Email Automation service is active for this tenant (or globally as fallback)
             if tenant_id_str:
                 if not is_email_service_active(tenant_id=tenant_id_str):
-                    from service_integration.models import ServiceDefinition
-
-                    service_record = ServiceDefinition.objects.filter(
-                        service_name="Email Automation",
-                        tenant_id=tenant_id
-                    ).first()
-
-                    if service_record:
-                        if not service_record.activated_by_tmd:
-                            logger.warning(
-                                "Email service is not activated by TMD for tenant %s.", tenant_id_str
-                            )
-                        elif not service_record.enabled_for_td:
-                            logger.warning(
-                                "Email service is not enabled for TD for tenant %s.", tenant_id_str
-                            )
-                        elif not service_record.activated_by_td:
-                            logger.warning(
-                                "Email service is not activated by TD for tenant %s.", tenant_id_str
-                            )
-                        else:
-                            logger.warning(
-                                "Email service activation check failed for tenant %s despite record being present.",
-                                tenant_id_str
-                            )
-                    else:
-                        logger.warning(
-                            "Email service integration record not found for tenant %s. Activate the service to proceed.",
-                            tenant_id_str
-                        )
-
+                    # from service_integration.models import ServiceDefinition  # Legacy - module doesn't exist
+                    # Simplified: if service is not active, log and deny
+                    logger.warning(
+                        "Email service is not activated for tenant %s. Activate the service to proceed.",
+                        tenant_id_str
+                    )
                     return False
             else:
                 if not is_email_service_active():
