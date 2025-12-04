@@ -1,6 +1,8 @@
 Django==5.2.8
 djangorestframework==3.15.2
 djangorestframework-simplejwt==5.3.1
+django-filter==24.1
+icecream>=0.14.0
 psycopg==3.2.13
 python-decouple==3.8
 whitenoise==6.6.0
@@ -19,4 +21,9 @@ gunicorn==21.2.0
 redis==5.0.1
 sentry-sdk==1.39.2
 django-cors-headers==4.3.1
-pytz==2024.1
+celery==5.3.4
+django-celery-beat==2.8.0
+django-celery-results==2.5.1
+django-ses==4.4.0
+twilio==9.8.8
+cryptography==41.0.7
