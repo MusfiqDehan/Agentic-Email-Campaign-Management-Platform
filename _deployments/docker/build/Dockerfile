@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for Email Campaign Management Platform
-FROM python:3.11-slim AS base
+FROM python:3.13-slim AS base
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -20,13 +20,13 @@ RUN groupadd --gid 1000 appuser && \
 WORKDIR /app
 
 # Copy requirements
-COPY backend/requirements/ requirements/
+COPY backend/requirements.txt requirements.txt
 
 # Development stage
 FROM base AS development
-RUN pip install --no-cache-dir -r requirements/dev.txt
+RUN pip install --no-cache-dir -r requirements.txt
 USER appuser
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8800"]
 
 # Production stage
 FROM base AS production
@@ -49,4 +49,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/admin/login/ || exit 1
 
 # Run with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "project_config.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8800", "--workers", "3", "project_config.wsgi:application"]
