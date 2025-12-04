@@ -115,6 +115,7 @@ REST_FRAMEWORK = {
         "auth_burst": "10/minute",
         "auth_sustained": "100/day",
     },
+    "EXCEPTION_HANDLER": "core.exceptions.custom_exception_handler",
 }
 
 # Simple JWT
