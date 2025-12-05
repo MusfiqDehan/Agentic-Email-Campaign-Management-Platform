@@ -28,8 +28,8 @@ from campaigns.serializers import (
     EmailProviderSerializer,
     TenantEmailProviderSerializer,
     TenantEmailConfigurationSerializer,
-    GlobalAutomationRuleSerializer,
-    GlobalEmailTemplateSerializer
+    # GlobalAutomationRuleSerializer,
+    # GlobalEmailTemplateSerializer
 )
 
 try:
