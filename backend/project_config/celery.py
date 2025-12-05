@@ -3,7 +3,7 @@ from celery import Celery
 from celery.schedules import crontab
 
 # Set the default Django settings module for the 'celery' program.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project_config.settings.development')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project_config.settings')
 
 app = Celery('project_config')
 
@@ -15,6 +15,9 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
+
+# Celery 6.0+ will change retry semantics; enable retries explicitly now.
+app.conf.broker_connection_retry_on_startup = True
 
 @app.task(bind=True)
 def debug_task(self):

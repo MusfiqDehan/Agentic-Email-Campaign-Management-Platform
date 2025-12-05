@@ -1035,3 +1035,9 @@ def process_pending_email_queue():
         'successful': sum(1 for r in results if r.get('success')),
         'failed': sum(1 for r in results if not r.get('success'))
     }
+
+
+@shared_task
+def process_email_events():
+    """Compatibility wrapper for celery beat schedule."""
+    return process_pending_email_queue()

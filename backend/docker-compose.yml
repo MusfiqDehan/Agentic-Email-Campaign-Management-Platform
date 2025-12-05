@@ -1,142 +1,127 @@
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:16-alpine
-    container_name: email-platform-db
+  # Database service for the tenant application
+  database:
+    container_name: db-common
+    image: postgres:17.5-alpine
     environment:
-      POSTGRES_DB: ${DB_NAME:-email_campaign_db}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_HOST_AUTHENTICATION_METHOD: md5
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: ${POSTGRES_INITDB_ARGS}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "5434:5432"
+    volumes:
+      - postgres_data_volume:/var/lib/postgresql/data
+    networks:
+      - microservices_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - email-platform
+    restart: unless-stopped
+    stop_grace_period: 1m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Redis Cache
+  backend:
+    build: .
+    image: tfgrowth/backend/common-service:1.0.0
+    container_name: backend-common
+    command: daphne -p 8002 -b 0.0.0.0 project_config.asgi:application
+    ports:
+      - "8002:8002"
+    volumes:
+      - .:/usr/src/app
+      - static_data_volume:/usr/src/app/static
+      - media_data_volume:/usr/src/app/media
+    environment:
+      - DEBUG=${DEBUG}
+      - SECRET_KEY=${SECRET_KEY}
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_HOST=${POSTGRES_HOST}
+      - DB_PORT=${POSTGRES_PORT}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - microservices_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/api/v1/healthz/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
   redis:
+    container_name: redis-common
     image: redis:7-alpine
-    container_name: email-platform-redis
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis}
-    volumes:
-      - redis_data:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "6383:6379"
+    volumes:
+      - redis_data_volume:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    networks:
+      - microservices_network
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - email-platform
+      start_period: 10s
 
-  # Django Application (Development)
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    container_name: email-platform-app
-    environment:
-      DEBUG: ${DEBUG:-True}
-      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-project_config.settings.development}
-      SECRET_KEY: ${SECRET_KEY:-your-secret-key-here}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      DB_HOST: ${DB_HOST:-postgres}
-      DB_PORT: ${DB_PORT:-5432}
-      DB_NAME: ${DB_NAME:-email_campaign_db}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-email_campaign_db}
-      REDIS_URL: redis://:${REDIS_PASSWORD:-redis}@redis:6379/0
-      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:-redis}@redis:6379/1
-      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-redis}@redis:6379/2
-    volumes:
-      - .:/app
-    ports:
-      - "${APP_PORT:-8000}:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
-    networks:
-      - email-platform
-    stdin_open: true
-    tty: true
-
-  # Celery Worker
   celery:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    container_name: email-platform-celery
-    environment:
-      DEBUG: ${DEBUG:-True}
-      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-project_config.settings.development}
-      SECRET_KEY: ${SECRET_KEY:-your-secret-key-here}
-      DB_HOST: ${DB_HOST:-postgres}
-      DB_PORT: ${DB_PORT:-5432}
-      DB_NAME: ${DB_NAME:-email_campaign_db}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-email_campaign_db}
-      REDIS_URL: redis://:${REDIS_PASSWORD:-redis}@redis:6379/0
-      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:-redis}@redis:6379/1
-      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-redis}@redis:6379/2
-    volumes:
-      - .:/app
+    build: .
+    image: tfgrowth/celery/common-service:1.0.0
+    container_name: celery-common
+    command: celery -A project_config.celery worker --loglevel=info
+    entrypoint: []
     depends_on:
-      - postgres
       - redis
-    command: celery -A project_config worker -l info
+      - backend
+      - database
+    env_file:
+      - .env
     networks:
-      - email-platform
+      - microservices_network
 
-  # Celery Beat (Scheduler)
   celery-beat:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    container_name: email-platform-celery-beat
-    environment:
-      DEBUG: ${DEBUG:-True}
-      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-project_config.settings.development}
-      SECRET_KEY: ${SECRET_KEY:-your-secret-key-here}
-      DB_HOST: ${DB_HOST:-postgres}
-      DB_PORT: ${DB_PORT:-5432}
-      DB_NAME: ${DB_NAME:-email_campaign_db}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-email_campaign_db}
-      REDIS_URL: redis://:${REDIS_PASSWORD:-redis}@redis:6379/0
-      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:-redis}@redis:6379/1
-      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-redis}@redis:6379/2
-    volumes:
-      - .:/app
+    build: .
+    image: tfgrowth/celery/common-service-beat:1.0.0
+    container_name: celery-common-beat
+    command: celery -A project_config.celery beat --loglevel=info
+    entrypoint: []
     depends_on:
-      - postgres
       - redis
-    command: celery -A project_config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      - backend
+      - database
+    env_file:
+      - .env
     networks:
-      - email-platform
+      - microservices_network
 
+# Volumes for persistent storage
 volumes:
-  postgres_data:
-  redis_data:
+  postgres_data_volume:
+  static_data_volume:
+  media_data_volume:
+  redis_data_volume:
 
+# Define the external network for microservices
 networks:
-  email-platform:
-    driver: bridge
+  microservices_network:
+    name: microservices_network
+    external: true
