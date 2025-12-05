@@ -115,7 +115,7 @@ class Command(BaseCommand):
             self.stdout.write(f'Username: {username}')
             self.stdout.write(f'Email: {email}')
             self.stdout.write(f'Password: {password}')
-            self.stdout.write(f'Admin URL: http://localhost:28000/admin/')
+            self.stdout.write(f'Admin URL: http://localhost:8002/admin/')
             self.stdout.write(
                 self.style.HTTP_INFO('='*50 + '\n')
             )
