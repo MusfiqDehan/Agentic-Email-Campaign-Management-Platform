@@ -709,8 +709,8 @@ def process_email_queue_item(queue_item, correlation_id=None):
         
         # Determine sender email using the SAME logic as UnifiedEmailSender (ConfigurationHierarchy)
         # This ensures consistency between trigger/email/ and trigger/enhanced-email/
-        from automation_rule.utils.sync_utils import ConfigurationHierarchy
-        from automation_rule.models.provider_models import EmailProvider
+        from campaigns.utils.sync_utils import ConfigurationHierarchy
+        from campaigns.models.provider_models import EmailProvider
         
         # Get the provider config to extract from_email
         provider_config = None
@@ -782,7 +782,7 @@ def process_email_queue_item(queue_item, correlation_id=None):
         if resolved_template_id:
             resolved_template = EmailTemplate.objects.filter(id=resolved_template_id).first()
         if not resolved_template:
-            resolved_template = queue_item.automation_rule.email_template_id
+            resolved_template = queue_item.campaigns.email_template_id
 
         # Create or update delivery log (idempotent - handles race conditions & retries)
         initial_event = {
@@ -815,8 +815,8 @@ def process_email_queue_item(queue_item, correlation_id=None):
                 'sent_at': timezone.now() if not hasattr(queue_item, 'delivery_log') else queue_item.delivery_log.sent_at,
                 'reason_name': context.get('reason_name') or getattr(queue_item.automation_rule, 'reason_name', ''),
                 'trigger_type': context.get('trigger_type') or getattr(queue_item.automation_rule, 'trigger_type', ''),
-                'product_id': context.get('product_id') or queue_item.automation_rule.product_id,
-                'log_scope': (context.get('rule_scope') or queue_item.automation_rule.rule_scope or AutomationRule.RuleScope.TENANT),
+                'product_id': context.get('product_id') or queue_item.campaigns.product_id,
+                'log_scope': (context.get('rule_scope') or queue_item.campaigns.rule_scope or AutomationRule.RuleScope.TENANT),
                 'email_template': resolved_template,
                 'context_data': context,
             }
