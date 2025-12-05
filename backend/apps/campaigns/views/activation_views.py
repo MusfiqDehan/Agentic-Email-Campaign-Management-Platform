@@ -16,11 +16,11 @@ from rest_framework import generics, permissions
 from rest_framework import status
 from core.mixins import CustomResponseMixin
 
-from automation_rule.models import (
+from campaigns.models import (
     AutomationRule, EmailTemplate, SMSConfigurationModel, SMSTemplate,
     EmailProvider, TenantEmailProvider, TenantEmailConfiguration
 )
-from automation_rule.serializers import (
+from campaigns.serializers import (
     AutomationRuleSerializer,
     EmailTemplateSerializer,
     SMSConfigurationSerializer,
@@ -33,7 +33,7 @@ from automation_rule.serializers import (
 )
 
 try:
-    from automation_rule.serializers.enhanced_serializers import TenantOwnEmailProviderSerializer
+    from campaigns.serializers.enhanced_serializers import TenantOwnEmailProviderSerializer
 except ImportError:
     TenantOwnEmailProviderSerializer = None
 
