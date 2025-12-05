@@ -432,7 +432,7 @@ class EmailValidationSerializer(serializers.ModelSerializer):
 class EmailQueueSerializer(serializers.ModelSerializer):
     """Serializer for email queue items"""
     
-    automation_rule_name = serializers.CharField(source='automation_rule.automation_name', read_only=True)
+    automation_rule_name = serializers.CharField(source='campaigns.automation_name', read_only=True)
     provider_name = serializers.CharField(source='assigned_provider.name', read_only=True)
     
     class Meta:
@@ -454,7 +454,7 @@ class EmailQueueSerializer(serializers.ModelSerializer):
 class EmailDeliveryLogSerializer(serializers.ModelSerializer):
     """Serializer for email delivery logs"""
     
-    automation_rule_name = serializers.CharField(source='automation_rule.automation_name', read_only=True)
+    automation_rule_name = serializers.CharField(source='campaigns.automation_name', read_only=True)
     provider_name = serializers.CharField(source='email_provider.name', read_only=True)
     validation_status = serializers.CharField(source='email_validation.validation_status', read_only=True)
     

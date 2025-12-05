@@ -284,7 +284,7 @@ class EmailProviderSerializer(serializers.ModelSerializer):
 class EnhancedEmailDeliveryLogSerializer(serializers.ModelSerializer):
     """Enhanced serializer for email delivery logs"""
     
-    automation_rule_name = serializers.CharField(source='automation_rule.automation_name', read_only=True)
+    automation_rule_name = serializers.CharField(source='campaigns.automation_name', read_only=True)
     provider_name = serializers.CharField(source='email_provider.name', read_only=True)
     organization_id = serializers.UUIDField(source='organization.id', read_only=True, allow_null=True)
     campaign_id = serializers.UUIDField(source='campaign.id', read_only=True, allow_null=True)
