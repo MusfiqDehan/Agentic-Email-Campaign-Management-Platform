@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from automation_rule.models import (
+from campaigns.models import (
     AutomationRule,
     EmailDeliveryLog,
     EmailQueue,
@@ -164,7 +164,7 @@ class EmailDeliveryLogActionTests(TestCase):
             context_data={'code': '123'},
         )
 
-    @patch('automation_rule.views.enhanced_views.process_email_queue_task.delay')
+    @patch('campaigns.views.enhanced_views.process_email_queue_task.delay')
     def test_resend_creates_queue_item(self, mock_delay):
         url = reverse('email-delivery-log-resend', kwargs={'pk': self.log.pk})
         response = self.client.post(url)
@@ -180,7 +180,7 @@ class EmailDeliveryLogActionTests(TestCase):
         self.assertIsNone(action.new_recipient)
         mock_delay.assert_called_once_with(str(queue_item.id))
 
-    @patch('automation_rule.views.enhanced_views.process_email_queue_task.delay')
+    @patch('campaigns.views.enhanced_views.process_email_queue_task.delay')
     def test_forward_creates_queue_item_for_new_recipient(self, mock_delay):
         url = reverse('email-delivery-log-forward', kwargs={'pk': self.log.pk})
         payload = {'new_recipient': 'other@example.com'}

@@ -6,8 +6,8 @@ import pytest
 from unittest.mock import Mock
 from botocore.exceptions import ClientError
 
-from automation_rule.utils.error_handlers import EmailErrorHandler
-from automation_rule.exceptions import (
+from campaigns.utils.error_handlers import EmailErrorHandler
+from campaigns.exceptions import (
     EmailVerificationError,
     EmailQuotaExceededError,
     EmailBlacklistedError,
