@@ -6,7 +6,7 @@ ServiceDefinition system for consistent microservice architecture.
 """
 
 from django.core.management.base import BaseCommand
-# from automation_rule.models.service_integration_bridge import sync_email_providers_with_service_integration
+# from campaigns.models.service_integration_bridge import sync_email_providers_with_service_integration
 # Legacy module - service_integration_bridge no longer exists
 
 

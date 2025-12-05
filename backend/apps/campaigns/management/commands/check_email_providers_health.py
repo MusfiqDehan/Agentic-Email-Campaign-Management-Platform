@@ -5,8 +5,8 @@ Usage: python manage.py check_email_providers_health
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from automation_rule.models import EmailProvider
-from automation_rule.utils.email_providers import EmailProviderFactory
+from campaigns.models import EmailProvider
+from campaigns.utils.email_providers import EmailProviderFactory
 import logging
 
 logger = logging.getLogger(__name__)
