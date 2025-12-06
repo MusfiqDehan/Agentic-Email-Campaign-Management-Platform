@@ -111,6 +111,14 @@ class OrganizationRateThrottle(SimpleRateThrottle):
             # Fallback on any error
             return (60, 60)
     
+    def get_rate(self):
+        """
+        Override to return a default rate string.
+        This prevents the 'No default throttle rate set' error.
+        The actual rate is determined dynamically in allow_request().
+        """
+        return '500/min'  # Default fallback, actual rate is dynamic
+    
     def allow_request(self, request, view):
         """
         Check if request should be allowed based on organization rate limit.
@@ -204,6 +212,14 @@ class EmailSendingRateThrottle(SimpleRateThrottle):
             
         except Exception:
             return (10, 60)
+    
+    def get_rate(self):
+        """
+        Override to return a default rate string.
+        This prevents the 'No default throttle rate set' error.
+        The actual rate is determined dynamically in allow_request().
+        """
+        return '60/min'  # Default fallback, actual rate is dynamic
     
     def allow_request(self, request, view):
         """Check if email sending request should be allowed."""
