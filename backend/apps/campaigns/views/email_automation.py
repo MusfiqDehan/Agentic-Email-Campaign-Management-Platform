@@ -37,26 +37,19 @@ class EmailTemplateListCreateView(CustomResponseMixin, generics.ListCreateAPIVie
     serializer_class = EmailTemplateSerializer
 
     def get_queryset(self):
-        tenant_id = self.request.query_params.get('tenant_id')
-        activated_by_tmd = _qp_bool(self.request, 'activated_by_tmd')
-        activated_by_td = _qp_bool(self.request, 'activated_by_td')
-
-        qs = EmailTemplate.objects.filter(activated_by_root=True)
-        if tenant_id:
-            qs = qs.filter(tenant_id=tenant_id)
-        if activated_by_tmd is not None:
-            qs = qs.filter(activated_by_tmd=activated_by_tmd)
-        if activated_by_td is not None:
-            qs = qs.filter(activated_by_td=activated_by_td)
+        organization_id = self.request.query_params.get('organization_id')
+        qs = EmailTemplate.objects.filter(is_deleted=False)
+        
+        if organization_id:
+            qs = qs.filter(organization_id=organization_id)
+        
         return qs
     
     def create(self, request, *args, **kwargs):
-        tenant_id = request.data.get('tenant_id') or request.query_params.get('tenant_id')
-        service_id = request.data.get('service_id') or request.query_params.get('service_id')
-        if tenant_id and service_id:
-            if not is_service_enabled_for_td(service_id, tenant_id):
-                raise ValidationError("Service is not enabled for tenant-specific template.")
-            request.data['tenant_id'] = tenant_id
+        # Allow organization_id to be passed via query params or request body
+        if 'organization_id' not in request.data and 'organization_id' in request.query_params:
+            request.data['organization_id'] = request.query_params.get('organization_id')
+        
         return super().create(request, *args, **kwargs)
 
 
@@ -65,10 +58,13 @@ class EmailTemplateDetailView(CustomResponseMixin, generics.RetrieveUpdateDestro
     serializer_class = EmailTemplateSerializer
 
     def get_queryset(self):
-        tenant_id = self.request.query_params.get('tenant_id')
-        if tenant_id:
-            return EmailTemplate.objects.filter(tenant_id=tenant_id)
-        return EmailTemplate.objects.filter(tenant_id__isnull=True)
+        organization_id = self.request.query_params.get('organization_id')
+        qs = EmailTemplate.objects.filter(is_deleted=False)
+        
+        if organization_id:
+            qs = qs.filter(organization_id=organization_id)
+        
+        return qs
 
 
 # AutomationRule Views
@@ -115,21 +111,16 @@ class AutomationStatsView(CustomResponseMixin, APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        tenant_id = request.query_params.get('tenant_id')
-        activated_by_tmd = _qp_bool(request, 'activated_by_tmd')
+        organization_id = request.query_params.get('organization_id')
 
-        email_template_qs = EmailTemplate.objects.filter(activated_by_root=True)
-        sms_template_qs = SMSTemplate.objects.filter(activated_by_root=True)
-        rule_qs = AutomationRule.objects.filter(activated_by_root=True)
+        email_template_qs = EmailTemplate.objects.filter(is_deleted=False)
+        sms_template_qs = SMSTemplate.objects.filter(is_deleted=False)
+        rule_qs = AutomationRule.objects.filter(is_deleted=False)
 
-        if tenant_id:
-            email_template_qs = email_template_qs.filter(tenant_id=tenant_id)
-            sms_template_qs = sms_template_qs.filter(tenant_id=tenant_id)
-            rule_qs = rule_qs.filter(tenant_id=tenant_id)
-        if activated_by_tmd is not None:
-            email_template_qs = email_template_qs.filter(activated_by_tmd=activated_by_tmd)
-            sms_template_qs = sms_template_qs.filter(activated_by_tmd=activated_by_tmd)
-            rule_qs = rule_qs.filter(activated_by_tmd=activated_by_tmd)
+        if organization_id:
+            email_template_qs = email_template_qs.filter(organization_id=organization_id)
+            sms_template_qs = sms_template_qs.filter(organization_id=organization_id)
+            rule_qs = rule_qs.filter(organization_id=organization_id)
 
         data = {
             "total_templates": email_template_qs.count() + sms_template_qs.count(),

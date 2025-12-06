@@ -338,7 +338,7 @@ class TenantEmailProviderSerializer(serializers.ModelSerializer):
     class Meta:
         model = TenantEmailProvider
         fields = [
-            'id', 'tenant_id', 'provider', 'provider_name', 'provider_type',
+            'id', 'organization', 'provider', 'provider_name', 'provider_type',
             'is_enabled', 'is_primary', 'custom_max_emails_per_minute',
             'custom_max_emails_per_hour', 'custom_max_emails_per_day',
             'emails_sent_today', 'emails_sent_this_hour', 'last_used_at',

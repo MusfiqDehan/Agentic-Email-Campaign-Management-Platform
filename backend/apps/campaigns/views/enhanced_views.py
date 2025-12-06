@@ -1117,7 +1117,7 @@ class TenantEmailProviderListCreateView(CustomResponseMixin, generics.ListCreate
     serializer_class = TenantEmailProviderSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ['tenant_id', 'provider', 'is_enabled', 'is_primary']
+    filterset_fields = ['organization', 'provider', 'is_enabled', 'is_primary']
     ordering_fields = ['created_at', 'provider__priority']
     ordering = ['provider__priority']
 

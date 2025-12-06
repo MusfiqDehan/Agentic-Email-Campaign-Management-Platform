@@ -21,7 +21,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
     Serializer for email templates.
     All templates are organization-scoped.
     """
-    organization_id = serializers.UUIDField(source='organization.id', read_only=True)
+    organization_id = serializers.UUIDField(write_only=True, required=False)
     category = serializers.ChoiceField(
         choices=EmailTemplate.TemplateCategory.choices,
         required=False,
@@ -31,11 +31,31 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailTemplate
         fields = [
-            'id', 'template_name', 'organization_id', 'category', 'email_subject',
-            'email_body', 'recipient_emails_list', 'is_active', 'is_published',
-            'created_at', 'updated_at'
+            'id', 'organization', 'organization_id', 'template_name', 'category', 
+            'email_subject', 'preview_text', 'email_body', 'text_body',
+            'default_from_name', 'default_from_email', 'default_reply_to',
+            'description', 'tags', 'variable_schema',
+            'is_active', 'is_published', 'created_at', 'updated_at'
         ]
-        read_only_fields = ('id', 'organization_id', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'organization', 'created_at', 'updated_at')
+    
+    def create(self, validated_data):
+        # Get organization_id from validated_data or context
+        organization_id = validated_data.pop('organization_id', None)
+        
+        if not organization_id and 'request' in self.context:
+            # Try to get from request user
+            request = self.context['request']
+            if hasattr(request.user, 'organization_id'):
+                organization_id = request.user.organization_id
+        
+        if not organization_id:
+            raise serializers.ValidationError({
+                'organization_id': 'Organization ID is required. Provide it in the request or authenticate with an organization.'
+            })
+        
+        validated_data['organization_id'] = organization_id
+        return super().create(validated_data)
 
 
 class AutomationRuleSerializer(serializers.ModelSerializer):
