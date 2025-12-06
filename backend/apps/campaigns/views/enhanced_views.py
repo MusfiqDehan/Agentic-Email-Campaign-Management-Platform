@@ -949,8 +949,13 @@ class TenantOwnEmailProviderListCreateView(CustomResponseMixin, generics.ListCre
                 return tenant_id
         
         # Try to extract from JWT token or headers
-        if hasattr(self.request, 'user') and hasattr(self.request.user, 'tenant_id'):
-            return self.request.user.tenant_id
+        if hasattr(self.request, 'user'):
+            if hasattr(self.request.user, 'tenant_id'):
+                return self.request.user.tenant_id
+            if hasattr(self.request.user, 'organization_id'):
+                return self.request.user.organization_id
+            if hasattr(self.request.user, 'organization') and self.request.user.organization:
+                return self.request.user.organization.id
         
         return None
     
@@ -1016,8 +1021,13 @@ class TenantOwnEmailProviderDetailView(CustomResponseMixin, generics.RetrieveUpd
                 return tenant_id
         
         # Try to extract from JWT token or headers
-        if hasattr(self.request, 'user') and hasattr(self.request.user, 'tenant_id'):
-            return self.request.user.tenant_id
+        if hasattr(self.request, 'user'):
+            if hasattr(self.request.user, 'tenant_id'):
+                return self.request.user.tenant_id
+            if hasattr(self.request.user, 'organization_id'):
+                return self.request.user.organization_id
+            if hasattr(self.request.user, 'organization') and self.request.user.organization:
+                return self.request.user.organization.id
         
         return None
     

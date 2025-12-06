@@ -99,6 +99,10 @@ from .views.enhanced_views import (
     # Organization Email Provider Views
     TenantEmailProviderListCreateView,
     TenantEmailProviderDetailView,
+
+    # Tenant Own Email Provider Views
+    TenantOwnEmailProviderListCreateView,
+    TenantOwnEmailProviderDetailView,
     
     # Email Delivery Log Views
     EmailDeliveryLogListView,
@@ -173,6 +177,10 @@ urlpatterns = [
     # Organization Email Providers
     path('providers/', TenantEmailProviderListCreateView.as_view(), name='org-email-provider-list-create'),
     path('providers/<uuid:pk>/', TenantEmailProviderDetailView.as_view(), name='org-email-provider-detail'),
+
+    # Tenant Own Email Providers
+    path('own-providers/', TenantOwnEmailProviderListCreateView.as_view(), name='tenant-own-provider-list-create'),
+    path('own-providers/<uuid:pk>/', TenantOwnEmailProviderDetailView.as_view(), name='tenant-own-provider-detail'),
     
     # Shared Email Providers (read-only for regular users)
     path('shared-providers/', EmailProviderListCreateView.as_view(), name='shared-email-provider-list'),
