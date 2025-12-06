@@ -31,7 +31,12 @@ class ContactListSerializer(serializers.ModelSerializer):
         ]
     
     def create(self, validated_data):
-        validated_data['organization'] = self.context['request'].user.organization
+        # Organization should be passed via save(organization=...) from the view
+        # If not present in validated_data, get it from context
+        if 'organization' not in validated_data:
+            request = self.context.get('request')
+            if request and hasattr(request, 'user') and request.user.is_authenticated:
+                validated_data['organization'] = request.user.organization
         return super().create(validated_data)
 
 
@@ -79,9 +84,33 @@ class ContactSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
     
+    def to_internal_value(self, data):
+        """Allow clients to send `lists` (UUIDs or objects) instead of list_ids."""
+        mutable_data = data.copy()
+        if 'lists' in mutable_data and 'list_ids' not in mutable_data:
+            lists_value = mutable_data.pop('lists')
+            extracted_ids = []
+            if isinstance(lists_value, list):
+                for item in lists_value:
+                    if isinstance(item, str):
+                        extracted_ids.append(item)
+                    elif isinstance(item, dict):
+                        item_id = item.get('id') or item.get('pk')
+                        if item_id:
+                            extracted_ids.append(item_id)
+            mutable_data['list_ids'] = extracted_ids
+        return super().to_internal_value(mutable_data)
+    
     def create(self, validated_data):
         list_ids = validated_data.pop('list_ids', [])
-        validated_data['organization'] = self.context['request'].user.organization
+        
+        # Organization should be passed via save(organization=...) from the view
+        # If not present in validated_data, get it from context
+        if 'organization' not in validated_data:
+            request = self.context.get('request')
+            if request and hasattr(request, 'user') and request.user.is_authenticated:
+                validated_data['organization'] = request.user.organization
+        
         validated_data['source'] = validated_data.get('source', 'API')
         
         contact = super().create(validated_data)

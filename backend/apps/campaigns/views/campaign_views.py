@@ -56,6 +56,13 @@ class ContactListListCreateView(APIView):
     
     def post(self, request):
         """Create a new contact list."""
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {"error": "User must be associated with an organization."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         serializer = ContactListSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save(organization=request.user.organization)
