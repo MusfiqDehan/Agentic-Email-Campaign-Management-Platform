@@ -40,19 +40,19 @@ class TenantEmailConfigurationListCreateView(CustomResponseMixin, generics.ListC
     serializer_class = TenantEmailConfigurationSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['tenant_id', 'plan_type', 'activated_by_root', 'activated_by_tmd', 'is_suspended']
-    search_fields = ['tenant_id']
+    filterset_fields = ['organization', 'plan_type', 'is_suspended']
+    search_fields = ['organization__name']
     ordering_fields = ['created_at', 'emails_sent_today', 'reputation_score']
     ordering = ['-created_at']
 
     def get_queryset(self):
-        """Filter queryset based on user permissions and tenant access"""
+        """Filter queryset based on user permissions and organization access"""
         queryset = super().get_queryset()
         
-        # Add tenant filtering based on user permissions
-        tenant_id = self.request.query_params.get('tenant_id')
-        if tenant_id:
-            queryset = queryset.filter(tenant_id=tenant_id)
+        # Add organization filtering based on user permissions
+        organization_id = self.request.query_params.get('organization_id')
+        if organization_id:
+            queryset = queryset.filter(organization_id=organization_id)
         
         return queryset
 
@@ -89,7 +89,7 @@ class TenantEmailConfigurationResetUsageView(CustomResponseMixin, APIView):
         return self.success_response(
             data={
                 'message': 'Usage counters reset successfully',
-                'tenant_id': str(config.tenant_id)
+                'organization_id': str(config.organization_id)
             },
             message="Usage counters reset successfully"
         )

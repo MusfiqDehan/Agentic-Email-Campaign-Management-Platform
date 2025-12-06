@@ -25,11 +25,11 @@ class TenantEmailConfigurationSerializer(serializers.ModelSerializer):
     class Meta:
         model = TenantEmailConfiguration
         fields = [
-            'id', 'tenant_id', 'plan_type', 'emails_per_day', 'emails_per_month',
+            'id', 'organization', 'plan_type', 'emails_per_day', 'emails_per_month',
             'emails_per_minute', 'custom_domain_allowed', 'advanced_analytics',
             'priority_support', 'bulk_email_allowed', 'default_from_domain',
             'custom_domain', 'custom_domain_verified', 'emails_sent_today',
-            'emails_sent_this_month', 'last_email_sent_at', 'activated_by_root', 'activated_by_tmd',
+            'emails_sent_this_month', 'last_email_sent_at',
             'is_suspended', 'suspension_reason', 'bounce_rate', 'complaint_rate',
             'reputation_score', 'tenant_name', 'usage_percentage_daily',
             'usage_percentage_monthly', 'can_send_email', 'effective_from_domain',
@@ -42,12 +42,13 @@ class TenantEmailConfigurationSerializer(serializers.ModelSerializer):
         ]
     
     def get_tenant_name(self, obj):
-        """Get tenant name from tenant service"""
+        """Get organization name from the related organization object"""
         try:
-            tenant_info = TenantServiceAPI.get_tenant_details(str(obj.tenant_id))
-            return tenant_info.get('name', 'Unknown')
+            if obj.organization:
+                return obj.organization.name
+            return 'Unknown'
         except Exception as e:
-            logger.error(f"Error fetching tenant name: {e}")
+            logger.error(f"Error fetching organization name: {e}")
             return 'Unknown'
     
     def get_usage_percentage_daily(self, obj):
@@ -70,21 +71,6 @@ class TenantEmailConfigurationSerializer(serializers.ModelSerializer):
     def get_effective_from_domain(self, obj):
         """Get effective from domain"""
         return obj.get_effective_from_domain()
-    
-    def validate_tenant_id(self, value):
-        """Validate that tenant exists (lenient for service unavailability)"""
-        try:
-            tenant_info = TenantServiceAPI.get_tenant_details(str(value))
-            # Only fail if we got a definitive inactive status
-            # If None (service unavailable), allow it
-            if tenant_info is None:
-                logger.warning(f"Tenant service unavailable for {value}, allowing to proceed")
-                return value
-            if tenant_info and tenant_info.get('status') == 'inactive':
-                raise serializers.ValidationError("Invalid or inactive tenant")
-            return value
-        except Exception as e:
-            raise serializers.ValidationError(f"Error validating tenant: {str(e)}")
 
 
 class EmailProviderSerializer(serializers.ModelSerializer):
@@ -98,8 +84,8 @@ class EmailProviderSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailProvider
         fields = [
-            'id', 'name', 'provider_type', 'max_emails_per_minute',
-            'max_emails_per_hour', 'max_emails_per_day', 'activated_by_root', 'activated_by_tmd',
+            'id', 'name', 'provider_type', 'organization', 'is_shared',
+            'max_emails_per_minute', 'max_emails_per_hour', 'max_emails_per_day',
             'is_default', 'priority', 'last_health_check', 'health_status',
             'health_details', 'emails_sent_today', 'emails_sent_this_hour',
             'last_used_at', 'config', 'auto_health_check', 'config_status', 'health_info',
