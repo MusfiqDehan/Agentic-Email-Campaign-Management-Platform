@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Email Campaign Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <a href="index.html" class="logo">EmailCampaign</a>
+    </header>
+
+    <div class="auth-container" style="text-align: center;">
+        <h2>Email Verification</h2>
+        <div id="status-message">Verifying your email...</div>
+        <div id="actions" style="margin-top: 2rem; display: none;">
+            <a href="login.html" class="btn-primary" style="text-decoration: none;">Go to Login</a>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const statusDiv = document.getElementById('status-message');
+            const actionsDiv = document.getElementById('actions');
+
+            if (!token) {
+                statusDiv.textContent = 'Invalid verification link. Token missing.';
+                statusDiv.style.color = 'red';
+                return;
+            }
+
+            try {
+                await verifyEmail(token);
+                statusDiv.textContent = 'Email verified successfully! You can now login.';
+                statusDiv.style.color = 'green';
+                actionsDiv.style.display = 'block';
+            } catch (error) {
+                statusDiv.textContent = `Verification failed: ${error.message}`;
+                statusDiv.style.color = 'red';
+            }
+        });
+    </script>
+</body>
+</html>

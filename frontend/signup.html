@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Email Campaign Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <a href="index.html" class="logo">EmailCampaign</a>
+        <div class="nav-buttons">
+            <a href="login.html" class="btn-secondary">Login</a>
+        </div>
+    </header>
+
+    <div class="auth-container">
+        <h2>Create Account</h2>
+        <div id="alert" class="alert"></div>
+        <form id="signupForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="organization">Organization Name</label>
+                <input type="text" id="organization" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" class="btn-primary btn-block">Sign Up</button>
+        </form>
+        <p style="text-align: center; margin-top: 1rem;">
+            Already have an account? <a href="login.html">Login</a>
+        </p>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const organizationName = document.getElementById('organization').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = e.target.querySelector('button');
+
+            try {
+                btn.disabled = true;
+                btn.textContent = 'Signing up...';
+                await signup(username, email, password, organizationName);
+                showAlert('alert', 'Signup successful! Please check your email for verification link.', 'success');
+                e.target.reset();
+            } catch (error) {
+                showAlert('alert', error.message, 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Sign Up';
+            }
+        });
+    </script>
+</body>
+</html>
