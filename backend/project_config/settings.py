@@ -120,16 +120,23 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
+    "DEFAULT_THROTTLE_RATES": {
+        "auth_burst": "20/min",
+        "auth_sustained": "100/day",
+        "organization": "500/min",
+        "email_sending": "60/min",
+    },
+
 }
 
 SIMPLE_JWT = {
     'SIGNING_KEY': config("SIGNING_KEY"),
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=7),
     'SLIDING_TOKEN_LIFETIME': timedelta(days=30),
-    'SLIDING_TOKEN_REFRESH_LIFETIME_LATE_USER': timedelta(days=1),
+    'SLIDING_TOKEN_REFRESH_LIFETIME_LATE_USER': timedelta(days=7),
     'SLIDING_TOKEN_LIFETIME_LATE_USER': timedelta(days=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ALGORITHM': 'HS256',
     'AUTH_HEADER_TYPES': ('Bearer',),
     'BLACKLIST_AFTER_ROTATION': True,
@@ -158,60 +165,29 @@ CORS and security-related settings
 
 # Dynamic configuration for origins
 CSRF_TRUSTED_ORIGINS = [
-    "https://techforing.com",
-    "https://apitenant.techforing.com",
-    "https://apiauth.techforing.com",
-    "https://apicommon.techforing.com",
-    "https://apitmd.techforing.com",
-    "https://devapitenant.techforing.com",
-    "https://devapiauth.techforing.com",
-    "https://devapicommon.techforing.com",
-    "https://devapitmd.techforing.com",
     "http://127.0.0.1:8000",
     "http://127.0.0.1:8001",
+    "http://127.0.0.1:8002",
     "http://127.0.0.1:8005",
-    "https://tenants.techforing.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://tmd.techforing.com",
 ]
 
 CORS_ORIGIN_WHITELIST = [
-    "https://techforing.com",
-    "https://apitenant.techforing.com",
-    "https://apiauth.techforing.com",
-    "https://apicommon.techforing.com",
-    "https://apitmd.techforing.com",
-    "https://devapitenant.techforing.com",
-    "https://devapiauth.techforing.com",
-    "https://devapicommon.techforing.com",
-    "https://devapitmd.techforing.com",
     "http://127.0.0.1:8000",
-    "http://127.0.0.1:8001",
+    "http://127.0.0.1:8002",
     "http://127.0.0.1:8005",
-    "https://tenants.techforing.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://tmd.techforing.com",
+
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "https://techforing.com",
-    "https://apitenant.techforing.com",
-    "https://apiauth.techforing.com",
-    "https://apicommon.techforing.com",
-    "https://apitmd.techforing.com",
-    "https://devapitenant.techforing.com",
-    "https://devapiauth.techforing.com",
-    "https://devapicommon.techforing.com",
-    "https://devapitmd.techforing.com",
     "http://127.0.0.1:8000",
-    "http://127.0.0.1:8001",
+    "http://127.0.0.1:8002",
     "http://127.0.0.1:8005",
-    "https://tenants.techforing.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://tmd.techforing.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -261,3 +237,15 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Email Configuration
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default='False') == 'True'
+EMAIL_USE_SSL = config('EMAIL_USE_SSL', default='False') == 'True'
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=config('EMAIL_HOST_USER', default='noreply@example.com'))
+
+

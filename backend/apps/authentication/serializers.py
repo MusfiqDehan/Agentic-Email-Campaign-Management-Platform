@@ -32,6 +32,7 @@ class SignupSerializer(serializers.Serializer):
     organization_name = serializers.CharField(max_length=120)
     first_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
     last_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    is_platform_admin = serializers.BooleanField(required=False, default=False)
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
@@ -41,9 +42,11 @@ class SignupSerializer(serializers.Serializer):
     def create(self, validated_data):
         org_name = validated_data.pop("organization_name")
         password = validated_data.pop("password")
-        user = User(**validated_data, email=validated_data["email"])
+        is_platform_admin = validated_data.pop("is_platform_admin", False)
+        user = User(**validated_data)
         user.set_password(password)
         user.is_active = False  # Require email verification
+        user.is_platform_admin = is_platform_admin
         user.save()
         slug = slugify(org_name)
         i = 1
