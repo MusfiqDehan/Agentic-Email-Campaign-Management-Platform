@@ -1041,3 +1041,12 @@ def process_pending_email_queue():
 def process_email_events():
     """Compatibility wrapper for celery beat schedule."""
     return process_pending_email_queue()
+
+
+@shared_task
+def check_campaign_status():
+    """Periodic heartbeat that can later validate campaign states."""
+    logger.info("Campaign status check heartbeat")
+    return {
+        'checked_at': timezone.now().isoformat()
+    }
