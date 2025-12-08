@@ -1,7 +1,7 @@
 services:
   # Database service for the tenant application
   database:
-    container_name: db-common
+    container_name: db-ecmp
     image: postgres:17.5-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_INITDB_ARGS: ${POSTGRES_INITDB_ARGS}
     ports:
-      - "5434:5432"
+      - "5441:5432"
     volumes:
       - postgres_data_volume:/var/lib/postgresql/data
     networks:
@@ -29,8 +29,8 @@ services:
 
   backend:
     build: .
-    image: tfgrowth/backend/common-service:1.0.0
-    container_name: backend-common
+    image: musfiqdehan/products/ecmp/backend-service:1.0.0
+    container_name: backend-ecmp
     command: daphne -p 8002 -b 0.0.0.0 project_config.asgi:application
     ports:
       - "8002:8002"
@@ -64,11 +64,11 @@ services:
         max-size: "10m"
         max-file: "3"
   redis:
-    container_name: redis-common
+    container_name: redis-ecmp
     image: redis:7-alpine
     command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
-      - "6383:6379"
+      - "6391:6379"
     volumes:
       - redis_data_volume:/data
     environment:
@@ -85,8 +85,8 @@ services:
 
   celery:
     build: .
-    image: tfgrowth/celery/common-service:1.0.0
-    container_name: celery-common
+    image: musfiqdehan/products/ecmp/celery-service:1.0.0
+    container_name: celery-ecmp
     command: celery -A project_config.celery worker --loglevel=info
     entrypoint: []
     depends_on:
@@ -100,8 +100,8 @@ services:
 
   celery-beat:
     build: .
-    image: tfgrowth/celery/common-service-beat:1.0.0
-    container_name: celery-common-beat
+    image: musfiqdehan/products/ecmp/celery-beat-service:1.0.0
+    container_name: celery-beat-ecmp
     command: celery -A project_config.celery beat --loglevel=info
     entrypoint: []
     depends_on:
@@ -123,5 +123,5 @@ volumes:
 # Define the external network for microservices
 networks:
   microservices_network:
-    name: microservices_network
+    name: musfiqdehan_microservices_network
     external: true
