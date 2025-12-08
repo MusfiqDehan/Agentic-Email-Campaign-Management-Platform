@@ -20,15 +20,22 @@ Email Campaign Management Platform - A Django REST API with React frontend for m
 │   ├── apps/                # Django applications
 │   │   ├── authentication/  # User, Organization, JWT auth
 │   │   ├── campaigns/       # Main app: campaigns, contacts, email delivery
+│   │   │   └── tests/       # Campaign app tests
 │   │   └── utils/          # Shared utilities
 │   ├── core/               # Core utilities (exceptions, mixins)
 │   ├── project_config/     # Django settings & Celery config
-│   │   └── settings/       # Split settings: base, development, production, testing
+│   │   ├── settings.py     # Main settings file
+│   │   ├── celery.py       # Celery configuration
+│   │   └── urls.py         # Root URL configuration
+│   ├── scripts/            # Helper scripts
+│   │   ├── django.sh       # Django management helper
+│   │   └── setup-dev.sh    # Development setup script
 │   ├── manage.py
-│   ├── requirements.txt
+│   ├── requirements.txt    # Python dependencies
 │   ├── Dockerfile          # Multi-stage build (dev & prod)
 │   └── docker-compose.yml  # Development services
-├── frontend/               # React app (empty, planned)
+├── frontend/               # HTML/CSS/JS (static frontend)
+├── requirements.txt        # Root-level dependencies
 └── .env.local             # Root environment config
 ```
 
@@ -37,23 +44,26 @@ Email Campaign Management Platform - A Django REST API with React frontend for m
 ### Local Development (Non-Docker)
 
 ```bash
-# From backend/ directory
+# Option 1: Using helper scripts (recommended)
 cd backend
 
-# Install dependencies (requires Python 3.13)
-pip install -r requirements.txt
+# Initial setup (creates venv, installs deps, creates .env.local)
+bash scripts/setup-dev.sh
+
+# Activate virtual environment
+source venv/bin/activate
 
 # Run migrations
-python manage.py migrate
+bash scripts/django.sh migrate
 
 # Create superuser
-python manage.py createsuperuser
+bash scripts/django.sh superuser
 
 # Create platform admin (has platform-wide access)
 python manage.py create_platform_admin admin@example.com --create --password admin123 --staff
 
 # Start dev server
-python manage.py runserver
+bash scripts/django.sh runserver
 
 # Start Celery worker (in separate terminal)
 celery -A project_config worker -l info
@@ -62,16 +72,41 @@ celery -A project_config worker -l info
 celery -A project_config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 ```
 
+**Option 2: Manual setup**
+```bash
+cd backend
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies (requires Python 3.13)
+pip install -r requirements.txt
+
+# Copy environment template
+cp .env.example .env.local
+
+# Run migrations
+python manage.py migrate
+
+# Create superuser
+python manage.py createsuperuser
+
+# Start dev server
+python manage.py runserver
+```
+
 ### Docker Development (Recommended)
 
 ```bash
-# Quick start with automated setup
+# Manual Docker workflow (no quickstart.sh script found in this project)
 cd backend
-bash docker-quickstart.sh dev
 
-# Manual Docker workflow
-cd backend
+# Start all services (postgres, redis, app, celery, celery-beat)
 docker-compose up --build
+
+# Or run in background
+docker-compose up -d --build
 
 # Django commands via Docker
 docker-compose exec app python manage.py migrate
@@ -81,12 +116,16 @@ docker-compose exec app python manage.py shell
 # View logs
 docker-compose logs -f app
 docker-compose logs -f celery
+docker-compose logs -f celery-beat
 
 # Database access
 docker-compose exec postgres psql -U postgres -d email_campaign_db
 
 # Stop services
 docker-compose down
+
+# Stop and remove volumes (WARNING: deletes all data)
+docker-compose down -v
 ```
 
 ### Testing
@@ -102,9 +141,12 @@ python manage.py test apps.campaigns
 # Run specific test file
 python manage.py test apps.campaigns.tests.test_email_logs
 
+# Run with coverage
+pytest --cov=apps --cov-report=html
+
 # With Docker
 docker-compose exec app python manage.py test
-docker-compose exec app pytest  # If using pytest
+docker-compose exec app pytest
 ```
 
 ### Database
@@ -167,16 +209,15 @@ The campaigns app is the core of the platform and follows this flow:
 
 ### Settings Architecture
 
-**Split settings pattern:**
-- `project_config/settings/base.py` - Common settings for all envs
-- `project_config/settings/development.py` - Dev-specific (DEBUG=True, console email backend)
-- `project_config/settings/production.py` - Production security settings
-- `project_config/settings/testing.py` - Test-specific
+**Single settings file:**
+- `project_config/settings.py` - Main Django settings file
+- Environment-specific configuration controlled via `DJANGO_ENV` variable
+- Uses `python-decouple` for environment variable management
 
 **Environment variables:**
-- Uses `python-decouple` for env var management
 - Root `.env.local` for shared config
 - `backend/.env.local` for Django-specific config
+- Copy from `backend/.env.example` to get started
 
 ### URL Structure
 
@@ -221,26 +262,28 @@ Custom exception handler in `core/exceptions.py`:
 
 ### Docker Production Deployment
 
+**Note**: This project doesn't have docker-compose.prod.yml or deploy.sh scripts yet. For production, use the standard docker-compose.yml with production environment variables:
+
 ```bash
 # On production server
-cd /opt/email-platform/backend
+cd backend
 
-# Configure environment
-cp .env.production .env.production.local
-nano .env.production.local  # Set secure passwords, domains
+# Create production environment file
+cp .env.example .env.production
+nano .env.production  # Set DEBUG=False, secure passwords, domains
 
-# Deploy with automated script
-bash deploy.sh --branch production --force
+# Build and start services
+ENV_FILE=.env.production docker-compose up -d --build
 
-# Or deploy specific version
-bash deploy.sh --tag v1.2.0
+# Run migrations
+docker-compose exec app python manage.py migrate
 
-# Manual production startup
-docker-compose -f docker-compose.prod.yml up -d
+# Collect static files
+docker-compose exec app python manage.py collectstatic --noinput
 
 # Check health
 curl http://localhost:8000/api/v1/campaigns/health/
-docker-compose -f docker-compose.prod.yml ps
+docker-compose ps
 ```
 
 ### Production Checklist
@@ -312,7 +355,7 @@ Email sending is abstracted via backends in `apps/campaigns/backends.py`:
 - **Campaign Status Flow**: DRAFT → SCHEDULED → SENDING → SENT (or PAUSED/CANCELLED/FAILED)
 - **Statistics Caching**: Campaign stats are denormalized in `Campaign` model (`stats_*` fields) for performance
 - **Email Tracking**: Opens/clicks tracked via unique URLs with tracking pixels
-- **Frontend**: Frontend directory is empty - React app is planned but not yet implemented
+- **Frontend**: Frontend contains static HTML/CSS/JS files (not React) - basic authentication pages
 
 ## Services & Ports
 
@@ -347,15 +390,27 @@ python manage.py dbshell
 
 ## Linting & Formatting
 
-Tools configured in requirements.txt:
+Tools installed in requirements.txt:
 - `black` - Code formatter
 - `isort` - Import sorting
 - `flake8` - Linting
-- `pre-commit` - Pre-commit hooks
+- `pre-commit` - Pre-commit hooks (if configured)
 
-Run before committing:
+Run from backend directory:
 ```bash
-black backend/
-isort backend/
-flake8 backend/
+cd backend
+
+# Format code
+black .
+
+# Sort imports
+isort .
+
+# Check linting
+flake8 .
+
+# Run all checks
+black . && isort . && flake8 .
 ```
+
+**Note**: No .flake8, pyproject.toml, or .pre-commit-config.yaml configuration files exist yet. These can be added for custom settings.
