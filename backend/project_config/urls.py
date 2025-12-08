@@ -21,6 +21,7 @@ urlpatterns = [
     path(f"api/v1/schemas/swagger.json", SpectacularAPIView.as_view(), name="schema-json"),
     path(f"api/v1/schemas/", SpectacularAPIView.as_view(), name="schema"),
     path(f"api/v1/schemas/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path(f"api/v1/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui-legacy"),
     path(f"api/v1/schemas/redoc", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 
 ]

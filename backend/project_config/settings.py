@@ -146,6 +146,18 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Email Campaign Management API",
+    "DESCRIPTION": (
+        "Internal API for authentication, campaign automation, and delivery "
+        "tracking. Requires JWT authentication for all requests."
+    ),
+    "VERSION": "v1",
+    # optional extras:
+    "CONTACT": {"name": "Platform Team", "email": "musfiqdehan@gmail.com"},
+    "LICENSE": {"name": "Proprietary"},
+}
+
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
