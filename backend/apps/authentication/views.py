@@ -1,10 +1,12 @@
-from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from .serializers import (
     SignupSerializer,
     LoginSerializer,
+    LogoutSerializer,
     ChangePasswordSerializer,
     RequestPasswordResetSerializer,
     ResetPasswordSerializer,
@@ -17,14 +19,18 @@ from apps.utils.throttles import AuthBurstRateThrottle, AuthSustainedRateThrottl
 BLACKLIST_PREFIX = "bltoken:"
 
 
-class SignupView(ResponseMixin, APIView):
+class SignupView(ResponseMixin, GenericAPIView):
     permission_classes = [AllowAny]
     throttle_classes = [AuthBurstRateThrottle, AuthSustainedRateThrottle]
+    serializer_class = SignupSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["email_service"] = EmailService()
+        return context
 
     def post(self, request):
-        serializer = SignupSerializer(
-            data=request.data, context={"email_service": EmailService()}
-        )
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return self.success(
@@ -34,12 +40,23 @@ class SignupView(ResponseMixin, APIView):
             )
         return self.error("Signup failed", errors=serializer.errors, status_code=400)
 
-
-class EmailVerifyView(ResponseMixin, APIView):
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            name="token",
+            type=str,
+            required=True,
+            location=OpenApiParameter.QUERY,
+            description="JWT emailed to the user for verification",
+        )
+    ]
+)
+class EmailVerifyView(ResponseMixin, GenericAPIView):
     permission_classes = [AllowAny]
+    serializer_class = EmailVerificationSerializer
 
     def get(self, request):
-        serializer = EmailVerificationSerializer(
+        serializer = self.get_serializer(
             data={"token": request.query_params.get("token")}
         )
         if serializer.is_valid():
@@ -48,12 +65,13 @@ class EmailVerifyView(ResponseMixin, APIView):
         return self.error("Verification failed", errors=serializer.errors)
 
 
-class LoginView(ResponseMixin, APIView):
+class LoginView(ResponseMixin, GenericAPIView):
     permission_classes = [AllowAny]
     throttle_classes = [AuthBurstRateThrottle, AuthSustainedRateThrottle]
+    serializer_class = LoginSerializer
 
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data["user"]
             refresh = RefreshToken.for_user(user)
@@ -66,13 +84,15 @@ class LoginView(ResponseMixin, APIView):
         return self.error("Login failed", errors=serializer.errors)
 
 
-class LogoutView(ResponseMixin, APIView):
+class LogoutView(ResponseMixin, GenericAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = LogoutSerializer
 
     def post(self, request):
-        refresh_token = request.data.get("refresh")
-        if not refresh_token:
-            return self.error("Refresh token required")
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return self.error("Logout failed", errors=serializer.errors)
+        refresh_token = serializer.validated_data["refresh"]
         try:
             token_obj = RefreshToken(refresh_token)
             jti = token_obj["jti"]
@@ -87,37 +107,41 @@ class LogoutView(ResponseMixin, APIView):
             return self.error("Invalid token", errors={"detail": str(e)})
 
 
-class ChangePasswordView(ResponseMixin, APIView):
+class ChangePasswordView(ResponseMixin, GenericAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
 
     def post(self, request):
-        serializer = ChangePasswordSerializer(
-            data=request.data, context={"request": request}
-        )
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return self.success(message="Password changed")
         return self.error("Change failed", errors=serializer.errors)
 
 
-class RequestPasswordResetView(ResponseMixin, APIView):
+class RequestPasswordResetView(ResponseMixin, GenericAPIView):
     permission_classes = [AllowAny]
+    serializer_class = RequestPasswordResetSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["email_service"] = EmailService()
+        return context
 
     def post(self, request):
-        serializer = RequestPasswordResetSerializer(
-            data=request.data, context={"email_service": EmailService()}
-        )
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return self.success(message="If the email exists a reset was sent")
         return self.error("Request failed", errors=serializer.errors)
 
 
-class ResetPasswordView(ResponseMixin, APIView):
+class ResetPasswordView(ResponseMixin, GenericAPIView):
     permission_classes = [AllowAny]
+    serializer_class = ResetPasswordSerializer
 
     def post(self, request):
-        serializer = ResetPasswordSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return self.success(message="Password reset complete")
