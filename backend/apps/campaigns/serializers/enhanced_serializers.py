@@ -210,21 +210,21 @@ class TenantOwnEmailProviderSerializer(serializers.ModelSerializer):
     config_status = serializers.SerializerMethodField(read_only=True)
     health_info = serializers.SerializerMethodField(read_only=True)
     is_tenant_owned = serializers.SerializerMethodField(read_only=True)
+    tenant_id = serializers.UUIDField(source='organization_id', read_only=True)
     
     class Meta:
         model = EmailProvider
         fields = [
             'id', 'tenant_id', 'name', 'provider_type', 'max_emails_per_minute',
-            'max_emails_per_hour', 'max_emails_per_day', 'activated_by_root', 'activated_by_tmd',
-            'is_default', 'priority', 'is_global', 'last_health_check', 'health_status',
-            'health_details', 'emails_sent_today', 'emails_sent_this_hour',
-            'last_used_at', 'config', 'auto_health_check', 'config_status', 'health_info',
-            'is_tenant_owned', 'created_at', 'updated_at'
+            'max_emails_per_hour', 'max_emails_per_day', 'is_default', 'priority', 'is_shared',
+            'last_health_check', 'health_status', 'health_details', 'emails_sent_today',
+            'emails_sent_this_hour', 'last_used_at', 'config', 'auto_health_check',
+            'config_status', 'health_info', 'is_tenant_owned', 'created_at', 'updated_at'
         ]
         read_only_fields = [
-            'tenant_id', 'encrypted_config', 'last_health_check', 'health_status',
+            'tenant_id', 'last_health_check', 'health_status',
             'health_details', 'emails_sent_today', 'emails_sent_this_hour',
-            'last_used_at', 'is_global', 'is_tenant_owned'
+            'last_used_at', 'is_shared', 'is_tenant_owned'
         ]
     
     def get_config_status(self, obj):
@@ -247,7 +247,7 @@ class TenantOwnEmailProviderSerializer(serializers.ModelSerializer):
     
     def get_is_tenant_owned(self, obj):
         """Check if this is a tenant-owned provider"""
-        return obj.tenant_id is not None and not obj.is_global
+        return obj.organization_id is not None and not obj.is_shared
     
     def create(self, validated_data):
         config = validated_data.pop('config', {})
@@ -258,8 +258,8 @@ class TenantOwnEmailProviderSerializer(serializers.ModelSerializer):
         if not tenant_id:
             raise serializers.ValidationError("tenant_id must be provided in context")
         
-        validated_data['tenant_id'] = tenant_id
-        validated_data['is_global'] = False
+        validated_data['organization_id'] = tenant_id
+        validated_data['is_shared'] = False
         
         logger.info(f"Creating tenant-owned provider: {validated_data.get('name')} for tenant {tenant_id}")
         
@@ -294,9 +294,8 @@ class TenantOwnEmailProviderSerializer(serializers.ModelSerializer):
         config = validated_data.pop('config', None)
         auto_health_check = validated_data.pop('auto_health_check', False)
         
-        # Prevent changing is_global and tenant_id after creation
-        validated_data.pop('is_global', None)
-        validated_data.pop('tenant_id', None)
+        # Prevent changing is_shared after creation
+        validated_data.pop('is_shared', None)
         
         instance = super().update(instance, validated_data)
         
@@ -418,8 +417,9 @@ class EmailValidationSerializer(serializers.ModelSerializer):
 class EmailQueueSerializer(serializers.ModelSerializer):
     """Serializer for email queue items"""
     
-    automation_rule_name = serializers.CharField(source='campaigns.automation_name', read_only=True)
+    automation_rule_name = serializers.CharField(source='automation_rule.automation_name', read_only=True)
     provider_name = serializers.CharField(source='assigned_provider.name', read_only=True)
+    tenant_id = serializers.UUIDField(source='organization_id', read_only=True)
     
     class Meta:
         model = EmailQueue
@@ -440,9 +440,10 @@ class EmailQueueSerializer(serializers.ModelSerializer):
 class EmailDeliveryLogSerializer(serializers.ModelSerializer):
     """Serializer for email delivery logs"""
     
-    automation_rule_name = serializers.CharField(source='campaigns.automation_name', read_only=True)
+    automation_rule_name = serializers.CharField(source='automation_rule.automation_name', read_only=True)
     provider_name = serializers.CharField(source='email_provider.name', read_only=True)
     validation_status = serializers.CharField(source='email_validation.validation_status', read_only=True)
+    tenant_id = serializers.UUIDField(source='organization_id', read_only=True)
     
     class Meta:
         model = EmailDeliveryLog

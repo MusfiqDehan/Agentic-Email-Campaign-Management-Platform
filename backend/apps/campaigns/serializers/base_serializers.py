@@ -224,8 +224,7 @@ class OrganizationEmailConfigurationSerializer(serializers.ModelSerializer):
         model = OrganizationEmailConfiguration
         fields = [
             'id', 'organization_id', 'organization_name', 'plan_type', 'plan_limits',
-            'default_from_email', 'default_from_name', 'default_reply_to',
-            'custom_domain', 'custom_domain_verified', 'timezone',
+            'default_from_domain', 'custom_domain', 'custom_domain_verified', 'timezone',
             'emails_sent_today', 'emails_sent_this_month', 'last_email_sent_at',
             'is_suspended', 'suspension_reason', 'bounce_rate', 'complaint_rate',
             'reputation_score', 'usage_percentage_daily', 'usage_percentage_monthly',
