@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 from django.db.models.functions import TruncHour, TruncDay
@@ -27,6 +28,7 @@ from ..serializers import (
     UnsubscribeSerializer,
     GDPRForgetSerializer,
 )
+from drf_spectacular.utils import extend_schema
 from apps.utils.throttles import OrganizationRateThrottle, EmailSendingRateThrottle
 
 
@@ -261,6 +263,7 @@ class ContactDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@extend_schema(request=BulkContactCreateSerializer)
 class ContactBulkImportView(APIView):
     """
     Bulk import contacts from CSV or JSON.
@@ -269,6 +272,7 @@ class ContactBulkImportView(APIView):
     """
     permission_classes = [IsAuthenticated]
     throttle_classes = [OrganizationRateThrottle]
+    parser_classes = [MultiPartParser, FormParser]
     
     def post(self, request):
         """Bulk import contacts from CSV or JSON."""

@@ -7,6 +7,7 @@ from django.db.models import Q, Count, Avg
 from rest_framework.response import Response
 from rest_framework import status, permissions, generics, filters
 from rest_framework.views import APIView
+import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 
 from ..models import (
@@ -1170,7 +1171,7 @@ class EmailQueueListView(CustomResponseMixin, generics.ListAPIView):
     serializer_class = EmailQueueSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['tenant_id', 'status', 'priority', 'automation_rule']
+    filterset_fields = ['organization', 'status', 'priority', 'automation_rule']
     search_fields = ['recipient_email', 'subject']
     ordering_fields = ['scheduled_at', 'created_at', 'priority']
     ordering = ['priority', 'scheduled_at']
@@ -1181,7 +1182,7 @@ class EmailQueueListView(CustomResponseMixin, generics.ListAPIView):
         
         tenant_id = self.request.query_params.get('tenant_id')
         if tenant_id:
-            queryset = queryset.filter(tenant_id=tenant_id)
+            queryset = queryset.filter(organization_id=tenant_id)
         
         return queryset
 
@@ -1233,6 +1234,16 @@ class EmailQueueProcessView(CustomResponseMixin, APIView):
             )
 
 
+class EmailActionFilter(django_filters.FilterSet):
+    """Filter email actions, exposing tenant_id as a friendly parameter."""
+
+    tenant_id = django_filters.UUIDFilter(field_name="original_log__tenant_id")
+
+    class Meta:
+        model = EmailAction
+        fields = ["action_type"]
+
+
 class EmailActionListView(CustomResponseMixin, generics.ListAPIView):
     """List email actions (resend, forward, etc.)"""
     
@@ -1240,7 +1251,7 @@ class EmailActionListView(CustomResponseMixin, generics.ListAPIView):
     serializer_class = EmailActionSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['action_type', 'original_log__tenant_id']
+    filterset_class = EmailActionFilter
     search_fields = ['original_log__recipient_email', 'new_recipient']
     ordering_fields = ['performed_at']
     ordering = ['-performed_at']
