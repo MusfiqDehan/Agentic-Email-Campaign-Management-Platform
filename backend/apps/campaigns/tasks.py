@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from celery import shared_task
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -10,11 +11,23 @@ from .utils import (
     send_whatsapp,
     UnifiedEmailSender,
 )
-from .models import AutomationRule, EmailDeliveryLog, EmailTemplate
+from .models import AutomationRule, EmailDeliveryLog, EmailTemplate, EmailQueue
 from twilio.rest import Client
 from decouple import config as env_config
 
 logger = logging.getLogger(__name__)
+
+
+def _delete_queryset_in_batches(queryset, batch_size=1000):
+    total_deleted = 0
+    model = queryset.model
+    while True:
+        ids = list(queryset.values_list('id', flat=True)[:batch_size])
+        if not ids:
+            break
+        deleted, _ = model.objects.filter(id__in=ids).delete()
+        total_deleted += deleted
+    return total_deleted
 
 
 def _log_email_dispatch(
@@ -1049,4 +1062,43 @@ def check_campaign_status():
     logger.info("Campaign status check heartbeat")
     return {
         'checked_at': timezone.now().isoformat()
+    }
+
+
+@shared_task
+def cleanup_old_logs(retention_days=None, queue_retention_days=None, batch_size=1000):
+    """Purge aged delivery logs and terminal queue items to contain storage growth."""
+    log_retention_days = retention_days or env_config('EMAIL_LOG_RETENTION_DAYS', default=90, cast=int)
+    queue_retention_days = queue_retention_days or env_config('EMAIL_QUEUE_RETENTION_DAYS', default=30, cast=int)
+    log_retention_days = max(int(log_retention_days), 1)
+    queue_retention_days = max(int(queue_retention_days), 1)
+
+    now = timezone.now()
+    log_cutoff = now - timedelta(days=log_retention_days)
+    queue_cutoff = now - timedelta(days=queue_retention_days)
+
+    logger.info(
+        "[cleanup_old_logs] Starting cleanup window. log_retention=%sd queue_retention=%sd",
+        log_retention_days,
+        queue_retention_days,
+    )
+
+    delivery_log_qs = EmailDeliveryLog.objects.filter(sent_at__lt=log_cutoff)
+    deleted_logs = _delete_queryset_in_batches(delivery_log_qs, batch_size=batch_size)
+
+    terminal_statuses = ['SENT', 'FAILED', 'CANCELLED']
+    queue_qs = EmailQueue.objects.filter(status__in=terminal_statuses, processed_at__lt=queue_cutoff)
+    deleted_queue_items = _delete_queryset_in_batches(queue_qs, batch_size=batch_size)
+
+    logger.info(
+        "[cleanup_old_logs] Finished cleanup. removed_logs=%s removed_queue_items=%s",
+        deleted_logs,
+        deleted_queue_items,
+    )
+
+    return {
+        'deleted_logs': deleted_logs,
+        'deleted_queue_items': deleted_queue_items,
+        'log_cutoff': log_cutoff.isoformat(),
+        'queue_cutoff': queue_cutoff.isoformat(),
     }
