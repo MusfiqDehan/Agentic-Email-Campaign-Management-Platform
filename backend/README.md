@@ -149,6 +149,11 @@ bash deploy.sh --tag v1.2.0
 - Health checks on all services
 - Proper restart policies
 
+### ♻ Maintenance Tasks
+
+- `apps.campaigns.tasks.cleanup_old_logs` runs nightly to purge aged delivery logs and terminal queue records so the database does not grow unbounded. Celery Beat already schedules it via `project_config/celery.py`.
+- Control retention windows with `EMAIL_LOG_RETENTION_DAYS` (default `90`) and `EMAIL_QUEUE_RETENTION_DAYS` (default `30`). Tune these per environment to match compliance requirements before deploying.
+
 ### Environment Variables
 
 Key production variables:
