@@ -39,19 +39,19 @@ class Campaign(BaseModel):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     
-    # Email content
-    subject = models.CharField(max_length=255)
+    # Email content (can be populated from template)
+    subject = models.CharField(max_length=255, blank=True)
     preview_text = models.CharField(
         max_length=255, 
         blank=True,
         help_text="Preview text shown in email clients"
     )
-    html_content = models.TextField(help_text="HTML email body")
+    html_content = models.TextField(blank=True, help_text="HTML email body")
     text_content = models.TextField(blank=True, help_text="Plain text fallback")
     
-    # Sender information
-    from_name = models.CharField(max_length=100)
-    from_email = models.EmailField()
+    # Sender information (can be populated from template)
+    from_name = models.CharField(max_length=100, blank=True)
+    from_email = models.EmailField(blank=True)
     reply_to = models.EmailField(blank=True)
     
     # Template reference (optional, for template-based campaigns)

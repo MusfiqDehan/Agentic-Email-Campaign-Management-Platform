@@ -75,10 +75,33 @@ class LoginView(ResponseMixin, GenericAPIView):
         if serializer.is_valid():
             user = serializer.validated_data["user"]
             refresh = RefreshToken.for_user(user)
+            
+            # Build user data with organization info
+            user_data = {
+                "id": str(user.id),
+                "email": user.email,
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "is_platform_admin": user.is_platform_admin,
+            }
+            
+            # Include organization info if user belongs to one
+            organization_data = None
+            if user.organization:
+                organization_data = {
+                    "id": str(user.organization.id),
+                    "name": user.organization.name,
+                    "slug": user.organization.slug,
+                    "is_owner": user.is_org_owner,
+                    "is_admin": user.is_org_admin,
+                }
+            
             data = {
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
-                "user": {"id": user.id, "email": user.email, "username": user.username},
+                "user": user_data,
+                "organization": organization_data,
             }
             return self.success(data=data, message="Login successful")
         return self.error("Login failed", errors=serializer.errors)

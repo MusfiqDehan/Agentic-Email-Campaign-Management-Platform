@@ -1102,3 +1102,533 @@ def cleanup_old_logs(retention_days=None, queue_retention_days=None, batch_size=
         'log_cutoff': log_cutoff.isoformat(),
         'queue_cutoff': queue_cutoff.isoformat(),
     }
+
+
+# =============================================================================
+# CAMPAIGN TASKS
+# =============================================================================
+
+@shared_task(bind=True, max_retries=3, acks_late=True)
+def launch_campaign_task(self, campaign_id):
+    """
+    Launch a campaign and send emails to all recipients in batches.
+    
+    This task:
+    1. Gets all active contacts from the campaign's contact lists
+    2. Sends emails in batches using the campaign's provider
+    3. Updates campaign statistics
+    4. Marks campaign as SENT when complete
+    """
+    from .models import Campaign, Contact, EmailDeliveryLog, OrganizationEmailProvider, EmailProvider
+    from .utils.email_providers import EmailProviderFactory
+    
+    try:
+        campaign = Campaign.objects.select_related(
+            'organization', 'email_template', 'email_provider', 'email_provider__provider'
+        ).get(id=campaign_id)
+    except Campaign.DoesNotExist:
+        logger.error(f"[launch_campaign_task] Campaign {campaign_id} not found")
+        return {'success': False, 'error': f'Campaign {campaign_id} not found'}
+    
+    if campaign.status not in ['SENDING', 'PAUSED']:
+        logger.info(f"[launch_campaign_task] Campaign {campaign_id} status is {campaign.status}, skipping")
+        return {'success': False, 'error': f'Campaign status is {campaign.status}'}
+    
+    logger.info(f"[launch_campaign_task] Starting campaign {campaign.name} ({campaign_id})")
+    
+    # Get all active contacts from contact lists
+    contacts = Contact.objects.filter(
+        lists__in=campaign.contact_lists.all(),
+        status='ACTIVE',
+        is_active=True,
+        is_deleted=False,
+        organization=campaign.organization
+    ).distinct()
+    
+    # Exclude already sent contacts (for resume scenarios)
+    already_sent_emails = EmailDeliveryLog.objects.filter(
+        campaign=campaign,
+        delivery_status__in=['SENT', 'DELIVERED', 'OPENED', 'CLICKED']
+    ).values_list('recipient_email', flat=True)
+    
+    contacts = contacts.exclude(email__in=already_sent_emails)
+    
+    total_contacts = contacts.count()
+    if total_contacts == 0:
+        campaign.status = 'SENT'
+        campaign.completed_at = timezone.now()
+        campaign.save(update_fields=['status', 'completed_at'])
+        logger.info(f"[launch_campaign_task] Campaign {campaign_id} completed - no contacts to send")
+        return {'success': True, 'sent': 0, 'message': 'No contacts to send'}
+    
+    # Get email provider
+    email_provider_instance = None
+    provider_name = "Unknown"
+    try:
+        if campaign.email_provider:
+            # Use campaign-specific provider (OrganizationEmailProvider)
+            org_provider = campaign.email_provider
+            provider_config = org_provider.get_effective_config()
+            provider_type = org_provider.provider.provider_type
+            provider_name = org_provider.provider.name
+            email_provider_instance = EmailProviderFactory.create_provider(provider_type, provider_config)
+            logger.info(f"[launch_campaign_task] Using campaign-specific provider: {provider_name}")
+        else:
+            # Use organization's primary provider
+            org_provider = OrganizationEmailProvider.objects.filter(
+                organization=campaign.organization,
+                is_enabled=True,
+                is_primary=True,
+                provider__is_active=True
+            ).select_related('provider').first()
+            
+            if org_provider:
+                provider_config = org_provider.get_effective_config()
+                provider_type = org_provider.provider.provider_type
+                provider_name = org_provider.provider.name
+                email_provider_instance = EmailProviderFactory.create_provider(provider_type, provider_config)
+                logger.info(f"[launch_campaign_task] Using organization primary provider: {provider_name}")
+            else:
+                # Fallback to organization-owned provider
+                owned_provider = EmailProvider.objects.filter(
+                    organization=campaign.organization,
+                    is_default=True,
+                    is_active=True
+                ).first()
+                
+                if owned_provider:
+                    provider_config = owned_provider.decrypt_config()
+                    provider_name = owned_provider.name
+                    email_provider_instance = EmailProviderFactory.create_provider(
+                        owned_provider.provider_type, provider_config
+                    )
+                    logger.info(f"[launch_campaign_task] Using organization-owned provider: {provider_name}")
+                else:
+                    # Fallback to shared default provider
+                    shared_provider = EmailProvider.objects.filter(
+                        is_shared=True,
+                        is_default=True,
+                        is_active=True
+                    ).first()
+                    
+                    if shared_provider:
+                        provider_config = shared_provider.decrypt_config()
+                        provider_name = shared_provider.name
+                        email_provider_instance = EmailProviderFactory.create_provider(
+                            shared_provider.provider_type, provider_config
+                        )
+                        logger.info(f"[launch_campaign_task] Using shared default provider: {provider_name}")
+        
+        if not email_provider_instance:
+            raise Exception("No email provider configured for this organization")
+    except Exception as e:
+        logger.error(f"[launch_campaign_task] Failed to initialize email provider: {e}")
+        campaign.status = 'FAILED'
+        campaign.save(update_fields=['status'])
+        return {'success': False, 'error': str(e)}
+    
+    # Process in batches
+    batch_size = campaign.batch_size or 100
+    batch_delay = campaign.batch_delay_seconds or 0
+    sent_count = 0
+    failed_count = 0
+    
+    # Prepare email content
+    subject = campaign.subject
+    html_content = campaign.html_content
+    text_content = campaign.text_content or ''
+    from_name = campaign.from_name
+    from_email = campaign.from_email
+    
+    for i, contact in enumerate(contacts.iterator(chunk_size=batch_size)):
+        # Check if campaign was paused
+        campaign.refresh_from_db(fields=['status'])
+        if campaign.status == 'PAUSED':
+            logger.info(f"[launch_campaign_task] Campaign {campaign_id} paused, stopping")
+            return {
+                'success': True,
+                'paused': True,
+                'sent': sent_count,
+                'failed': failed_count
+            }
+        
+        if campaign.status == 'CANCELLED':
+            logger.info(f"[launch_campaign_task] Campaign {campaign_id} cancelled, stopping")
+            return {
+                'success': True,
+                'cancelled': True,
+                'sent': sent_count,
+                'failed': failed_count
+            }
+        
+        # Personalize content for contact
+        personalized_subject = subject
+        personalized_html = html_content
+        personalized_text = text_content
+        
+        # Simple variable replacement
+        variables = {
+            'first_name': contact.first_name or '',
+            'last_name': contact.last_name or '',
+            'email': contact.email,
+            'full_name': contact.full_name or '',
+            'unsubscribe_url': f'/api/campaigns/unsubscribe/?token={contact.unsubscribe_token}',
+        }
+        # Add custom fields
+        if contact.custom_fields:
+            variables.update(contact.custom_fields)
+        
+        for key, value in variables.items():
+            placeholder = '{{' + key + '}}'
+            personalized_subject = personalized_subject.replace(placeholder, str(value))
+            personalized_html = personalized_html.replace(placeholder, str(value))
+            personalized_text = personalized_text.replace(placeholder, str(value))
+        
+        try:
+            # Send email using provider interface
+            # Combine from_name and from_email for sender
+            if from_name:
+                sender_email = f"{from_name} <{from_email}>"
+            else:
+                sender_email = from_email
+            
+            # Build headers if needed
+            headers = {}
+            if campaign.reply_to:
+                headers['Reply-To'] = campaign.reply_to
+            
+            success, message_id, response_data = email_provider_instance.send_email(
+                recipient_email=contact.email,
+                subject=personalized_subject,
+                html_content=personalized_html,
+                text_content=personalized_text,
+                sender_email=sender_email,
+                headers=headers if headers else None
+            )
+            
+            # Log delivery
+            delivery_status = 'SENT' if success else 'FAILED'
+            EmailDeliveryLog.objects.create(
+                campaign=campaign,
+                organization=campaign.organization,
+                recipient_email=contact.email,
+                contact=contact,
+                sender_email=from_email,
+                subject=personalized_subject,
+                delivery_status=delivery_status,
+                sent_at=timezone.now(),
+                provider_message_id=message_id or '',
+                error_message=response_data.get('error_message', '') if not success else '',
+            )
+            
+            if success:
+                sent_count += 1
+                contact.emails_sent = (contact.emails_sent or 0) + 1
+                contact.last_email_sent_at = timezone.now()
+                contact.save(update_fields=['emails_sent', 'last_email_sent_at'])
+            else:
+                failed_count += 1
+                
+        except Exception as e:
+            failed_count += 1
+            logger.error(f"[launch_campaign_task] Error sending to {contact.email}: {e}")
+            EmailDeliveryLog.objects.create(
+                campaign=campaign,
+                organization=campaign.organization,
+                recipient_email=contact.email,
+                contact=contact,
+                sender_email=from_email,
+                subject=personalized_subject,
+                delivery_status='FAILED',
+                sent_at=timezone.now(),
+                error_message=str(e),
+            )
+        
+        # Batch delay
+        if batch_delay > 0 and (i + 1) % batch_size == 0:
+            import time
+            time.sleep(batch_delay)
+    
+    # Update campaign status
+    campaign.status = 'SENT'
+    campaign.completed_at = timezone.now()
+    campaign.save(update_fields=['status', 'completed_at'])
+    
+    # Update stats
+    campaign.update_stats_from_logs()
+    
+    logger.info(f"[launch_campaign_task] Campaign {campaign_id} completed. Sent: {sent_count}, Failed: {failed_count}")
+    
+    return {
+        'success': True,
+        'campaign_id': str(campaign_id),
+        'sent': sent_count,
+        'failed': failed_count,
+        'total': total_contacts
+    }
+
+
+@shared_task(bind=True, max_retries=3)
+def bulk_create_contacts_task(self, organization_id, contacts, list_id=None, update_existing=False, source='IMPORT', tags=None):
+    """
+    Async task for bulk contact creation when count exceeds threshold.
+    
+    Args:
+        organization_id: UUID of the organization
+        contacts: List of contact dictionaries
+        list_id: Optional UUID of contact list to add contacts to
+        update_existing: Whether to update existing contacts
+        source: Import source identifier
+        tags: List of tags to apply to all contacts
+    """
+    from .models import Contact, ContactList
+    from apps.authentication.models import Organization
+    from django.db import transaction
+    import json
+    
+    logger.info(f"[bulk_create_contacts_task] Starting bulk import for org {organization_id}, {len(contacts)} contacts")
+    
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.error(f"[bulk_create_contacts_task] Organization {organization_id} not found")
+        return {'success': False, 'error': f'Organization {organization_id} not found'}
+    
+    contact_list = None
+    if list_id:
+        contact_list = ContactList.objects.filter(
+            id=list_id,
+            organization=organization
+        ).first()
+    
+    tags = tags or []
+    created = 0
+    updated = 0
+    skipped = 0
+    errors = []
+    
+    # Process in chunks for database efficiency
+    chunk_size = 500
+    
+    for chunk_start in range(0, len(contacts), chunk_size):
+        chunk = contacts[chunk_start:chunk_start + chunk_size]
+        
+        with transaction.atomic():
+            for idx, contact_data in enumerate(chunk):
+                row_num = chunk_start + idx + 1
+                try:
+                    email = contact_data.get('email', '').strip().lower()
+                    if not email:
+                        errors.append({'row': row_num, 'error': 'Missing email'})
+                        continue
+                    
+                    # Extract standard fields
+                    first_name = contact_data.get('first_name', '') or contact_data.get('firstname', '')
+                    last_name = contact_data.get('last_name', '') or contact_data.get('lastname', '')
+                    phone = contact_data.get('phone', '') or contact_data.get('phone_number', '')
+                    
+                    # Extract tags from contact data
+                    contact_tags = contact_data.get('tags', [])
+                    if isinstance(contact_tags, str):
+                        contact_tags = [t.strip() for t in contact_tags.split(',') if t.strip()]
+                    all_tags = list(set(tags + contact_tags))
+                    
+                    # Extract metadata/custom_fields
+                    metadata = contact_data.get('metadata', {})
+                    if isinstance(metadata, str):
+                        try:
+                            metadata = json.loads(metadata)
+                        except json.JSONDecodeError:
+                            metadata = {}
+                    
+                    # Build custom_fields
+                    standard_fields = {'email', 'first_name', 'firstname', 'last_name', 'lastname', 
+                                       'phone', 'phone_number', 'tags', 'metadata', 'custom_fields'}
+                    custom_fields = {
+                        k: v for k, v in contact_data.items()
+                        if k.lower() not in standard_fields and v
+                    }
+                    custom_fields.update(metadata)
+                    
+                    contact, was_created = Contact.objects.get_or_create(
+                        organization=organization,
+                        email=email,
+                        defaults={
+                            'first_name': first_name,
+                            'last_name': last_name,
+                            'phone': phone,
+                            'source': source,
+                            'tags': all_tags,
+                            'custom_fields': custom_fields
+                        }
+                    )
+                    
+                    if was_created:
+                        created += 1
+                    elif update_existing:
+                        if first_name:
+                            contact.first_name = first_name
+                        if last_name:
+                            contact.last_name = last_name
+                        if phone:
+                            contact.phone = phone
+                        if all_tags:
+                            existing_tags = contact.tags or []
+                            contact.tags = list(set(existing_tags + all_tags))
+                        if custom_fields:
+                            existing_cf = contact.custom_fields or {}
+                            contact.custom_fields = {**existing_cf, **custom_fields}
+                        contact.save()
+                        updated += 1
+                    else:
+                        skipped += 1
+                    
+                    if contact_list:
+                        contact.lists.add(contact_list)
+                        
+                except Exception as e:
+                    errors.append({
+                        'row': row_num,
+                        'email': contact_data.get('email', 'unknown'),
+                        'error': str(e)
+                    })
+    
+    # Update list stats
+    if contact_list:
+        contact_list.update_stats()
+    
+    logger.info(f"[bulk_create_contacts_task] Completed. Created: {created}, Updated: {updated}, Skipped: {skipped}, Errors: {len(errors)}")
+    
+    return {
+        'success': True,
+        'created': created,
+        'updated': updated,
+        'skipped': skipped,
+        'errors': errors[:100],  # Limit errors in response
+        'total_errors': len(errors),
+        'total': len(contacts)
+    }
+
+
+@shared_task(bind=True, max_retries=3)
+def send_test_campaign_email(self, campaign_id, recipient_email, subject, html_content, text_content=None):
+    """
+    Send a test email for a campaign.
+    
+    Args:
+        campaign_id: UUID of the campaign
+        recipient_email: Email address to send test to
+        subject: Email subject (usually prefixed with [TEST])
+        html_content: HTML email body
+        text_content: Plain text email body
+    """
+    from .models import Campaign, OrganizationEmailProvider, EmailProvider
+    from .utils.email_providers import EmailProviderFactory
+    
+    try:
+        campaign = Campaign.objects.select_related(
+            'organization', 'email_provider', 'email_provider__provider'
+        ).get(id=campaign_id)
+    except Campaign.DoesNotExist:
+        logger.error(f"[send_test_campaign_email] Campaign {campaign_id} not found")
+        return {'success': False, 'error': f'Campaign {campaign_id} not found'}
+    
+    # Get email provider (same logic as launch_campaign_task)
+    email_provider_instance = None
+    provider_name = "Unknown"
+    
+    try:
+        if campaign.email_provider:
+            org_provider = campaign.email_provider
+            provider_config = org_provider.get_effective_config()
+            provider_type = org_provider.provider.provider_type
+            provider_name = org_provider.provider.name
+            email_provider_instance = EmailProviderFactory.create_provider(provider_type, provider_config)
+        else:
+            org_provider = OrganizationEmailProvider.objects.filter(
+                organization=campaign.organization,
+                is_enabled=True,
+                is_primary=True,
+                provider__is_active=True
+            ).select_related('provider').first()
+            
+            if org_provider:
+                provider_config = org_provider.get_effective_config()
+                provider_type = org_provider.provider.provider_type
+                provider_name = org_provider.provider.name
+                email_provider_instance = EmailProviderFactory.create_provider(provider_type, provider_config)
+            else:
+                owned_provider = EmailProvider.objects.filter(
+                    organization=campaign.organization,
+                    is_default=True,
+                    is_active=True
+                ).first()
+                
+                if owned_provider:
+                    provider_config = owned_provider.decrypt_config()
+                    provider_name = owned_provider.name
+                    email_provider_instance = EmailProviderFactory.create_provider(
+                        owned_provider.provider_type, provider_config
+                    )
+                else:
+                    shared_provider = EmailProvider.objects.filter(
+                        is_shared=True,
+                        is_default=True,
+                        is_active=True
+                    ).first()
+                    
+                    if shared_provider:
+                        provider_config = shared_provider.decrypt_config()
+                        provider_name = shared_provider.name
+                        email_provider_instance = EmailProviderFactory.create_provider(
+                            shared_provider.provider_type, provider_config
+                        )
+        
+        if not email_provider_instance:
+            raise Exception("No email provider configured")
+            
+    except Exception as e:
+        logger.error(f"[send_test_campaign_email] Failed to initialize email provider: {e}")
+        return {'success': False, 'error': str(e)}
+    
+    # Build sender email
+    from_name = campaign.from_name
+    from_email = campaign.from_email
+    
+    if from_name:
+        sender_email = f"{from_name} <{from_email}>"
+    else:
+        sender_email = from_email
+    
+    # Build headers
+    headers = {}
+    if campaign.reply_to:
+        headers['Reply-To'] = campaign.reply_to
+    
+    try:
+        success, message_id, response_data = email_provider_instance.send_email(
+            recipient_email=recipient_email,
+            subject=subject,
+            html_content=html_content,
+            text_content=text_content or '',
+            sender_email=sender_email,
+            headers=headers if headers else None
+        )
+        
+        logger.info(f"[send_test_campaign_email] Test email sent to {recipient_email}: success={success}, message_id={message_id}")
+        
+        return {
+            'success': success,
+            'recipient': recipient_email,
+            'message_id': message_id,
+            'provider': provider_name,
+            'response': response_data
+        }
+        
+    except Exception as e:
+        logger.error(f"[send_test_campaign_email] Error sending test email to {recipient_email}: {e}")
+        return {
+            'success': False,
+            'recipient': recipient_email,
+            'error': str(e)
+        }

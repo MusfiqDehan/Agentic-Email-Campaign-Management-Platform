@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 from django.db.models.functions import TruncHour, TruncDay
@@ -272,7 +272,7 @@ class ContactBulkImportView(APIView):
     """
     permission_classes = [IsAuthenticated]
     throttle_classes = [OrganizationRateThrottle]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     
     def post(self, request):
         """Bulk import contacts from CSV or JSON."""
@@ -405,6 +405,23 @@ class CampaignLaunchView(APIView):
             is_deleted=False
         )
         
+        # Provide helpful error messages based on current status
+        if campaign.status == 'SENDING':
+            return Response(
+                {'error': 'Campaign is already sending. Use /pause/ to pause or /cancel/ to stop it.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        elif campaign.status == 'SENT':
+            return Response(
+                {'error': 'Campaign has already been sent. Use /duplicate/ to create a copy and send again.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        elif campaign.status == 'CANCELLED':
+            return Response(
+                {'error': 'Campaign was cancelled. Use /duplicate/ to create a copy and send again.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         try:
             campaign.launch()
             return Response({
@@ -532,6 +549,47 @@ class CampaignCancelView(APIView):
             return Response({'message': 'Campaign cancelled', 'status': campaign.status})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CampaignResetView(APIView):
+    """
+    Reset a stuck campaign back to DRAFT status.
+    
+    POST /campaigns/{id}/reset/
+    
+    Use this when a campaign is stuck in SENDING status 
+    (e.g., Celery task failed or server restarted).
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def post(self, request, pk):
+        """Reset campaign to DRAFT status."""
+        campaign = get_object_or_404(
+            Campaign,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
+        
+        if campaign.status in ['SENT']:
+            return Response(
+                {'error': 'Cannot reset a completed campaign. Use /duplicate/ instead.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Reset to draft
+        old_status = campaign.status
+        campaign.status = 'DRAFT'
+        campaign.started_at = None
+        campaign.scheduled_at = None
+        campaign.save(update_fields=['status', 'started_at', 'scheduled_at'])
+        
+        return Response({
+            'message': f'Campaign reset from {old_status} to DRAFT',
+            'status': campaign.status,
+            'previous_status': old_status
+        })
 
 
 class CampaignPreviewView(APIView):
