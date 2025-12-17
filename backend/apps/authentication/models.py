@@ -67,6 +67,16 @@ class Organization(models.Model):
         on_delete=models.CASCADE,
         related_name="owned_organizations",
     )
+    
+    # Custom field schema for contact variables
+    # Defines what custom variables are available for template personalization
+    # Example: [{"name": "company", "type": "string", "description": "Company name"}]
+    custom_field_schema = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Schema defining custom fields for contact personalization"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
