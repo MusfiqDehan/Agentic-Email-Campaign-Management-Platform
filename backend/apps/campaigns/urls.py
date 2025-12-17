@@ -80,6 +80,13 @@ from .views import (
     AutomationStatsView,
     EmailDispatchReportView,
     DebugAutoHealthCheckView,
+    
+    # Variable Views - Template Personalization
+    VariableListView,
+    VariableExtractView,
+    VariableValidateView,
+    CustomFieldSchemaView,
+    VariablePreviewView,
 )
 
 # Import enhanced views
@@ -279,4 +286,15 @@ urlpatterns = [
     path('stats/', AutomationStatsView.as_view(), name='automation-stats'),
     path('dispatches/', EmailDispatchReportView.as_view(), name='email-dispatch-report'),
     path('health/', DebugAutoHealthCheckView.as_view(), name='health-check'),
+    
+    # ========================================================================
+    # SECTION 9: TEMPLATE VARIABLES
+    # For autocomplete and template personalization
+    # ========================================================================
+    
+    path('variables/', VariableListView.as_view(), name='variable-list'),
+    path('variables/extract/', VariableExtractView.as_view(), name='variable-extract'),
+    path('variables/validate/', VariableValidateView.as_view(), name='variable-validate'),
+    path('variables/preview/', VariablePreviewView.as_view(), name='variable-preview'),
+    path('variables/schema/', CustomFieldSchemaView.as_view(), name='custom-field-schema'),
 ]

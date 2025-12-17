@@ -1261,28 +1261,22 @@ def launch_campaign_task(self, campaign_id):
                 'failed': failed_count
             }
         
-        # Personalize content for contact
-        personalized_subject = subject
-        personalized_html = html_content
-        personalized_text = text_content
+        # Personalize content for contact using Variable Registry
+        from .utils.variable_registry import get_variable_registry
         
-        # Simple variable replacement
-        variables = {
-            'first_name': contact.first_name or '',
-            'last_name': contact.last_name or '',
-            'email': contact.email,
-            'full_name': contact.full_name or '',
-            'unsubscribe_url': f'/api/campaigns/unsubscribe/?token={contact.unsubscribe_token}',
-        }
-        # Add custom fields
-        if contact.custom_fields:
-            variables.update(contact.custom_fields)
+        registry = get_variable_registry()
         
-        for key, value in variables.items():
-            placeholder = '{{' + key + '}}'
-            personalized_subject = personalized_subject.replace(placeholder, str(value))
-            personalized_html = personalized_html.replace(placeholder, str(value))
-            personalized_text = personalized_text.replace(placeholder, str(value))
+        # Build context from contact and campaign
+        variables = registry.build_context_from_contact(
+            contact=contact,
+            campaign=campaign,
+            organization=campaign.organization
+        )
+        
+        # Render templates
+        personalized_subject = registry.render_template(subject, variables)
+        personalized_html = registry.render_template(html_content, variables)
+        personalized_text = registry.render_template(text_content, variables)
         
         try:
             # Send email using provider interface
