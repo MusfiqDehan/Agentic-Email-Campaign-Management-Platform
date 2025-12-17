@@ -95,6 +95,15 @@ from .admin_views import (
     AdminPlatformStatsView,
 )
 
+# Variable views - Template Personalization
+from .variable_views import (
+    VariableListView,
+    VariableExtractView,
+    VariableValidateView,
+    CustomFieldSchemaView,
+    VariablePreviewView,
+)
+
 # Activation views (simplified - is_active/is_published toggles)
 # Commented out: These views depend on automation_rule module which no longer exists
 # TODO: Refactor activation views with new architecture
@@ -168,4 +177,11 @@ __all__ = [
     'AdminOrganizationUnsuspendView',
     'AdminOrganizationUpgradePlanView',
     'AdminPlatformStatsView',
+    
+    # Variable Views - Template Personalization
+    'VariableListView',
+    'VariableExtractView',
+    'VariableValidateView',
+    'CustomFieldSchemaView',
+    'VariablePreviewView',
 ]
