@@ -73,13 +73,6 @@ class EmailTemplate(BaseModel):
     # Template metadata
     description = models.TextField(blank=True, help_text="Internal description of this template")
     tags = models.JSONField(default=list, blank=True, help_text="Tags for organizing templates")
-    
-    # Variable schema (for documentation and validation)
-    variable_schema = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="JSON schema describing available variables. Example: {'first_name': 'string', 'company': 'string'}"
-    )
 
     class Meta:
         constraints = [
