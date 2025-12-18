@@ -33,3 +33,4 @@ django-health-check==3.18.3
 twilio==9.8.8
 cryptography==41.0.7
 openpyxl==3.1.5
+google-genai==1.56.0
