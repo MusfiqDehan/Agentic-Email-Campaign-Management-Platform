@@ -41,15 +41,18 @@ class GenerateEmailContentAIView(APIView):
             Subject Line: {subject}
             
             Please generate a JSON object with the following fields:
-            1. "email_body": The HTML content of the email. Use inline CSS for styling. Use {{variable_name}} for dynamic content placeholders (e.g., {{first_name}}, {{company_name}}).
+            1. "email_body": The HTML content of the email. Use inline CSS for styling. Use double curly brackets ({{}}) for dynamic content placeholders (e.g., {{first_name}}, {{company_name}}).
             2. "text_body": A plain text version of the email body.
             3. "description": A brief internal description (max 200 chars) explaining the purpose of this email.
             4. "tags": A list of strings (tags) to categorize this email (e.g., ["marketing", "newsletter"]).
             
+            There should be no placeholder text like "lorem ipsum" or [Link to Social Media] in the email_body and text_body. Instead, use realistic sample content.
+            Ensure the JSON is well-formed.
+
             Return ONLY the JSON object.
             """
 
-            # Using gemini-2.0-flash as it is efficient for this task.
+            # Using gemini-2.5-flash-lite as it has good limit.
             response = client.models.generate_content(
                 model="gemini-2.5-flash-lite", 
                 contents=prompt,
