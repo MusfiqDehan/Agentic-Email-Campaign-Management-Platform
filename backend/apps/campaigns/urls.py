@@ -13,8 +13,7 @@ Simplified URL structure organized into clear sections:
 All endpoints use APIView for explicit control.
 """
 
-from django.urls import path, include
-
+from django.urls import path
 # Import campaign views
 from .views import (
     # Contact List Views
@@ -87,6 +86,8 @@ from .views import (
     VariableValidateView,
     CustomFieldSchemaView,
     VariablePreviewView,
+
+    GenerateEmailContentAIView
 )
 
 # Import enhanced views
@@ -297,4 +298,6 @@ urlpatterns = [
     path('variables/validate/', VariableValidateView.as_view(), name='variable-validate'),
     path('variables/preview/', VariablePreviewView.as_view(), name='variable-preview'),
     path('variables/schema/', CustomFieldSchemaView.as_view(), name='custom-field-schema'),
+
+    path('ai/generate/email/content/', GenerateEmailContentAIView.as_view(), name='generate-email-content-ai'),
 ]
