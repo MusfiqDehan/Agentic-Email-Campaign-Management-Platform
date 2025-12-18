@@ -104,6 +104,8 @@ from .variable_views import (
     VariablePreviewView,
 )
 
+from .ai_gen import GenerateEmailContentAIView
+
 # Activation views (simplified - is_active/is_published toggles)
 # Commented out: These views depend on automation_rule module which no longer exists
 # TODO: Refactor activation views with new architecture
@@ -184,4 +186,7 @@ __all__ = [
     'VariableValidateView',
     'CustomFieldSchemaView',
     'VariablePreviewView',
+
+    # AI Generation View
+    'GenerateEmailContentAIView',
 ]
