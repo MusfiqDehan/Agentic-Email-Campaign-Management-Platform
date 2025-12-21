@@ -2,6 +2,7 @@ import uuid
 import logging
 from datetime import timedelta
 from django.utils import timezone
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, Count, Avg
 from rest_framework.response import Response
@@ -10,21 +11,23 @@ from rest_framework.views import APIView
 import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 
+from apps.authentication.permissions import IsOrganizationAdmin
 from ..models import (
-    TenantEmailConfiguration, EmailProvider, TenantEmailProvider,
+    OrganizationEmailConfiguration, EmailProvider, OrganizationEmailProvider,
     EmailValidation, EmailQueue, EmailDeliveryLog, EmailAction,
     AutomationRule
 )
 from ..serializers import (
-    TenantEmailConfigurationSerializer,
+    OrganizationEmailConfigurationSerializer,
     EnhancedEmailDeliveryLogSerializer, EnhancedTriggerEmailSerializer
 )
 from ..serializers.enhanced_serializers import (
-    TenantEmailProviderSerializer, EmailValidationSerializer,
+    OrganizationEmailProviderSerializer, EmailValidationSerializer,
     EmailQueueSerializer, EmailActionSerializer, EmailProviderSerializer,
-    TenantOwnEmailProviderSerializer
+    OrganizationOwnEmailProviderSerializer
 )
 from ..utils.tenant_service import TenantServiceAPI
+from ..signals import log_provider_health_check, log_provider_test_send
 from ..utils.email_providers import EmailProviderManager
 from ..utils.email_utils import is_email_service_active, render_email_template
 from ..tasks import process_email_queue_task, dispatch_enhanced_email_task, submit_email_queue_task
@@ -34,50 +37,74 @@ from core.utils import UniversalAutoFilterMixin
 logger = logging.getLogger(__name__)
 
 
-class TenantEmailConfigurationListCreateView(CustomResponseMixin, generics.ListCreateAPIView):
-    """List and create tenant email configurations"""
+class OrganizationEmailConfigurationListCreateView(CustomResponseMixin, generics.ListCreateAPIView):
+    """List and create organization email configurations"""
     
-    queryset = TenantEmailConfiguration.objects.all()
-    serializer_class = TenantEmailConfigurationSerializer
-    permission_classes = [permissions.AllowAny]
+    serializer_class = OrganizationEmailConfigurationSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOrganizationAdmin]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['organization', 'plan_type', 'is_suspended']
+    filterset_fields = ['plan_type', 'is_suspended']
     search_fields = ['organization__name']
     ordering_fields = ['created_at', 'emails_sent_today', 'reputation_score']
     ordering = ['-created_at']
 
     def get_queryset(self):
-        """Filter queryset based on user permissions and organization access"""
-        queryset = super().get_queryset()
-        
-        # Add organization filtering based on user permissions
-        organization_id = self.request.query_params.get('organization_id')
-        if organization_id:
-            queryset = queryset.filter(organization_id=organization_id)
-        
-        return queryset
-
-
-class TenantEmailConfigurationDetailView(CustomResponseMixin, generics.RetrieveUpdateDestroyAPIView):
-    """Retrieve, update and delete tenant email configurations"""
+        """Filter queryset to only show current user's organization configurations"""
+        if not self.request.user.organization:
+            return OrganizationEmailConfiguration.objects.none()
+        return OrganizationEmailConfiguration.objects.filter(
+            organization=self.request.user.organization
+        )
     
-    queryset = TenantEmailConfiguration.objects.all()
-    serializer_class = TenantEmailConfigurationSerializer
-    permission_classes = [permissions.AllowAny]
+    def perform_create(self, serializer):
+        """Set organization from authenticated user"""
+        serializer.save(organization=self.request.user.organization)
+
+
+# Legacy alias for backward compatibility
+TenantEmailConfigurationListCreateView = OrganizationEmailConfigurationListCreateView
+
+
+class OrganizationEmailConfigurationDetailView(CustomResponseMixin, generics.RetrieveUpdateDestroyAPIView):
+    """Retrieve, update and delete organization email configurations"""
+    
+    serializer_class = OrganizationEmailConfigurationSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOrganizationAdmin]
     lookup_field = 'pk'
-
-
-class TenantEmailConfigurationResetUsageView(CustomResponseMixin, APIView):
-    """Reset usage counters for a tenant"""
     
-    permission_classes = [permissions.AllowAny]
+    def get_queryset(self):
+        """Filter queryset to only show current user's organization configurations"""
+        if not self.request.user.organization:
+            return OrganizationEmailConfiguration.objects.none()
+        return OrganizationEmailConfiguration.objects.filter(
+            organization=self.request.user.organization
+        )
+
+
+# Legacy alias for backward compatibility
+TenantEmailConfigurationDetailView = OrganizationEmailConfigurationDetailView
+
+
+class OrganizationEmailConfigurationResetUsageView(CustomResponseMixin, APIView):
+    """Reset usage counters for an organization"""
+    
+    permission_classes = [permissions.IsAuthenticated, IsOrganizationAdmin]
     
     def post(self, request, pk):
-        try:
-            config = TenantEmailConfiguration.objects.get(pk=pk)
-        except TenantEmailConfiguration.DoesNotExist:
+        if not request.user.organization:
             return self.error_response(
-                message="Tenant configuration not found",
+                message="You must belong to an organization",
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            config = OrganizationEmailConfiguration.objects.get(
+                pk=pk,
+                organization=request.user.organization
+            )
+        except OrganizationEmailConfiguration.DoesNotExist:
+            return self.error_response(
+                message="Organization configuration not found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
         
@@ -96,17 +123,30 @@ class TenantEmailConfigurationResetUsageView(CustomResponseMixin, APIView):
         )
 
 
-class TenantEmailConfigurationVerifyDomainView(CustomResponseMixin, APIView):
-    """Verify custom domain for tenant"""
+# Legacy alias for backward compatibility
+TenantEmailConfigurationResetUsageView = OrganizationEmailConfigurationResetUsageView
+
+
+class OrganizationEmailConfigurationVerifyDomainView(CustomResponseMixin, APIView):
+    """Verify custom domain for organization"""
     
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated, IsOrganizationAdmin]
     
     def post(self, request, pk):
-        try:
-            config = TenantEmailConfiguration.objects.get(pk=pk)
-        except TenantEmailConfiguration.DoesNotExist:
+        if not request.user.organization:
             return self.error_response(
-                message="Tenant configuration not found",
+                message="You must belong to an organization",
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            config = OrganizationEmailConfiguration.objects.get(
+                pk=pk,
+                organization=request.user.organization
+            )
+        except OrganizationEmailConfiguration.DoesNotExist:
+            return self.error_response(
+                message="Organization configuration not found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
         
@@ -129,15 +169,27 @@ class TenantEmailConfigurationVerifyDomainView(CustomResponseMixin, APIView):
         )
 
 
-class TenantEmailConfigurationUsageStatsView(CustomResponseMixin, APIView):
-    """Get usage statistics across tenants"""
+# Legacy alias for backward compatibility
+TenantEmailConfigurationVerifyDomainView = OrganizationEmailConfigurationVerifyDomainView
+
+
+class OrganizationEmailConfigurationUsageStatsView(CustomResponseMixin, APIView):
+    """Get usage statistics for the current organization"""
     
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated, IsOrganizationAdmin]
     
     def get(self, request):
-        stats = TenantEmailConfiguration.objects.aggregate(
-            total_tenants=Count('id'),
-            active_tenants=Count('id', filter=Q(activated_by_root=True, activated_by_tmd=True)),
+        if not request.user.organization:
+            return self.error_response(
+                message="You must belong to an organization",
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get stats for the user's organization only
+        stats = OrganizationEmailConfiguration.objects.filter(
+            organization=request.user.organization
+        ).aggregate(
+            total_configs=Count('id'),
             total_emails_today=Count('emails_sent_today'),
             avg_reputation=Avg('reputation_score')
         )
@@ -146,6 +198,10 @@ class TenantEmailConfigurationUsageStatsView(CustomResponseMixin, APIView):
             data=stats,
             message="Usage statistics retrieved successfully"
         )
+
+
+# Legacy alias for backward compatibility
+TenantEmailConfigurationUsageStatsView = OrganizationEmailConfigurationUsageStatsView
 
 
 class EmailProviderListCreateView(UniversalAutoFilterMixin, CustomResponseMixin, generics.ListCreateAPIView):
@@ -909,134 +965,79 @@ class EmailDeliveryLogAnalyticsView(CustomResponseMixin, APIView):
 
 
 # ========================================================================
-# SECTION: TENANT-OWNED EMAIL PROVIDERS
-# Allows tenants to create and manage their own email providers
+# SECTION: ORGANIZATION-OWNED EMAIL PROVIDERS
+# Allows organization admins to create and manage their own email providers
 # ========================================================================
 
-class TenantOwnEmailProviderListCreateView(CustomResponseMixin, generics.ListCreateAPIView):
-    """Tenants can create and manage their own email providers"""
+class OrganizationOwnEmailProviderListCreateView(CustomResponseMixin, generics.ListCreateAPIView):
+    """Organization admins can create and manage their own email providers"""
     
-    serializer_class = TenantOwnEmailProviderSerializer
-    permission_classes = [permissions.AllowAny]
+    serializer_class = OrganizationOwnEmailProviderSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOrganizationAdmin]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['provider_type', 'health_status', 'is_default']
     ordering_fields = ['priority', 'name', 'created_at']
     ordering = ['priority', 'name']
     
     def get_queryset(self):
-        """Only show tenant-owned providers for this tenant"""
-        tenant_id = self._get_tenant_from_request()
-        
-        if not tenant_id:
+        """Only show organization-owned providers for the user's organization"""
+        if not self.request.user.organization:
             return EmailProvider.objects.none()
         
         # Return ONLY organization-owned providers (not shared providers)
         return EmailProvider.objects.filter(
-            organization_id=tenant_id,
+            organization=self.request.user.organization,
             is_shared=False
         )
     
-    def _get_tenant_from_request(self):
-        """Extract tenant_id from request (query params or request body)"""
-        # First check query parameters
-        tenant_id = self.request.query_params.get('tenant_id')
-        if tenant_id:
-            return tenant_id
-        
-        # Then check request body
-        if hasattr(self.request, 'data') and isinstance(self.request.data, dict):
-            tenant_id = self.request.data.get('tenant_id')
-            if tenant_id:
-                return tenant_id
-        
-        # Try to extract from JWT token or headers
-        if hasattr(self.request, 'user'):
-            if hasattr(self.request.user, 'tenant_id'):
-                return self.request.user.tenant_id
-            if hasattr(self.request.user, 'organization_id'):
-                return self.request.user.organization_id
-            if hasattr(self.request.user, 'organization') and self.request.user.organization:
-                return self.request.user.organization.id
-        
-        return None
-    
     def get_serializer_context(self):
-        """Add tenant_id to serializer context"""
+        """Add organization to serializer context"""
         context = super().get_serializer_context()
-        tenant_id = self._get_tenant_from_request()
-        context['tenant_id'] = tenant_id
+        if self.request.user.organization:
+            context['organization'] = self.request.user.organization
+            context['organization_id'] = self.request.user.organization.id
         return context
     
     def perform_create(self, serializer):
-        """Create tenant-owned provider with proper error handling"""
-        tenant_id = self._get_tenant_from_request()
-        
-        if not tenant_id:
+        """Create organization-owned provider with proper validation"""
+        if not self.request.user.organization:
             from rest_framework.exceptions import ValidationError
             raise ValidationError({
-                'tenant_id': 'tenant_id is required. Provide it as query parameter (?tenant_id=xxx) or in request body'
+                'organization': 'You must belong to an organization to create a provider'
             })
         
-        # Validate tenant_id format
-        try:
-            import uuid
-            uuid.UUID(str(tenant_id))
-        except (ValueError, AttributeError):
-            from rest_framework.exceptions import ValidationError
-            raise ValidationError({
-                'tenant_id': f'Invalid tenant_id format. Must be a valid UUID, got: {tenant_id}'
-            })
-        
-        serializer.save(organization_id=tenant_id, is_shared=False)
+        serializer.save(
+            organization=self.request.user.organization, 
+            is_shared=False
+        )
 
-class TenantOwnEmailProviderDetailView(CustomResponseMixin, generics.RetrieveUpdateDestroyAPIView):
-    """Retrieve, update and delete tenant-owned email provider configurations"""
+
+# Legacy alias
+TenantOwnEmailProviderListCreateView = OrganizationOwnEmailProviderListCreateView
+
+class OrganizationOwnEmailProviderDetailView(CustomResponseMixin, generics.RetrieveUpdateDestroyAPIView):
+    """Retrieve, update and delete organization-owned email provider configurations"""
     
-    serializer_class = TenantOwnEmailProviderSerializer
-    permission_classes = [permissions.AllowAny]
+    serializer_class = OrganizationOwnEmailProviderSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOrganizationAdmin]
     lookup_field = 'pk'
     
     def get_queryset(self):
-        """Only show provider if it belongs to the tenant"""
-        tenant_id = self._get_tenant_from_request()
-        
-        if not tenant_id:
+        """Only show provider if it belongs to the user's organization"""
+        if not self.request.user.organization:
             return EmailProvider.objects.none()
         
         return EmailProvider.objects.filter(
-            organization_id=tenant_id,
+            organization=self.request.user.organization,
             is_shared=False
         )
     
-    def _get_tenant_from_request(self):
-        """Extract tenant_id from request (query params, body, or JWT)"""
-        # First check query parameters
-        tenant_id = self.request.query_params.get('tenant_id')
-        if tenant_id:
-            return tenant_id
-        
-        # Then check request body
-        if hasattr(self.request, 'data') and isinstance(self.request.data, dict):
-            tenant_id = self.request.data.get('tenant_id')
-            if tenant_id:
-                return tenant_id
-        
-        # Try to extract from JWT token or headers
-        if hasattr(self.request, 'user'):
-            if hasattr(self.request.user, 'tenant_id'):
-                return self.request.user.tenant_id
-            if hasattr(self.request.user, 'organization_id'):
-                return self.request.user.organization_id
-            if hasattr(self.request.user, 'organization') and self.request.user.organization:
-                return self.request.user.organization.id
-        
-        return None
-    
     def get_serializer_context(self):
-        """Add tenant_id to serializer context"""
+        """Add organization to serializer context"""
         context = super().get_serializer_context()
-        tenant_id = self._get_tenant_from_request()
-        context['tenant_id'] = tenant_id
+        if self.request.user.organization:
+            context['organization'] = self.request.user.organization
+            context['organization_id'] = self.request.user.organization.id
         return context
     
     def destroy(self, request, *args, **kwargs):
@@ -1049,34 +1050,31 @@ class TenantOwnEmailProviderDetailView(CustomResponseMixin, generics.RetrieveUpd
             )
         return super().destroy(request, *args, **kwargs)
 
-class TenantOwnEmailProviderHealthCheckView(CustomResponseMixin, APIView):
-    """Perform health check on tenant-owned provider"""
+
+# Legacy alias
+TenantOwnEmailProviderDetailView = OrganizationOwnEmailProviderDetailView
+
+class OrganizationOwnEmailProviderHealthCheckView(CustomResponseMixin, APIView):
+    """Perform health check on organization-owned provider"""
     
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated, IsOrganizationAdmin]
     
     def post(self, request, pk):
-        # Extract tenant_id from query params, body, or JWT
-        tenant_id = (
-            request.query_params.get('tenant_id') or
-            (request.data.get('tenant_id') if isinstance(request.data, dict) else None) or
-            (getattr(request.user, 'tenant_id', None) if hasattr(request, 'user') else None)
-        )
-        
-        if not tenant_id:
+        if not request.user.organization:
             return self.error_response(
-                message="tenant_id is required as query parameter, in request body, or must be authenticated",
-                status_code=status.HTTP_400_BAD_REQUEST
+                message="You must belong to an organization",
+                status_code=status.HTTP_403_FORBIDDEN
             )
         
         try:
             provider = EmailProvider.objects.get(
                 pk=pk,
-                organization_id=tenant_id,
+                organization=request.user.organization,
                 is_shared=False
             )
         except EmailProvider.DoesNotExist:
             return self.error_response(
-                message="Email provider not found for this tenant",
+                message="Email provider not found for your organization",
                 status_code=status.HTTP_404_NOT_FOUND
             )
         
@@ -1096,6 +1094,15 @@ class TenantOwnEmailProviderHealthCheckView(CustomResponseMixin, APIView):
             provider.last_health_check = timezone.now()
             provider.save()
             
+            # Log the health check action
+            log_provider_health_check(
+                provider=provider,
+                user=request.user,
+                request=request,
+                is_healthy=is_healthy,
+                message=message
+            )
+            
             return self.success_response(
                 data={
                     'provider': provider.name,
@@ -1114,6 +1121,15 @@ class TenantOwnEmailProviderHealthCheckView(CustomResponseMixin, APIView):
             provider.last_health_check = timezone.now()
             provider.save()
             
+            # Log the failed health check
+            log_provider_health_check(
+                provider=provider,
+                user=request.user,
+                request=request,
+                is_healthy=False,
+                message=str(e)
+            )
+            
             return self.error_response(
                 message="Health check failed",
                 data={'error': str(e)},
@@ -1121,25 +1137,154 @@ class TenantOwnEmailProviderHealthCheckView(CustomResponseMixin, APIView):
             )
 
 
-class TenantEmailProviderListCreateView(CustomResponseMixin, generics.ListCreateAPIView):
-    """List and create tenant email provider configurations"""
+# Legacy alias
+TenantOwnEmailProviderHealthCheckView = OrganizationOwnEmailProviderHealthCheckView
+
+
+class OrganizationOwnEmailProviderTestSendView(CustomResponseMixin, APIView):
+    """Send a test email using an organization-owned provider"""
     
-    queryset = TenantEmailProvider.objects.all()
-    serializer_class = TenantEmailProviderSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated, IsOrganizationAdmin]
+    
+    def post(self, request, pk):
+        if not request.user.organization:
+            return self.error_response(
+                message="You must belong to an organization",
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Validate request data
+        recipient_email = request.data.get('recipient_email')
+        if not recipient_email:
+            return self.error_response(
+                message="recipient_email is required",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            provider = EmailProvider.objects.get(
+                pk=pk,
+                organization=request.user.organization,
+                is_shared=False
+            )
+        except EmailProvider.DoesNotExist:
+            return self.error_response(
+                message="Email provider not found for your organization",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        
+        try:
+            from ..utils.email_providers import EmailProviderFactory
+            
+            config = provider.decrypt_config()
+            provider_instance = EmailProviderFactory.create_provider(
+                provider.provider_type, config
+            )
+            
+            # Prepare test email
+            subject = request.data.get('subject', f'Test Email from {provider.name}')
+            body = request.data.get('body', f'This is a test email sent via {provider.name} ({provider.provider_type}).')
+            from_email = request.data.get('from_email', config.get('from_email', f'test@{request.user.organization.slug}.com'))
+            
+            # Send test email
+            success, message = provider_instance.send_email(
+                to_email=recipient_email,
+                subject=subject,
+                body=body,
+                from_email=from_email
+            )
+            
+            # Log the test send action
+            log_provider_test_send(
+                provider=provider,
+                user=request.user,
+                request=request,
+                success=success,
+                recipient=recipient_email,
+                message=message
+            )
+            
+            if success:
+                return self.success_response(
+                    data={
+                        'provider': provider.name,
+                        'recipient': recipient_email,
+                        'message': message
+                    },
+                    message="Test email sent successfully"
+                )
+            else:
+                return self.error_response(
+                    message="Test email failed",
+                    data={'error': message},
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
+            
+        except Exception as e:
+            logger.error(f"Test send failed for provider {provider.name}: {e}")
+            
+            # Log the failed test send
+            log_provider_test_send(
+                provider=provider,
+                user=request.user,
+                request=request,
+                success=False,
+                recipient=recipient_email,
+                message=str(e)
+            )
+            
+            return self.error_response(
+                message="Test send failed",
+                data={'error': str(e)},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class OrganizationEmailProviderListCreateView(CustomResponseMixin, generics.ListCreateAPIView):
+    """List and create organization email provider configurations"""
+    
+    serializer_class = OrganizationEmailProviderSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOrganizationAdmin]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ['organization', 'provider', 'is_enabled', 'is_primary']
+    filterset_fields = ['provider', 'is_enabled', 'is_primary']
     ordering_fields = ['created_at', 'provider__priority']
     ordering = ['provider__priority']
-
-
-class TenantEmailProviderDetailView(CustomResponseMixin, generics.RetrieveUpdateDestroyAPIView):
-    """Retrieve, update and delete tenant email provider configurations"""
     
-    queryset = TenantEmailProvider.objects.all()
-    serializer_class = TenantEmailProviderSerializer
-    permission_classes = [permissions.AllowAny]
+    def get_queryset(self):
+        """Only show provider configurations for the user's organization"""
+        if not self.request.user.organization:
+            return OrganizationEmailProvider.objects.none()
+        return OrganizationEmailProvider.objects.filter(
+            organization=self.request.user.organization
+        )
+    
+    def perform_create(self, serializer):
+        """Set organization from authenticated user"""
+        serializer.save(organization=self.request.user.organization)
+
+
+# Legacy alias
+TenantEmailProviderListCreateView = OrganizationEmailProviderListCreateView
+
+
+class OrganizationEmailProviderDetailView(CustomResponseMixin, generics.RetrieveUpdateDestroyAPIView):
+    """Retrieve, update and delete organization email provider configurations"""
+    
+    serializer_class = OrganizationEmailProviderSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOrganizationAdmin]
     lookup_field = 'pk'
+    
+    def get_queryset(self):
+        """Only show provider configurations for the user's organization"""
+        if not self.request.user.organization:
+            return OrganizationEmailProvider.objects.none()
+        return OrganizationEmailProvider.objects.filter(
+            organization=self.request.user.organization
+        )
+
+
+# Legacy alias
+TenantEmailProviderDetailView = OrganizationEmailProviderDetailView
 
 
 class EmailValidationListView(CustomResponseMixin, generics.ListAPIView):
@@ -1442,26 +1587,26 @@ class EnhancedTriggerEmailView(CustomResponseMixin, generics.GenericAPIView):
                     logger.warning("Email service is not activated globally; denying send request with no tenant context.")
                     return False
 
-            # Check tenant-specific configuration limits
+            # Check organization-specific configuration limits
             if tenant_id_str:
-                config = TenantEmailConfiguration.objects.filter(tenant_id=tenant_id).first()
+                config = OrganizationEmailConfiguration.objects.filter(organization_id=tenant_id).first()
 
                 if config:
                     can_send, reason = config.can_send_email()
                     if not can_send:
                         logger.warning(
-                            "Tenant %s cannot send email due to configuration limits: %s", tenant_id_str, reason
+                            "Organization %s cannot send email due to configuration limits: %s", tenant_id_str, reason
                         )
                     return can_send
 
-                # If no config exists, provision a default configuration using tenant plan limits
+                # If no config exists, provision a default configuration using organization plan limits
                 logger.info(
-                    "No local email config for tenant %s. Creating default configuration and allowing send.",
+                    "No local email config for organization %s. Creating default configuration and allowing send.",
                     tenant_id_str
                 )
                 limits = TenantServiceAPI.get_tenant_plan_limits(tenant_id_str)
-                TenantEmailConfiguration.objects.get_or_create(
-                    tenant_id=tenant_id,
+                OrganizationEmailConfiguration.objects.get_or_create(
+                    organization_id=tenant_id,
                     defaults={
                         'plan_type': 'FREE',
                         'emails_per_day': limits.get('emails_per_day', 50),
