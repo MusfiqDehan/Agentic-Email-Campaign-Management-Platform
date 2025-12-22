@@ -52,6 +52,8 @@ from .campaign_views import (
     ContactBulkImportView,
 )
 
+from .contact_agent_views import ContactAgentView
+
 # Campaign views - Campaigns
 from .campaign_views import (
     CampaignListCreateView,
