@@ -87,7 +87,8 @@ from .views import (
     CustomFieldSchemaView,
     VariablePreviewView,
 
-    GenerateEmailContentAIView
+    GenerateEmailContentAIView,
+    ContactAgentView
 )
 
 # Import enhanced views
@@ -303,5 +304,9 @@ urlpatterns = [
     path('variables/preview/', VariablePreviewView.as_view(), name='variable-preview'),
     path('variables/schema/', CustomFieldSchemaView.as_view(), name='custom-field-schema'),
 
+    # ========================================================================
+    # SECTION 10: AI & AGENT INTEGRATIONS
+    # ========================================================================
     path('ai/generate/email/content/', GenerateEmailContentAIView.as_view(), name='generate-email-content-ai'),
+    path('ai/agent/contacts/', ContactAgentView.as_view(), name='contact-agent'),
 ]
