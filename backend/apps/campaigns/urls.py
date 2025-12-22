@@ -191,10 +191,10 @@ urlpatterns = [
     path('providers/<uuid:pk>/', OrganizationEmailProviderDetailView.as_view(), name='org-email-provider-detail'),
 
     # Organization Own Email Providers (org-owned providers created by org admins)
-    path('own-providers/', OrganizationOwnEmailProviderListCreateView.as_view(), name='org-own-provider-list-create'),
-    path('own-providers/<uuid:pk>/', OrganizationOwnEmailProviderDetailView.as_view(), name='org-own-provider-detail'),
-    path('own-providers/<uuid:pk>/health-check/', OrganizationOwnEmailProviderHealthCheckView.as_view(), name='org-own-provider-health-check'),
-    path('own-providers/<uuid:pk>/test-send/', OrganizationOwnEmailProviderTestSendView.as_view(), name='org-own-provider-test-send'),
+    path('org/providers/', OrganizationOwnEmailProviderListCreateView.as_view(), name='org-own-provider-list-create'),
+    path('org/providers/<uuid:pk>/', OrganizationOwnEmailProviderDetailView.as_view(), name='org-own-provider-detail'),
+    path('org/providers/<uuid:pk>/health-check/', OrganizationOwnEmailProviderHealthCheckView.as_view(), name='org-own-provider-health-check'),
+    path('org/providers/<uuid:pk>/test-send/', OrganizationOwnEmailProviderTestSendView.as_view(), name='org-own-provider-test-send'),
     
     # Shared Email Providers (read-only for regular users)
     path('shared-providers/', EmailProviderListCreateView.as_view(), name='shared-email-provider-list'),
