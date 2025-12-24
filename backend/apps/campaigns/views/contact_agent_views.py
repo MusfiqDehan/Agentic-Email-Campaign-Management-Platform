@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class ContactAgentView(APIView):
     """
-    API View to manage contacts using Google Gemini AI agent.
+    API View to manage contacts and contact lists using Google Gemini AI agent.
     """
     permission_classes = [IsAuthenticated]
 
@@ -30,7 +30,7 @@ class ContactAgentView(APIView):
             client = genai.Client(api_key=api_key)
             
             system_instruction = """
-            You are an AI assistant that manages contacts for an email marketing platform.
+            You are an AI assistant that manages contacts and contact lists for an email marketing platform.
             Interpret the user's natural language request and convert it into a structured JSON action.
             
             Supported Actions:
@@ -39,21 +39,28 @@ class ContactAgentView(APIView):
             - DELETE_CONTACT: Delete a contact (soft delete).
             - ADD_TO_LIST: Add a contact to a specific list.
             - REMOVE_FROM_LIST: Remove a contact from a specific list.
+            - CREATE_CONTACT_LIST: Create a new contact list.
+            - UPDATE_CONTACT_LIST: Update an existing contact list.
+            - DELETE_CONTACT_LIST: Delete a contact list.
 
             Output JSON Format:
             {
                 "action": "ACTION_NAME",
                 "data": {
-                    "email": "email@example.com", (REQUIRED for all actions)
-                    "first_name": "John", (Optional)
-                    "last_name": "Doe", (Optional)
-                    "phone": "+1234567890", (Optional)
-                    "list_name": "Newsletter", (Required for ADD_TO_LIST, REMOVE_FROM_LIST. Optional for CREATE_CONTACT to add immediately)
+                    "email": "email@example.com", (REQUIRED for contact actions)
+                    "first_name": "John", (Optional for contact actions)
+                    "last_name": "Doe", (Optional for contact actions)
+                    "phone": "+1234567890", (Optional for contact actions)
+                    "list_name": "Newsletter", (Required for list actions and ADD_TO_LIST/REMOVE_FROM_LIST)
+                    "new_list_name": "New Newsletter Name", (Optional for UPDATE_CONTACT_LIST)
+                    "description": "List description", (Optional for list actions)
                     "tags": ["tag1", "tag2"] (Optional list of strings)
                 }
             }
             
-            If the request is ambiguous or missing the email address, return {"error": "Description of the error"}.
+            If the request is ambiguous, return {"error": "Description of the error"}.
+            For contact actions (CREATE/UPDATE/DELETE/ADD_TO/REMOVE_FROM), email is required.
+            For list actions (CREATE/UPDATE/DELETE_CONTACT_LIST), list_name is required.
             Return ONLY the JSON object.
             """
             
@@ -80,11 +87,19 @@ class ContactAgentView(APIView):
             action = result.get("action")
             data = result.get("data", {})
             email = data.get("email")
+            list_name = data.get("list_name")
             
-            if not email:
-                 return Response({"error": "Could not identify email address from prompt"}, status=status.HTTP_400_BAD_REQUEST)
-
             organization = request.user.organization
+
+            # Validation based on action type
+            contact_actions = ["CREATE_CONTACT", "UPDATE_CONTACT", "DELETE_CONTACT", "ADD_TO_LIST", "REMOVE_FROM_LIST"]
+            list_actions = ["CREATE_CONTACT_LIST", "UPDATE_CONTACT_LIST", "DELETE_CONTACT_LIST"]
+
+            if action in contact_actions and not email:
+                 return Response({"error": "Could not identify email address from prompt"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if action in list_actions and not list_name:
+                 return Response({"error": "Could not identify list name from prompt"}, status=status.HTTP_400_BAD_REQUEST)
 
             if action == "CREATE_CONTACT":
                 contact, created = Contact.objects.get_or_create(
@@ -112,7 +127,6 @@ class ContactAgentView(APIView):
                     contact.save()
 
                 # Handle list addition
-                list_name = data.get("list_name")
                 if list_name:
                     contact_list, _ = ContactList.objects.get_or_create(
                         organization=organization,
@@ -157,7 +171,6 @@ class ContactAgentView(APIView):
                 return Response({"message": f"Contact {email} deleted successfully."})
 
             elif action == "ADD_TO_LIST":
-                list_name = data.get("list_name")
                 if not list_name:
                     return Response({"error": "List name is required for this action."}, status=status.HTTP_400_BAD_REQUEST)
                 
@@ -173,7 +186,6 @@ class ContactAgentView(APIView):
                 return Response({"message": f"Contact {email} added to list '{list_name}'."})
 
             elif action == "REMOVE_FROM_LIST":
-                list_name = data.get("list_name")
                 if not list_name:
                     return Response({"error": "List name is required for this action."}, status=status.HTTP_400_BAD_REQUEST)
                 
@@ -187,6 +199,47 @@ class ContactAgentView(APIView):
                     return Response({"message": f"Contact {email} removed from list '{list_name}'."})
                 else:
                     return Response({"error": f"List '{list_name}' not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            elif action == "CREATE_CONTACT_LIST":
+                contact_list, created = ContactList.objects.get_or_create(
+                    organization=organization,
+                    name=list_name,
+                    defaults={
+                        "description": data.get("description", ""),
+                        "tags": data.get("tags", [])
+                    }
+                )
+                if not created:
+                    return Response({"message": f"List '{list_name}' already exists.", "list": {"id": contact_list.id, "name": contact_list.name}})
+                return Response({"message": f"List '{list_name}' created successfully.", "list": {"id": contact_list.id, "name": contact_list.name}})
+
+            elif action == "UPDATE_CONTACT_LIST":
+                contact_list = ContactList.objects.filter(organization=organization, name=list_name).first()
+                if not contact_list:
+                    return Response({"error": f"List '{list_name}' not found."}, status=status.HTTP_404_NOT_FOUND)
+                
+                new_name = data.get("new_list_name")
+                if new_name:
+                    contact_list.name = new_name
+                
+                if data.get("description"):
+                    contact_list.description = data.get("description")
+                
+                tags = data.get("tags")
+                if tags and isinstance(tags, list):
+                    current_tags = contact_list.tags or []
+                    contact_list.tags = list(set(current_tags + tags))
+                
+                contact_list.save()
+                return Response({"message": f"List '{list_name}' updated successfully.", "list": {"id": contact_list.id, "name": contact_list.name}})
+
+            elif action == "DELETE_CONTACT_LIST":
+                contact_list = ContactList.objects.filter(organization=organization, name=list_name).first()
+                if not contact_list:
+                    return Response({"error": f"List '{list_name}' not found."}, status=status.HTTP_404_NOT_FOUND)
+                
+                contact_list.delete()
+                return Response({"message": f"List '{list_name}' deleted successfully."})
 
             else:
                 return Response({"error": "Unknown action determined by AI."}, status=status.HTTP_400_BAD_REQUEST)
