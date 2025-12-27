@@ -398,12 +398,34 @@ class CampaignLaunchView(APIView):
     
     def post(self, request, pk):
         """Launch campaign immediately."""
-        campaign = get_object_or_404(
-            Campaign,
-            pk=pk,
-            organization=request.user.organization,
-            is_deleted=False
-        )
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {'error': 'User is not associated with any organization.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Detailed campaign lookup with specific error messages
+        # First, check if campaign exists at all (including soft-deleted)
+        campaign = Campaign.all_objects.filter(pk=pk).first()
+        
+        if not campaign:
+            return Response(
+                {'error': f'Campaign with ID {pk} does not exist.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if campaign.is_deleted:
+            return Response(
+                {'error': 'This campaign has been deleted.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if campaign.organization_id != request.user.organization_id:
+            return Response(
+                {'error': 'You do not have permission to access this campaign.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         
         # Provide helpful error messages based on current status
         if campaign.status == 'SENDING':
@@ -447,6 +469,13 @@ class CampaignScheduleView(APIView):
     
     def post(self, request, pk):
         """Schedule campaign for future send."""
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {'error': 'User is not associated with any organization.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         campaign = get_object_or_404(
             Campaign,
             pk=pk,
@@ -487,6 +516,13 @@ class CampaignPauseView(APIView):
     
     def post(self, request, pk):
         """Pause sending campaign."""
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {'error': 'User is not associated with any organization.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         campaign = get_object_or_404(
             Campaign,
             pk=pk,
@@ -512,6 +548,13 @@ class CampaignResumeView(APIView):
     
     def post(self, request, pk):
         """Resume paused campaign."""
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {'error': 'User is not associated with any organization.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         campaign = get_object_or_404(
             Campaign,
             pk=pk,
@@ -537,6 +580,13 @@ class CampaignCancelView(APIView):
     
     def post(self, request, pk):
         """Cancel campaign."""
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {'error': 'User is not associated with any organization.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         campaign = get_object_or_404(
             Campaign,
             pk=pk,
@@ -565,6 +615,13 @@ class CampaignResetView(APIView):
     
     def post(self, request, pk):
         """Reset campaign to DRAFT status."""
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {'error': 'User is not associated with any organization.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         campaign = get_object_or_404(
             Campaign,
             pk=pk,
