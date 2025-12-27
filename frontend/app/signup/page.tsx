@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 const signupSchema = z.object({
   first_name: z.string().min(1, 'First name is required'),
   last_name: z.string().min(1, 'Last name is required'),
+  username: z.string().min(3, 'Username must be at least 3 characters'),
   email: z.string().email('Invalid email address'),
   organization_name: z.string().min(1, 'Organization name is required'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -45,6 +46,7 @@ export default function SignupPage() {
     try {
       // API expects: email, password, first_name, last_name, organization_name, terms_accepted
       const payload = {
+        username: data.username,
         email: data.email,
         password: data.password,
         first_name: data.first_name,
@@ -59,8 +61,8 @@ export default function SignupPage() {
       // If it returns tokens, we login. If not, we redirect to login or verify page.
       // Based on analysis: Response Data: user (User Obj), organization (Org Obj), token (JWT)
       
-      if (response.data.access) {
-         const { access, refresh, user } = response.data;
+      if (response.data.data?.access) {
+         const { access, refresh, user } = response.data.data;
          login(access, refresh, user);
          toast.success('Account created successfully');
       } else {
@@ -113,6 +115,12 @@ export default function SignupPage() {
               <Label htmlFor="organization_name">Organization Name</Label>
               <Input id="organization_name" {...register('organization_name')} />
               {errors.organization_name && <p className="text-sm text-red-500">{errors.organization_name.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" {...register('username')} />
+              {errors.username && <p className="text-sm text-red-500">{errors.username.message}</p>}
             </div>
 
             <div className="space-y-2">
