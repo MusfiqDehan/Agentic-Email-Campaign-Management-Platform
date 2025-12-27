@@ -1,9 +1,12 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css';
+import 'react-quill-new/dist/quill.snow.css';
 
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+const ReactQuill = dynamic(() => import('react-quill-new'), { 
+  ssr: false,
+  loading: () => <div className="h-64 mb-12 bg-gray-100 rounded-md animate-pulse" />
+});
 
 interface EditorProps {
   value: string;
@@ -25,7 +28,7 @@ export default function Editor({ value, onChange, placeholder }: EditorProps) {
   const formats = [
     'header',
     'bold', 'italic', 'underline', 'strike', 'blockquote',
-    'list', 'bullet', 'indent',
+    'list', 'indent',
     'link', 'image'
   ];
 
