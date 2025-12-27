@@ -22,8 +22,8 @@ export default function TemplatesPage() {
   const fetchTemplates = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get('/campaigns/email-templates/');
-      setTemplates(response.data);
+      const response = await api.get('/campaigns/templates/');
+      setTemplates(response.data.data || []);
     } catch (error) {
       console.error(error);
       toast.error('Failed to fetch templates');
@@ -39,7 +39,7 @@ export default function TemplatesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this template?')) return;
     try {
-      await api.delete(`/campaigns/email-templates/${id}/`);
+      await api.delete(`/campaigns/templates/${id}/`);
       toast.success('Template deleted');
       fetchTemplates();
     } catch (error) {
