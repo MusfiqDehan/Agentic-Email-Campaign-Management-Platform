@@ -37,7 +37,7 @@ export default function NewCampaignPage() {
     const fetchData = async () => {
       try {
         const [templatesRes, listsRes, providersRes] = await Promise.all([
-          api.get('/campaigns/email-templates/'),
+          api.get('/campaigns/templates/'),
           api.get('/campaigns/contact-lists/'),
           api.get('/campaigns/organization-providers/')
         ]);
