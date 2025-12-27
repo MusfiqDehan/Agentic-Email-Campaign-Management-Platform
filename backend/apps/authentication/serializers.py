@@ -27,7 +27,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    username = serializers.CharField(max_length=150)
+    username = serializers.CharField(max_length=150, required=False)
     password = serializers.CharField(write_only=True)
     organization_name = serializers.CharField(max_length=120)
     first_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
@@ -43,6 +43,10 @@ class SignupSerializer(serializers.Serializer):
         org_name = validated_data.pop("organization_name")
         password = validated_data.pop("password")
         is_platform_admin = validated_data.pop("is_platform_admin", False)
+        
+        if "username" not in validated_data:
+            validated_data["username"] = validated_data["email"]
+            
         user = User(**validated_data)
         user.set_password(password)
         user.is_active = False  # Require email verification
