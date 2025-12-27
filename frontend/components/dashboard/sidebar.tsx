@@ -38,7 +38,7 @@ const sidebarItems = [
   },
   {
     title: 'Settings',
-    href: '/dashboard/settings',
+    href: '/dashboard/settings/providers',
     icon: Settings,
   },
 ];
