@@ -228,7 +228,7 @@ class OrganizationOwnEmailProviderSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailProvider
         fields = [
-            'id', 'organization_id', 'name', 'provider_type', 'max_emails_per_minute',
+            'id', 'organization_id', 'name', 'provider_type', 'is_active', 'max_emails_per_minute',
             'max_emails_per_hour', 'max_emails_per_day', 'is_default', 'priority', 'is_shared',
             'last_health_check', 'health_status', 'health_details', 'emails_sent_today',
             'emails_sent_this_hour', 'last_used_at', 'config', 'auto_health_check',
