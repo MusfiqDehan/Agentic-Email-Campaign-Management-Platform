@@ -40,6 +40,7 @@ from .views import (
     CampaignDuplicateView,
     CampaignAnalyticsView,
     CampaignRefreshStatsView,
+    OrganizationStatsView,
     
     # Public Views
     UnsubscribeView,
@@ -288,7 +289,8 @@ urlpatterns = [
     # ========================================================================
     # SECTION 8: MONITORING & DEBUGGING
     # ========================================================================
-    
+    # Statistics & Analytics
+    path('org/stats/', OrganizationStatsView.as_view(), name='org-stats'),
     path('stats/', AutomationStatsView.as_view(), name='automation-stats'),
     path('dispatches/', EmailDispatchReportView.as_view(), name='email-dispatch-report'),
     path('health/', DebugAutoHealthCheckView.as_view(), name='health-check'),

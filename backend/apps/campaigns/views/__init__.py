@@ -69,6 +69,7 @@ from .campaign_views import (
     CampaignDuplicateView,
     CampaignAnalyticsView,
     CampaignRefreshStatsView,
+    OrganizationStatsView,
 )
 
 # Campaign views - Public
@@ -146,6 +147,7 @@ __all__ = [
     'ContactListView',
     'ContactDetailView',
     'ContactBulkImportView',
+    'ContactAgentView',
     
     # Campaign Views
     'CampaignListCreateView',
@@ -161,6 +163,7 @@ __all__ = [
     'CampaignDuplicateView',
     'CampaignAnalyticsView',
     'CampaignRefreshStatsView',
+    'OrganizationStatsView',
     
     # Public Views
     'UnsubscribeView',
