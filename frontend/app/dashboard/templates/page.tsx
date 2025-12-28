@@ -10,8 +10,8 @@ import { toast } from 'sonner';
 
 interface Template {
   id: string;
-  name: string;
-  subject: string;
+  template_name: string;
+  email_subject: string;
   created_at: string;
 }
 
@@ -72,7 +72,7 @@ export default function TemplatesPage() {
                 <div className="space-y-1">
                   <CardTitle className="text-base font-medium flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
-                    {template.name}
+                    {template.template_name}
                   </CardTitle>
                 </div>
                 <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(template.id)}>
@@ -81,7 +81,7 @@ export default function TemplatesPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground truncate">
-                  Subject: {template.subject || 'No subject'}
+                  Subject: {template.email_subject || 'No subject'}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
                   Created: {new Date(template.created_at).toLocaleDateString()}
