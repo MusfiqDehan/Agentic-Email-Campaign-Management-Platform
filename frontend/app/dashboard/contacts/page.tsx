@@ -24,7 +24,9 @@ export default function ContactsPage() {
     setIsLoading(true);
     try {
       const response = await api.get('/campaigns/contact-lists/');
-      setLists(response.data);
+      // Handle both raw array and wrapped data object
+      const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
+      setLists(data);
     } catch (error) {
       console.error(error);
       toast.error('Failed to fetch contact lists');
@@ -59,32 +61,36 @@ export default function ContactsPage() {
       </div>
 
       {isLoading ? (
-        <div>Loading...</div>
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {lists.map((list) => (
-            <Card key={list.id} className="hover:bg-gray-50 transition-colors">
-              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                <div className="space-y-1">
-                  <CardTitle className="text-base font-medium flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    {list.name}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="mt-2 space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total Contacts</span>
-                    <span className="font-medium">{list.total_contacts}</span>
+            <Link key={list.id} href={`/dashboard/contacts/${list.id}`}>
+              <Card className="hover:bg-gray-50 transition-colors cursor-pointer h-full">
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                  <div className="space-y-1">
+                    <CardTitle className="text-base font-medium flex items-center gap-2">
+                      <Users className="h-4 w-4 text-primary" />
+                      {list.name}
+                    </CardTitle>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Active</span>
-                    <span className="font-medium text-green-600">{list.active_contacts}</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total Contacts</span>
+                      <span className="font-medium">{list.total_contacts}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Active</span>
+                      <span className="font-medium text-green-600">{list.active_contacts}</span>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
           {lists.length === 0 && (
             <div className="col-span-full flex h-32 items-center justify-center rounded-lg border border-dashed">
