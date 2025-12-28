@@ -17,7 +17,7 @@ import Editor from '@/components/editor';
 
 const templateSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  subject: z.string().optional(),
+  subject: z.string().min(1, 'Subject is required'),
   content: z.string().min(1, 'Content is required'),
 });
 
@@ -37,9 +37,9 @@ export default function NewTemplatePage() {
     setIsLoading(true);
     try {
       await api.post('/campaigns/templates/', {
-        name: data.name,
-        subject: data.subject,
-        html_content: data.content,
+        template_name: data.name,
+        email_subject: data.subject,
+        email_body: data.content,
       });
       toast.success('Template created successfully');
       router.push('/dashboard/templates');
@@ -79,8 +79,9 @@ export default function NewTemplatePage() {
                 {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="subject">Default Subject (Optional)</Label>
+                <Label htmlFor="subject">Default Subject</Label>
                 <Input id="subject" placeholder="e.g., Check out our latest news" {...register('subject')} />
+                {errors.subject && <p className="text-sm text-red-500">{errors.subject.message}</p>}
               </div>
             </div>
 
