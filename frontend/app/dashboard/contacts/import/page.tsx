@@ -84,14 +84,14 @@ export default function ImportContactsPage() {
 
     try {
       const formData = new FormData();
-      
+
       if (data.list_id && data.list_id !== "none") {
         formData.append("list_id", data.list_id);
       }
-      
+
       formData.append("file", data.file[0]);
       formData.append("update_existing", data.update_existing.toString());
-      
+
       if (data.tags) {
         // Split tags by comma and append each
         const tagsList = data.tags.split(",").map(t => t.trim()).filter(t => t);
@@ -107,12 +107,12 @@ export default function ImportContactsPage() {
       setImportResult(response.data);
       toast({
         title: "Import Successful",
-        description: `Processed ${response.data.total_processed || 'contacts'} contacts.`,
+        description: `Processed ${response.data.total || response.data.total_processed || 0} contacts.`,
       });
-      
+
       // Reset file input
       form.reset({ ...data, file: undefined as any });
-      
+
     } catch (error: any) {
       console.error("Import failed", error);
       toast({
@@ -145,15 +145,15 @@ export default function ImportContactsPage() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                
+
                 <FormField
                   control={form.control}
                   name="list_id"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Add to List (Optional)</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
+                      <Select
+                        onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
@@ -289,21 +289,25 @@ export default function ImportContactsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                 <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md text-center">
-                  <div className="text-2xl font-bold">{importResult.total_processed || 0}</div>
+                  <div className="text-2xl font-bold">{importResult.total || 0}</div>
                   <div className="text-xs text-muted-foreground uppercase">Processed</div>
                 </div>
                 <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-md text-center">
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">{importResult.created_count || 0}</div>
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">{importResult.created || 0}</div>
                   <div className="text-xs text-muted-foreground uppercase">Created</div>
                 </div>
                 <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-md text-center">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{importResult.updated_count || 0}</div>
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{importResult.updated || 0}</div>
                   <div className="text-xs text-muted-foreground uppercase">Updated</div>
                 </div>
+                <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-md text-center">
+                  <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{importResult.skipped || 0}</div>
+                  <div className="text-xs text-muted-foreground uppercase">Skipped</div>
+                </div>
                 <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-md text-center">
-                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">{importResult.error_count || 0}</div>
+                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">{importResult.errors?.length || 0}</div>
                   <div className="text-xs text-muted-foreground uppercase">Errors</div>
                 </div>
               </div>
