@@ -26,7 +26,13 @@ export function Header() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-8 w-8 rounded-full">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="" alt={user?.first_name} />
+              <AvatarImage
+                src={user?.profile_picture}
+                alt={user?.first_name}
+                onError={(e) => {
+                  console.error('Avatar image failed to load', e);
+                }}
+              />
               <AvatarFallback>{user?.first_name?.[0]}{user?.last_name?.[0]}</AvatarFallback>
             </Avatar>
           </Button>

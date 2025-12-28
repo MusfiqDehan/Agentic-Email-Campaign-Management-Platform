@@ -10,6 +10,8 @@ interface User {
   email: string;
   first_name: string;
   last_name: string;
+  profile_picture?: string;
+  is_org_admin?: boolean;
   organization?: {
     id: string;
     name: string;
@@ -22,6 +24,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (token: string, refreshToken: string, user: User) => void;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -70,8 +73,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
+  const refreshUser = async () => {
+    try {
+      const response = await api.get('/auth/profile/details/');
+      const userData = response.data.data;
+
+      // Ensure organization details are mapped correctly for consistent usage
+      const alignedUser = {
+        ...userData,
+        organization: userData.organization_details
+      };
+
+      console.log('Refreshing user data:', alignedUser);
+
+      // Update local state and storage
+      setUser(alignedUser);
+      localStorage.setItem('user', JSON.stringify(alignedUser));
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

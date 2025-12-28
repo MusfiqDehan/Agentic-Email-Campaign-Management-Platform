@@ -10,7 +10,8 @@ import {
   Settings,
   FileText,
   Send,
-  LogOut
+  LogOut,
+  User
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,11 @@ const sidebarItems = [
     title: 'Settings',
     href: '/dashboard/settings/providers',
     icon: Settings,
+  },
+  {
+    title: 'Profile',
+    href: '/dashboard/profile',
+    icon: User,
   },
 ];
 
