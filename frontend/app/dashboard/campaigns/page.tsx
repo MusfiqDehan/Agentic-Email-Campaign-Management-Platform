@@ -24,7 +24,7 @@ export default function CampaignsPage() {
   const fetchCampaigns = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get('/campaigns/campaigns/');
+      const response = await api.get('/campaigns/');
       setCampaigns(response.data);
     } catch (error) {
       console.error(error);

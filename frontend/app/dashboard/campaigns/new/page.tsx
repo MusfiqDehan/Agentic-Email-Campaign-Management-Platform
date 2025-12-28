@@ -19,7 +19,7 @@ export default function NewCampaignPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Form State
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('');
@@ -27,7 +27,7 @@ export default function NewCampaignPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [selectedLists, setSelectedLists] = useState<string[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string>('');
-  
+
   // Data State
   const [templates, setTemplates] = useState<any[]>([]);
   const [contactLists, setContactLists] = useState<any[]>([]);
@@ -62,8 +62,8 @@ export default function NewCampaignPage() {
   };
 
   const handleListToggle = (listId: string) => {
-    setSelectedLists(prev => 
-      prev.includes(listId) 
+    setSelectedLists(prev =>
+      prev.includes(listId)
         ? prev.filter(id => id !== listId)
         : [...prev, listId]
     );
@@ -78,25 +78,25 @@ export default function NewCampaignPage() {
     setIsLoading(true);
     try {
       // 1. Create Campaign
-      const campaignRes = await api.post('/campaigns/campaigns/', {
+      const campaignRes = await api.post('/campaigns/', {
         name,
         subject,
         html_content: content,
         contact_lists: selectedLists,
         status: 'DRAFT' // Create as draft first
       });
-      
+
       const campaignId = campaignRes.data.id;
 
       // 2. Launch or Schedule (For now just launch immediately if SENDING)
       if (status === 'SENDING') {
-        await api.post(`/campaigns/campaigns/${campaignId}/launch/`);
+        await api.post(`/campaigns/${campaignId}/launch/`);
         toast.success('Campaign launched successfully!');
       } else {
         // Just leave as draft or scheduled
         toast.success('Campaign saved as draft');
       }
-      
+
       router.push('/dashboard/campaigns');
     } catch (error: any) {
       console.error(error);
@@ -127,9 +127,8 @@ export default function NewCampaignPage() {
       <div className="flex justify-between items-center px-10 py-4 bg-white rounded-lg border">
         {[1, 2, 3, 4, 5].map((s) => (
           <div key={s} className="flex flex-col items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-              step >= s ? 'bg-primary text-primary-foreground' : 'bg-gray-100 text-gray-500'
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${step >= s ? 'bg-primary text-primary-foreground' : 'bg-gray-100 text-gray-500'
+              }`}>
               {step > s ? <Check className="h-4 w-4" /> : s}
             </div>
             <span className="text-xs text-muted-foreground">
@@ -145,18 +144,18 @@ export default function NewCampaignPage() {
             <div className="space-y-4 max-w-md mx-auto">
               <div className="space-y-2">
                 <Label htmlFor="name">Campaign Name</Label>
-                <Input 
-                  id="name" 
-                  placeholder="e.g., Summer Sale 2025" 
+                <Input
+                  id="name"
+                  placeholder="e.g., Summer Sale 2025"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="subject">Email Subject</Label>
-                <Input 
-                  id="subject" 
-                  placeholder="e.g., Don't miss out on these deals!" 
+                <Input
+                  id="subject"
+                  placeholder="e.g., Don't miss out on these deals!"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                 />
@@ -181,9 +180,9 @@ export default function NewCampaignPage() {
               </div>
               <div className="space-y-2">
                 <Label>Email Content</Label>
-                <Editor 
-                  value={content} 
-                  onChange={setContent} 
+                <Editor
+                  value={content}
+                  onChange={setContent}
                   placeholder="Design your email..."
                 />
               </div>
@@ -195,11 +194,10 @@ export default function NewCampaignPage() {
               <h3 className="text-lg font-medium">Select Contact Lists</h3>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {contactLists.map(list => (
-                  <div 
-                    key={list.id} 
-                    className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                      selectedLists.includes(list.id) ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:border-gray-400'
-                    }`}
+                  <div
+                    key={list.id}
+                    className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedLists.includes(list.id) ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:border-gray-400'
+                      }`}
                     onClick={() => handleListToggle(list.id)}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -277,7 +275,7 @@ export default function NewCampaignPage() {
           <Button variant="outline" onClick={prevStep} disabled={step === 1}>
             Back
           </Button>
-          
+
           {step < 5 ? (
             <Button onClick={nextStep}>
               Next <ArrowRight className="ml-2 h-4 w-4" />
