@@ -39,7 +39,7 @@ export default function NewCampaignPage() {
         const [templatesRes, listsRes, providersRes] = await Promise.all([
           api.get('/campaigns/templates/'),
           api.get('/campaigns/contact-lists/'),
-          api.get('/campaigns/organization-providers/')
+          api.get('/campaigns/org/providers/')
         ]);
         setTemplates(templatesRes.data);
         setContactLists(listsRes.data);
