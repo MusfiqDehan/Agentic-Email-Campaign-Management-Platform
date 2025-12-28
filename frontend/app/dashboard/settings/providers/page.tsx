@@ -25,7 +25,7 @@ export default function ProvidersPage() {
   const fetchProviders = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get('/campaigns/organization-providers/');
+      const response = await api.get('/campaigns/org/providers/');
       setProviders(response.data);
     } catch (error) {
       console.error(error);
@@ -42,7 +42,7 @@ export default function ProvidersPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this provider?')) return;
     try {
-      await api.delete(`/campaigns/organization-providers/${id}/`);
+      await api.delete(`/campaigns/org/providers/${id}/`);
       toast.success('Provider deleted');
       fetchProviders();
     } catch (error) {
@@ -53,7 +53,7 @@ export default function ProvidersPage() {
 
   const handleHealthCheck = async (id: string) => {
     try {
-      await api.post(`/campaigns/organization-providers/${id}/health_check/`);
+      await api.post(`/campaigns/org/providers/${id}/health_check/`);
       toast.success('Health check initiated');
       fetchProviders();
     } catch (error) {

@@ -109,7 +109,7 @@ export default function NewProviderPage() {
         config: config,
       };
 
-      await api.post('/campaigns/organization-providers/', payload);
+      await api.post('/campaigns/org/providers/', payload);
       toast.success('Provider created successfully');
       router.push('/dashboard/settings/providers');
     } catch (error: any) {
