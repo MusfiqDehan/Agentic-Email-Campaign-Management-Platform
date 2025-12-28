@@ -26,7 +26,7 @@ export default function ProvidersPage() {
     setIsLoading(true);
     try {
       const response = await api.get('/campaigns/org/providers/');
-      setProviders(response.data);
+      setProviders(response.data.data || []);
     } catch (error) {
       console.error(error);
       toast.error('Failed to fetch providers');
