@@ -36,7 +36,7 @@ export default function NewTemplatePage() {
   const onSubmit = async (data: TemplateFormValues) => {
     setIsLoading(true);
     try {
-      await api.post('/campaigns/email-templates/', {
+      await api.post('/campaigns/templates/', {
         name: data.name,
         subject: data.subject,
         html_content: data.content,
