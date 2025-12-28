@@ -22,11 +22,25 @@ export default function NewCampaignPage() {
 
   // Form State
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [subject, setSubject] = useState('');
-  const [content, setContent] = useState('');
+  const [previewText, setPreviewText] = useState('');
+  const [tags, setTags] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [selectedLists, setSelectedLists] = useState<string[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string>('');
+
+  // Settings
+  const [trackOpens, setTrackOpens] = useState(true);
+  const [trackClicks, setTrackClicks] = useState(true);
+  const [includeUnsubscribe, setIncludeUnsubscribe] = useState(true);
+
+  // Variables
+  const [variables, setVariables] = useState<Record<string, string>>({
+    company_name: '',
+    first_name: '',
+    year: new Date().getFullYear().toString(),
+  });
 
   // Data State
   const [templates, setTemplates] = useState<any[]>([]);
@@ -41,9 +55,14 @@ export default function NewCampaignPage() {
           api.get('/campaigns/contact-lists/'),
           api.get('/campaigns/org/providers/')
         ]);
-        setTemplates(templatesRes.data);
-        setContactLists(listsRes.data);
-        setProviders(providersRes.data);
+
+        const templatesData = Array.isArray(templatesRes.data) ? templatesRes.data : (templatesRes.data.data || []);
+        const listsData = Array.isArray(listsRes.data) ? listsRes.data : (listsRes.data.data || []);
+        const providersData = Array.isArray(providersRes.data) ? providersRes.data : (providersRes.data.data || []);
+
+        setTemplates(templatesData);
+        setContactLists(listsData);
+        setProviders(providersData);
       } catch (error) {
         console.error(error);
         toast.error('Failed to load campaign resources');
@@ -56,9 +75,13 @@ export default function NewCampaignPage() {
     setSelectedTemplate(templateId);
     const template = templates.find(t => t.id === templateId);
     if (template) {
-      setContent(template.html_content);
-      if (!subject) setSubject(template.subject || '');
+      if (!subject) setSubject(template.email_subject || '');
+      if (!previewText) setPreviewText(template.preview_text || '');
     }
+  };
+
+  const handleVariableChange = (key: string, value: string) => {
+    setVariables(prev => ({ ...prev, [key]: value }));
   };
 
   const handleListToggle = (listId: string) => {
@@ -69,45 +92,49 @@ export default function NewCampaignPage() {
     );
   };
 
-  const handleLaunch = async (status: 'SCHEDULED' | 'SENDING') => {
-    if (!name || !subject || !content || selectedLists.length === 0 || !selectedProvider) {
-      toast.error('Please complete all steps');
+  const buildPayload = () => {
+    return {
+      name,
+      description,
+      subject,
+      preview_text: previewText,
+      email_template: selectedTemplate,
+      contact_lists: selectedLists,
+      email_provider: selectedProvider,
+      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
+      settings: {
+        track_opens: trackOpens,
+        track_clicks: trackClicks,
+        include_unsubscribe: includeUnsubscribe
+      },
+      email_variables: variables
+    };
+  };
+
+  const handleCreate = async () => {
+    if (!name || !subject || !selectedTemplate || selectedLists.length === 0 || !selectedProvider) {
+      toast.error('Please complete all required fields');
       return;
     }
 
     setIsLoading(true);
     try {
-      // 1. Create Campaign
-      const campaignRes = await api.post('/campaigns/', {
-        name,
-        subject,
-        html_content: content,
-        contact_lists: selectedLists,
-        status: 'DRAFT' // Create as draft first
-      });
-
-      const campaignId = campaignRes.data.id;
-
-      // 2. Launch or Schedule (For now just launch immediately if SENDING)
-      if (status === 'SENDING') {
-        await api.post(`/campaigns/${campaignId}/launch/`);
-        toast.success('Campaign launched successfully!');
-      } else {
-        // Just leave as draft or scheduled
-        toast.success('Campaign saved as draft');
-      }
-
+      const payload = buildPayload();
+      const response = await api.post('/campaigns/', payload);
+      toast.success('Campaign created successfully!');
       router.push('/dashboard/campaigns');
     } catch (error: any) {
       console.error(error);
-      toast.error(error.response?.data?.detail || 'Failed to launch campaign');
+      toast.error(error.response?.data?.detail || error.response?.data?.error || 'Failed to create campaign');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const nextStep = () => setStep(s => Math.min(s + 1, 5));
+  const nextStep = () => setStep(s => Math.min(s + 1, 6));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
+
+  const currentTemplate = templates.find(t => t.id === selectedTemplate);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-20">
@@ -125,39 +152,68 @@ export default function NewCampaignPage() {
 
       {/* Progress Steps */}
       <div className="flex justify-between items-center px-10 py-4 bg-white rounded-lg border">
-        {[1, 2, 3, 4, 5].map((s) => (
+        {[1, 2, 3, 4, 5, 6].map((s) => (
           <div key={s} className="flex flex-col items-center gap-2">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${step >= s ? 'bg-primary text-primary-foreground' : 'bg-gray-100 text-gray-500'
               }`}>
               {step > s ? <Check className="h-4 w-4" /> : s}
             </div>
-            <span className="text-xs text-muted-foreground">
-              {s === 1 ? 'Details' : s === 2 ? 'Content' : s === 3 ? 'Audience' : s === 4 ? 'Config' : 'Review'}
+            <span className="text-xs text-muted-foreground text-center">
+              {s === 1 ? 'Details' : s === 2 ? 'Content' : s === 3 ? 'Audience' : s === 4 ? 'Settings' : s === 5 ? 'Variables' : 'Review'}
             </span>
           </div>
         ))}
       </div>
 
-      <Card className="min-h-[400px]">
+      <Card className="min-h-[450px]">
         <CardContent className="pt-6">
           {step === 1 && (
-            <div className="space-y-4 max-w-md mx-auto">
+            <div className="space-y-4 max-w-xl mx-auto">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Campaign Name*</Label>
+                  <Input
+                    id="name"
+                    placeholder="e.g., January Newsletter"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tags">Tags (comma separated)</Label>
+                  <Input
+                    id="tags"
+                    placeholder="newsletter, marketing"
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label htmlFor="name">Campaign Name</Label>
+                <Label htmlFor="description">Description (Internal)</Label>
                 <Input
-                  id="name"
-                  placeholder="e.g., Summer Sale 2025"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  id="description"
+                  placeholder="What is this campaign about?"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="subject">Email Subject</Label>
+                <Label htmlFor="subject">Email Subject*</Label>
                 <Input
                   id="subject"
-                  placeholder="e.g., Don't miss out on these deals!"
+                  placeholder="The subject line recipients will see"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="preview_text">Preview Text</Label>
+                <Input
+                  id="preview_text"
+                  placeholder="Short summary shown in inbox"
+                  value={previewText}
+                  onChange={(e) => setPreviewText(e.target.value)}
                 />
               </div>
             </div>
@@ -165,33 +221,36 @@ export default function NewCampaignPage() {
 
           {step === 2 && (
             <div className="space-y-6">
-              <div className="flex gap-4 items-center">
-                <Label>Load Template:</Label>
+              <div className="flex gap-4 items-center max-w-md mx-auto">
+                <Label className="whitespace-nowrap">Select Template*</Label>
                 <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
-                  <SelectTrigger className="w-[250px]">
-                    <SelectValue placeholder="Select a template" />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chose an email template" />
                   </SelectTrigger>
                   <SelectContent>
                     {templates.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      <SelectItem key={t.id} value={t.id}>{t.template_name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Email Content</Label>
-                <Editor
-                  value={content}
-                  onChange={setContent}
-                  placeholder="Design your email..."
-                />
-              </div>
+
+              {currentTemplate && (
+                <div className="max-w-3xl mx-auto rounded-lg border p-6 bg-gray-50 bg-opacity-50">
+                  <h4 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Template Preview</h4>
+                  <div
+                    dangerouslySetInnerHTML={{ __html: currentTemplate.email_body }}
+                    className="prose prose-sm max-w-none bg-white p-6 rounded-md border shadow-sm max-h-[400px] overflow-auto"
+                  />
+                </div>
+              )}
             </div>
           )}
 
           {step === 3 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Select Contact Lists</h3>
+              <h3 className="text-lg font-medium text-center">Target Audience</h3>
+              <p className="text-sm text-muted-foreground text-center mb-6">Select which contact lists should receive this campaign.</p>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {contactLists.map(list => (
                   <div
@@ -207,88 +266,137 @@ export default function NewCampaignPage() {
                     <p className="text-sm text-muted-foreground">{list.total_contacts} contacts</p>
                   </div>
                 ))}
-                {contactLists.length === 0 && (
-                  <div className="col-span-full text-center py-10 text-muted-foreground">
-                    No contact lists found. <Link href="/dashboard/contacts" className="text-primary underline">Create one first.</Link>
-                  </div>
-                )}
               </div>
             </div>
           )}
 
           {step === 4 && (
-            <div className="space-y-4 max-w-md mx-auto">
-              <div className="space-y-2">
-                <Label>Select Sending Provider</Label>
-                <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a provider" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {providers.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name} ({p.provider_type})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {providers.length === 0 && (
-                  <p className="text-sm text-red-500">
-                    No providers found. <Link href="/dashboard/settings/providers/new" className="underline">Add one first.</Link>
-                  </p>
-                )}
+            <div className="space-y-8 max-w-md mx-auto">
+              <div className="space-y-4">
+                <Label className="text-lg font-medium block text-center">Sending Configuration</Label>
+                <div className="space-y-2">
+                  <Label>Email Provider*</Label>
+                  <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a sending service" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {providers.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name} ({p.provider_type})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t">
+                <Label className="text-lg font-medium block text-center">Tracking & Settings</Label>
+                <div className="space-y-4 bg-gray-50 p-4 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="track-opens" className="flex-1 cursor-pointer">Track Email Opens</Label>
+                    <Checkbox id="track-opens" checked={trackOpens} onCheckedChange={(val) => setTrackOpens(val as boolean)} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="track-clicks" className="flex-1 cursor-pointer">Track Link Clicks</Label>
+                    <Checkbox id="track-clicks" checked={trackClicks} onCheckedChange={(val) => setTrackClicks(val as boolean)} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="include-unsub" className="flex-1 cursor-pointer">Include Unsubscribe Link</Label>
+                    <Checkbox id="include-unsub" checked={includeUnsubscribe} onCheckedChange={(val) => setIncludeUnsubscribe(val as boolean)} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {step === 5 && (
-            <div className="space-y-6 max-w-2xl mx-auto">
-              <h3 className="text-xl font-bold">Review Campaign</h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1">
-                  <span className="text-sm text-muted-foreground">Name</span>
-                  <p className="font-medium">{name}</p>
+            <div className="space-y-6 max-w-md mx-auto text-center">
+              <h3 className="text-lg font-medium">Email Variables</h3>
+              <p className="text-sm text-muted-foreground mb-6">Provide values for placeholders in your template.</p>
+
+              <div className="space-y-4 text-left">
+                <div className="space-y-2">
+                  <Label>Company Name</Label>
+                  <Input
+                    value={variables.company_name}
+                    onChange={(e) => handleVariableChange('company_name', e.target.value)}
+                    placeholder="e.g., Acme Corp"
+                  />
                 </div>
-                <div className="space-y-1">
-                  <span className="text-sm text-muted-foreground">Subject</span>
-                  <p className="font-medium">{subject}</p>
+                <div className="space-y-2">
+                  <Label>Recipient First Name Placeholder</Label>
+                  <Input
+                    value={variables.first_name}
+                    onChange={(e) => handleVariableChange('first_name', e.target.value)}
+                    placeholder="Default if first name is missing"
+                  />
                 </div>
-                <div className="space-y-1">
-                  <span className="text-sm text-muted-foreground">Audience</span>
-                  <p className="font-medium">{selectedLists.length} lists selected</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-sm text-muted-foreground">Provider</span>
-                  <p className="font-medium">
-                    {providers.find(p => p.id === selectedProvider)?.name || 'Unknown'}
-                  </p>
+                <div className="space-y-2">
+                  <Label>Current Year</Label>
+                  <Input
+                    value={variables.year}
+                    onChange={(e) => handleVariableChange('year', e.target.value)}
+                  />
                 </div>
               </div>
-              <div className="rounded-md border p-4 bg-gray-50 max-h-60 overflow-auto">
-                <span className="text-xs text-muted-foreground block mb-2">Content Preview (HTML)</span>
-                <div dangerouslySetInnerHTML={{ __html: content }} className="prose prose-sm max-w-none" />
+            </div>
+          )}
+
+          {step === 6 && (
+            <div className="space-y-6 max-w-3xl mx-auto">
+              <h3 className="text-xl font-bold text-center">Review & Send</h3>
+              <div className="grid gap-6 md:grid-cols-2 p-6 rounded-lg bg-gray-50 border">
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground uppercase">Campaign Name</span>
+                    <p className="font-semibold">{name}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground uppercase">Subject Line</span>
+                    <p className="font-semibold">{subject}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground uppercase">Provider</span>
+                    <p className="font-semibold">
+                      {providers.find(p => p.id === selectedProvider)?.name || 'Not selected'}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground uppercase">Audience</span>
+                    <p className="font-semibold">{selectedLists.length} lists selected</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground uppercase">Template</span>
+                    <p className="font-semibold">{currentTemplate?.template_name || 'Not selected'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground uppercase">Tracking</span>
+                    <p className="text-sm">
+                      Opens: {trackOpens ? 'Yes' : 'No'} • Clicks: {trackClicks ? 'Yes' : 'No'}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </CardContent>
         <CardFooter className="flex justify-between border-t p-6">
-          <Button variant="outline" onClick={prevStep} disabled={step === 1}>
+          <Button variant="outline" onClick={prevStep} disabled={step === 1 || isLoading}>
             Back
           </Button>
 
-          {step < 5 ? (
-            <Button onClick={nextStep}>
+          {step < 6 ? (
+            <Button onClick={nextStep} disabled={isLoading}>
               Next <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => handleLaunch('SCHEDULED')} disabled={isLoading}>
-                Save Draft
-              </Button>
-              <Button onClick={() => handleLaunch('SENDING')} disabled={isLoading}>
-                <Send className="mr-2 h-4 w-4" /> Launch Now
-              </Button>
-            </div>
+            <Button onClick={handleCreate} disabled={isLoading} className="px-8">
+              {isLoading ? 'Creating...' : 'Create Campaign'}
+            </Button>
           )}
         </CardFooter>
       </Card>

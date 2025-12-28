@@ -25,7 +25,8 @@ export default function CampaignsPage() {
     setIsLoading(true);
     try {
       const response = await api.get('/campaigns/');
-      setCampaigns(response.data);
+      const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
+      setCampaigns(data);
     } catch (error) {
       console.error(error);
       toast.error('Failed to fetch campaigns');
@@ -73,7 +74,9 @@ export default function CampaignsPage() {
               <CardContent className="p-6 flex items-center justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-3">
-                    <h3 className="font-semibold text-lg">{campaign.name}</h3>
+                    <Link href={`/dashboard/campaigns/${campaign.id}`} className="hover:underline">
+                      <h3 className="font-semibold text-lg">{campaign.name}</h3>
+                    </Link>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
                       {campaign.status}
                     </span>
