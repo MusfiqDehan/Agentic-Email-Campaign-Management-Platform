@@ -86,8 +86,8 @@ class ContactAgentView(APIView):
 
             action = result.get("action")
             data = result.get("data", {})
-            email = data.get("email")
-            list_name = data.get("list_name")
+            email = data.get("email", "").strip().lower()
+            list_name = data.get("list_name", "").strip()
             
             organization = request.user.organization
 
@@ -101,39 +101,55 @@ class ContactAgentView(APIView):
             if action in list_actions and not list_name:
                  return Response({"error": "Could not identify list name from prompt"}, status=status.HTTP_400_BAD_REQUEST)
 
-            if action == "CREATE_CONTACT":
+            if action == "CREATE_CONTACT" or action == "ADD_TO_LIST":
+                # Consolidate CREATE and ADD_TO_LIST to ensure contact exists
                 contact, created = Contact.objects.get_or_create(
                     organization=organization,
-                    email=email,
+                    email__iexact=email,
                     defaults={
+                        "organization": organization,
+                        "email": email,
                         "first_name": data.get("first_name", ""),
                         "last_name": data.get("last_name", ""),
                         "phone": data.get("phone", ""),
-                        "source": "API"
+                        "source": "AGENT"
                     }
                 )
                 
-                msg = "Contact created successfully."
-                if not created:
-                    # Update provided fields if it exists
-                    if data.get("first_name"): contact.first_name = data.get("first_name")
-                    if data.get("last_name"): contact.last_name = data.get("last_name")
-                    if data.get("phone"): contact.phone = data.get("phone")
-                    if contact.is_deleted:
-                        contact.is_deleted = False
-                        msg = "Contact restored and updated successfully."
-                    else:
-                        msg = "Contact updated successfully."
+                msg = "Contact created successfully." if created else "Contact updated successfully."
+                
+                # Update fields if explicitly provided in CREATE/ADD_TO_LIST prompt
+                updated = False
+                if data.get("first_name"): 
+                    contact.first_name = data.get("first_name")
+                    updated = True
+                if data.get("last_name"): 
+                    contact.last_name = data.get("last_name")
+                    updated = True
+                if data.get("phone"): 
+                    contact.phone = data.get("phone")
+                    updated = True
+                
+                if contact.is_deleted:
+                    contact.is_deleted = False
+                    updated = True
+                    msg = "Contact restored and updated successfully."
+                
+                if updated:
                     contact.save()
 
                 # Handle list addition
                 if list_name:
-                    contact_list, _ = ContactList.objects.get_or_create(
+                    contact_list, list_created = ContactList.objects.get_or_create(
                         organization=organization,
-                        name=list_name
+                        name__iexact=list_name,
+                        defaults={
+                            "organization": organization,
+                            "name": list_name
+                        }
                     )
                     contact.lists.add(contact_list)
-                    msg += f" Added to list '{list_name}'."
+                    msg += f" Added to list '{contact_list.name}'."
                 
                 # Handle tags
                 tags = data.get("tags")
@@ -145,7 +161,7 @@ class ContactAgentView(APIView):
                 return Response({"message": msg, "contact": {"id": contact.id, "email": contact.email}})
 
             elif action == "UPDATE_CONTACT":
-                contact = Contact.objects.filter(organization=organization, email=email).first()
+                contact = Contact.objects.filter(organization=organization, email__iexact=email).first()
                 if not contact:
                     return Response({"error": f"Contact with email {email} not found."}, status=status.HTTP_404_NOT_FOUND)
                 
@@ -162,13 +178,13 @@ class ContactAgentView(APIView):
                 return Response({"message": "Contact updated successfully.", "contact": {"id": contact.id, "email": contact.email}})
 
             elif action == "DELETE_CONTACT":
-                contact = Contact.objects.filter(organization=organization, email=email).first()
+                contact = Contact.objects.filter(organization=organization, email__iexact=email).first()
                 if not contact:
                     return Response({"error": f"Contact with email {email} not found."}, status=status.HTTP_404_NOT_FOUND)
                 
                 contact.is_deleted = True
                 contact.save()
-                return Response({"message": f"Contact {email} deleted successfully."})
+                return Response({"message": f"Contact {contact.email} deleted successfully."})
 
             elif action == "ADD_TO_LIST":
                 if not list_name:
@@ -189,32 +205,34 @@ class ContactAgentView(APIView):
                 if not list_name:
                     return Response({"error": "List name is required for this action."}, status=status.HTTP_400_BAD_REQUEST)
                 
-                contact = Contact.objects.filter(organization=organization, email=email).first()
+                contact = Contact.objects.filter(organization=organization, email__iexact=email).first()
                 if not contact:
                     return Response({"error": f"Contact with email {email} not found."}, status=status.HTTP_404_NOT_FOUND)
                 
-                contact_list = ContactList.objects.filter(organization=organization, name=list_name).first()
+                contact_list = ContactList.objects.filter(organization=organization, name__iexact=list_name).first()
                 if contact_list:
                     contact.lists.remove(contact_list)
-                    return Response({"message": f"Contact {email} removed from list '{list_name}'."})
+                    return Response({"message": f"Contact {contact.email} removed from list '{contact_list.name}'."})
                 else:
                     return Response({"error": f"List '{list_name}' not found."}, status=status.HTTP_404_NOT_FOUND)
 
             elif action == "CREATE_CONTACT_LIST":
                 contact_list, created = ContactList.objects.get_or_create(
                     organization=organization,
-                    name=list_name,
+                    name__iexact=list_name,
                     defaults={
+                        "organization": organization,
+                        "name": list_name,
                         "description": data.get("description", ""),
                         "tags": data.get("tags", [])
                     }
                 )
                 if not created:
-                    return Response({"message": f"List '{list_name}' already exists.", "list": {"id": contact_list.id, "name": contact_list.name}})
-                return Response({"message": f"List '{list_name}' created successfully.", "list": {"id": contact_list.id, "name": contact_list.name}})
+                    return Response({"message": f"List '{contact_list.name}' already exists.", "list": {"id": contact_list.id, "name": contact_list.name}})
+                return Response({"message": f"List '{contact_list.name}' created successfully.", "list": {"id": contact_list.id, "name": contact_list.name}})
 
             elif action == "UPDATE_CONTACT_LIST":
-                contact_list = ContactList.objects.filter(organization=organization, name=list_name).first()
+                contact_list = ContactList.objects.filter(organization=organization, name__iexact=list_name).first()
                 if not contact_list:
                     return Response({"error": f"List '{list_name}' not found."}, status=status.HTTP_404_NOT_FOUND)
                 
@@ -231,15 +249,16 @@ class ContactAgentView(APIView):
                     contact_list.tags = list(set(current_tags + tags))
                 
                 contact_list.save()
-                return Response({"message": f"List '{list_name}' updated successfully.", "list": {"id": contact_list.id, "name": contact_list.name}})
+                return Response({"message": f"List updated successfully.", "list": {"id": contact_list.id, "name": contact_list.name}})
 
             elif action == "DELETE_CONTACT_LIST":
-                contact_list = ContactList.objects.filter(organization=organization, name=list_name).first()
+                contact_list = ContactList.objects.filter(organization=organization, name__iexact=list_name).first()
                 if not contact_list:
                     return Response({"error": f"List '{list_name}' not found."}, status=status.HTTP_404_NOT_FOUND)
                 
+                list_actual_name = contact_list.name
                 contact_list.delete()
-                return Response({"message": f"List '{list_name}' deleted successfully."})
+                return Response({"message": f"List '{list_actual_name}' deleted successfully."})
 
             else:
                 return Response({"error": "Unknown action determined by AI."}, status=status.HTTP_400_BAD_REQUEST)
