@@ -26,6 +26,7 @@ class User(AbstractUser):
     city = models.CharField(max_length=120, blank=True)
     address = models.TextField(blank=True)
     phone_number = models.CharField(max_length=20, blank=True)
+    profile_picture = models.ImageField(upload_to="profiles/", null=True, blank=True)
     
     # Platform admin flag - separate from is_staff (Django admin access)
     is_platform_admin = models.BooleanField(
@@ -68,6 +69,9 @@ class Organization(models.Model):
         related_name="owned_organizations",
     )
     
+    description = models.TextField(blank=True)
+    logo = models.ImageField(upload_to="logos/", null=True, blank=True)
+    
     # Custom field schema for contact variables
     # Defines what custom variables are available for template personalization
     # Example: [{"name": "company", "type": "string", "description": "Company name"}]
@@ -76,7 +80,6 @@ class Organization(models.Model):
         blank=True,
         help_text="Schema defining custom fields for contact personalization"
     )
-    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -11,6 +11,8 @@ from .serializers import (
     RequestPasswordResetSerializer,
     ResetPasswordSerializer,
     EmailVerificationSerializer,
+    UserProfileSerializer,
+    OrganizationProfileSerializer,
 )
 from apps.authentication.services.email_service import EmailService
 from apps.utils.view_mixins import ResponseMixin
@@ -169,3 +171,55 @@ class ResetPasswordView(ResponseMixin, GenericAPIView):
             serializer.save()
             return self.success(message="Password reset complete")
         return self.error("Reset failed", errors=serializer.errors)
+
+
+class ProfileDetailView(ResponseMixin, GenericAPIView):
+    """
+    Get or update user and organization profile details.
+    
+    GET /profile/details/
+    PATCH /profile/details/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        return UserProfileSerializer
+
+    def get(self, request):
+        serializer = self.get_serializer(request.user)
+        return self.success(serializer.data)
+
+    def patch(self, request):
+        user = request.user
+        organization = user.organization
+
+        # Separate user and organization data from request
+        user_data = request.data.copy()
+        org_data = {}
+        
+        # If 'organization_details' is in request, it might be nested
+        if 'organization_details' in user_data:
+            org_data = user_data.pop('organization_details')
+        
+        # Also check for top-level org fields if they aren't nested (common in multipart)
+        org_fields = ['name', 'description', 'logo']
+        for field in org_fields:
+            if field in user_data and field not in org_data:
+                org_data[field] = user_data.pop(field)
+
+        # Update User
+        user_serializer = UserProfileSerializer(user, data=user_data, partial=True)
+        if user_serializer.is_valid():
+            user_serializer.save()
+        else:
+            return self.error("Failed to update user profile", errors=user_serializer.errors)
+
+        # Update Organization if user is admin/owner
+        if organization and org_data and user.is_org_admin:
+            org_serializer = OrganizationProfileSerializer(organization, data=org_data, partial=True)
+            if org_serializer.is_valid():
+                org_serializer.save()
+            else:
+                return self.error("Failed to update organization profile", errors=org_serializer.errors)
+
+        return self.success(UserProfileSerializer(user).data, message="Profile updated successfully")

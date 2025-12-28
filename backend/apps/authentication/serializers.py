@@ -160,6 +160,33 @@ class ResetPasswordSerializer(serializers.Serializer):
         return user
 
 
+class OrganizationProfileSerializer(serializers.ModelSerializer):
+    """Serializer for organization profile details."""
+    class Meta:
+        model = Organization
+        fields = ["id", "name", "slug", "description", "logo", "created_at"]
+        read_only_fields = ["id", "slug", "created_at"]
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializer for user profile details."""
+    organization_details = OrganizationProfileSerializer(source='organization', read_only=True)
+    is_org_admin = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id", "username", "email", "first_name", "last_name", 
+            "phone_number", "profile_picture", "gender", "date_of_birth",
+            "occupation", "country", "city", "address", "organization_details",
+            "is_org_admin"
+        ]
+        read_only_fields = ["id", "username", "email", "organization_details", "is_org_admin"]
+
+    def get_is_org_admin(self, obj):
+        return obj.is_org_admin
+
+
 class EmailVerificationSerializer(serializers.Serializer):
     token = serializers.UUIDField()
 
