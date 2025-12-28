@@ -2,6 +2,7 @@
 
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { Header } from '@/components/dashboard/header';
+import { FloatingAgentInput } from '@/components/dashboard/FloatingAgentInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -36,6 +37,7 @@ export default function DashboardLayout({
         <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
+        <FloatingAgentInput />
       </div>
     </div>
   );
