@@ -19,22 +19,22 @@ import Link from 'next/link';
 const providerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   provider_type: z.enum(['SMTP', 'AWS_SES', 'SENDGRID', 'BREVO']),
-  is_default: z.boolean().default(false),
-  is_active: z.boolean().default(true),
-  auto_health_check: z.boolean().default(true),
-  // Config fields will be validated manually or via refinement based on type
+  is_default: z.boolean(),
+  is_active: z.boolean(),
+  auto_health_check: z.boolean(),
+  // Config fields
   smtp_server: z.string().optional(),
-  smtp_port: z.string().optional(), // Input is string, convert to number
+  smtp_port: z.string().optional(),
   smtp_username: z.string().optional(),
   smtp_password: z.string().optional(),
-  from_email: z.string().email('Invalid email').optional(),
+  from_email: z.string().min(1, 'From email is required').email('Invalid email'),
   use_tls: z.boolean().optional(),
   use_ssl: z.boolean().optional(),
-  
+
   aws_access_key_id: z.string().optional(),
   aws_secret_access_key: z.string().optional(),
   region_name: z.string().optional(),
-  
+
   api_key: z.string().optional(), // For SendGrid/Brevo
 });
 
@@ -45,7 +45,7 @@ export default function NewProviderPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [providerType, setProviderType] = useState<string>('SMTP');
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProviderFormValues>({
     resolver: zodResolver(providerSchema),
     defaultValues: {
       provider_type: 'SMTP',
@@ -53,6 +53,17 @@ export default function NewProviderPage() {
       auto_health_check: true,
       use_tls: true,
       use_ssl: false,
+      is_default: false,
+      name: '',
+      from_email: '',
+      smtp_server: '',
+      smtp_port: '',
+      smtp_username: '',
+      smtp_password: '',
+      aws_access_key_id: '',
+      aws_secret_access_key: '',
+      region_name: '',
+      api_key: '',
     }
   });
 
@@ -62,8 +73,8 @@ export default function NewProviderPage() {
       let config: any = {};
 
       if (data.provider_type === 'SMTP') {
-        if (!data.smtp_server || !data.smtp_port || !data.smtp_username || !data.smtp_password || !data.from_email) {
-          toast.error('Please fill all SMTP fields');
+        if (!data.smtp_server || !data.smtp_port || !data.smtp_username || !data.smtp_password) {
+          toast.error('Please fill all SMTP configuration fields');
           setIsLoading(false);
           return;
         }
@@ -77,8 +88,8 @@ export default function NewProviderPage() {
           use_ssl: data.use_ssl,
         };
       } else if (data.provider_type === 'AWS_SES') {
-        if (!data.aws_access_key_id || !data.aws_secret_access_key || !data.region_name || !data.from_email) {
-          toast.error('Please fill all AWS SES fields');
+        if (!data.aws_access_key_id || !data.aws_secret_access_key || !data.region_name) {
+          toast.error('Please fill all AWS SES configuration fields');
           setIsLoading(false);
           return;
         }
@@ -89,14 +100,14 @@ export default function NewProviderPage() {
           from_email: data.from_email,
         };
       } else if (['SENDGRID', 'BREVO'].includes(data.provider_type)) {
-         if (!data.api_key || !data.from_email) {
-          toast.error('Please fill all API fields');
+        if (!data.api_key) {
+          toast.error('Please fill the API Key field');
           setIsLoading(false);
           return;
         }
         config = {
-            api_key: data.api_key,
-            from_email: data.from_email
+          api_key: data.api_key,
+          from_email: data.from_email
         }
       }
 
@@ -113,11 +124,16 @@ export default function NewProviderPage() {
       toast.success('Provider created successfully');
       router.push('/dashboard/settings/providers');
     } catch (error: any) {
-      console.error(error);
-      toast.error(error.response?.data?.detail || 'Failed to create provider');
+      console.error('API Error:', error);
+      toast.error(error.response?.data?.detail || error.response?.data?.error || 'Failed to create provider');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const onInvalid = (errors: any) => {
+    console.error('Validation Errors:', errors);
+    toast.error('Please check the form for errors');
   };
 
   return (
@@ -140,7 +156,7 @@ export default function NewProviderPage() {
           <CardDescription>Enter the configuration details for your email provider.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="name">Provider Name</Label>
               <Input id="name" placeholder="e.g., Corporate Gmail" {...register('name')} />
@@ -149,11 +165,11 @@ export default function NewProviderPage() {
 
             <div className="space-y-2">
               <Label htmlFor="provider_type">Provider Type</Label>
-              <Select 
+              <Select
                 onValueChange={(val) => {
                   setValue('provider_type', val as any);
                   setProviderType(val);
-                }} 
+                }}
                 defaultValue="SMTP"
               >
                 <SelectTrigger>
@@ -166,11 +182,13 @@ export default function NewProviderPage() {
                   <SelectItem value="BREVO">Brevo</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.provider_type && <p className="text-sm text-red-500">{errors.provider_type.message}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="from_email">From Email</Label>
               <Input id="from_email" placeholder="sender@example.com" {...register('from_email')} />
+              {errors.from_email && <p className="text-sm text-red-500">{errors.from_email.message}</p>}
               <p className="text-xs text-muted-foreground">The email address that will appear as the sender.</p>
             </div>
 
@@ -181,33 +199,37 @@ export default function NewProviderPage() {
                   <div className="space-y-2">
                     <Label htmlFor="smtp_server">SMTP Host</Label>
                     <Input id="smtp_server" placeholder="smtp.gmail.com" {...register('smtp_server')} />
+                    {errors.smtp_server && <p className="text-sm text-red-500">{errors.smtp_server.message}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="smtp_port">Port</Label>
                     <Input id="smtp_port" placeholder="587" {...register('smtp_port')} />
+                    {errors.smtp_port && <p className="text-sm text-red-500">{errors.smtp_port.message}</p>}
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="smtp_username">Username</Label>
                   <Input id="smtp_username" {...register('smtp_username')} />
+                  {errors.smtp_username && <p className="text-sm text-red-500">{errors.smtp_username.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="smtp_password">Password</Label>
                   <Input id="smtp_password" type="password" {...register('smtp_password')} />
+                  {errors.smtp_password && <p className="text-sm text-red-500">{errors.smtp_password.message}</p>}
                 </div>
                 <div className="flex gap-6">
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                        id="use_tls" 
-                        onCheckedChange={(checked) => setValue('use_tls', checked as boolean)}
-                        defaultChecked={true}
+                    <Checkbox
+                      id="use_tls"
+                      onCheckedChange={(checked) => setValue('use_tls', checked as boolean)}
+                      defaultChecked={true}
                     />
                     <Label htmlFor="use_tls">Use TLS</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                        id="use_ssl" 
-                        onCheckedChange={(checked) => setValue('use_ssl', checked as boolean)}
+                    <Checkbox
+                      id="use_ssl"
+                      onCheckedChange={(checked) => setValue('use_ssl', checked as boolean)}
                     />
                     <Label htmlFor="use_ssl">Use SSL</Label>
                   </div>
@@ -221,41 +243,45 @@ export default function NewProviderPage() {
                 <div className="space-y-2">
                   <Label htmlFor="aws_access_key_id">Access Key ID</Label>
                   <Input id="aws_access_key_id" {...register('aws_access_key_id')} />
+                  {errors.aws_access_key_id && <p className="text-sm text-red-500">{errors.aws_access_key_id.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="aws_secret_access_key">Secret Access Key</Label>
                   <Input id="aws_secret_access_key" type="password" {...register('aws_secret_access_key')} />
+                  {errors.aws_secret_access_key && <p className="text-sm text-red-500">{errors.aws_secret_access_key.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="region_name">Region</Label>
                   <Input id="region_name" placeholder="us-east-1" {...register('region_name')} />
+                  {errors.region_name && <p className="text-sm text-red-500">{errors.region_name.message}</p>}
                 </div>
               </div>
             )}
 
             {['SENDGRID', 'BREVO'].includes(providerType) && (
-               <div className="space-y-4 rounded-md border p-4 bg-gray-50">
+              <div className="space-y-4 rounded-md border p-4 bg-gray-50">
                 <h3 className="font-medium">API Configuration</h3>
                 <div className="space-y-2">
                   <Label htmlFor="api_key">API Key</Label>
                   <Input id="api_key" type="password" {...register('api_key')} />
+                  {errors.api_key && <p className="text-sm text-red-500">{errors.api_key.message}</p>}
                 </div>
-               </div>
+              </div>
             )}
 
             <div className="flex flex-col gap-3">
-               <div className="flex items-center space-x-2">
-                <Checkbox 
-                    id="is_default" 
-                    onCheckedChange={(checked) => setValue('is_default', checked as boolean)}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is_default"
+                  onCheckedChange={(checked) => setValue('is_default', checked as boolean)}
                 />
                 <Label htmlFor="is_default">Set as default provider</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                    id="auto_health_check" 
-                    onCheckedChange={(checked) => setValue('auto_health_check', checked as boolean)}
-                    defaultChecked={true}
+                <Checkbox
+                  id="auto_health_check"
+                  onCheckedChange={(checked) => setValue('auto_health_check', checked as boolean)}
+                  defaultChecked={true}
                 />
                 <Label htmlFor="auto_health_check">Run health check on save</Label>
               </div>
