@@ -144,10 +144,11 @@ export function FloatingAgentInput() {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all flex items-center justify-center z-50 animate-bounce cursor-pointer"
+                className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-to-br from-primary to-blue-600 text-white shadow-xl hover:shadow-primary/30 hover:scale-110 transition-all duration-300 flex items-center justify-center z-50 cursor-pointer group"
                 title="Open AI Agent"
             >
-                <Sparkles className="h-6 w-6" />
+                <Sparkles className="h-6 w-6 group-hover:rotate-12 transition-transform" />
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-background animate-pulse"></span>
             </button>
         );
     }
@@ -155,8 +156,8 @@ export function FloatingAgentInput() {
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-xl px-4 z-50">
             <div className={cn(
-                "relative group rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-2xl p-1.5 transition-all duration-300",
-                "focus-within:bg-white/20 focus-within:ring-2 focus-within:ring-primary/30"
+                "relative group rounded-2xl border border-border/50 bg-background/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-2xl p-1.5 transition-all duration-300",
+                "focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 focus-within:shadow-primary/10"
             )}>
                 <form onSubmit={handleSubmit} className="flex items-center gap-2">
                     <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 text-white shrink-0">
@@ -223,8 +224,13 @@ export function FloatingAgentInput() {
                 </form>
 
                 {/* Subtle glow effect */}
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-blue-500/30 rounded-2xl blur opacity-0 group-focus-within:opacity-100 transition duration-1000 group-hover:duration-200 -z-10 animate-pulse"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-blue-500/20 to-purple-500/20 rounded-3xl blur-lg opacity-0 group-focus-within:opacity-100 transition duration-500 -z-10"></div>
             </div>
+            
+            {/* Hint text */}
+            <p className="text-center text-xs text-muted-foreground/60 mt-2 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
+                Press Enter to send • Voice input supported
+            </p>
         </div>
     );
 }
