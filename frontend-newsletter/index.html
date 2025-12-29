@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stay Connected | Newsletter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+        <div class="bg-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="40" height="40" rx="10" fill="url(#logo-gradient)"/>
+                    <path d="M12 14L20 20L28 14" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 14V26H28V14" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="logo-gradient" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#6366F1"/>
+                            <stop offset="1" stop-color="#8B5CF6"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>EmailFlow</span>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <span class="hero-badge">✨ Join 10,000+ subscribers</span>
+                <h1 class="hero-title">
+                    Stay ahead with
+                    <span class="gradient-text">insights that matter</span>
+                </h1>
+                <p class="hero-description">
+                    Get weekly curated content on technology, business, and personal growth. 
+                    No spam, unsubscribe anytime.
+                </p>
+
+                <!-- Newsletter Form -->
+                <form id="newsletter-form" class="newsletter-form">
+                    <div class="form-group">
+                        <div class="input-row">
+                            <div class="input-wrapper">
+                                <input 
+                                    type="email" 
+                                    id="email" 
+                                    name="email" 
+                                    placeholder="Enter your email"
+                                    required
+                                    autocomplete="email"
+                                >
+                                <svg class="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M3 5L10 11L17 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                            </div>
+                            <button type="submit" class="submit-btn" id="submit-btn">
+                                <span class="btn-text">Subscribe</span>
+                                <span class="btn-loading">
+                                    <svg class="spinner" width="20" height="20" viewBox="0 0 20 20">
+                                        <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="50" stroke-dashoffset="10"/>
+                                    </svg>
+                                </span>
+                                <svg class="btn-arrow" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M4 10H16M16 10L11 5M16 10L11 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Optional Fields (Collapsible) -->
+                        <div class="optional-fields" id="optional-fields">
+                            <button type="button" class="toggle-optional" id="toggle-optional">
+                                <span>Add more details (optional)</span>
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="optional-content" id="optional-content">
+                                <div class="input-group">
+                                    <div class="input-wrapper small">
+                                        <input type="text" id="first_name" name="first_name" placeholder="First name">
+                                    </div>
+                                    <div class="input-wrapper small">
+                                        <input type="text" id="last_name" name="last_name" placeholder="Last name">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Honeypot field - hidden from users, bots will fill it -->
+                        <div class="website-field" aria-hidden="true" tabindex="-1">
+                            <input 
+                                type="text" 
+                                id="website" 
+                                name="website" 
+                                placeholder="Website"
+                                autocomplete="off"
+                                tabindex="-1"
+                            >
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Success Message -->
+                <div class="message success-message" id="success-message">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" fill="#10B981"/>
+                        <path d="M8 12L11 15L16 9" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div>
+                        <strong>You're in! 🎉</strong>
+                        <p id="success-text">Check your inbox for a confirmation email.</p>
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div class="message error-message" id="error-message">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" fill="#EF4444"/>
+                        <path d="M12 8V12M12 16H12.01" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <div>
+                        <strong>Oops!</strong>
+                        <p id="error-text">Something went wrong. Please try again.</p>
+                    </div>
+                </div>
+
+                <!-- Trust Indicators -->
+                <div class="trust-indicators">
+                    <div class="trust-item">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 1L10 5L14 5.5L11 8.5L12 13L8 11L4 13L5 8.5L2 5.5L6 5L8 1Z" fill="#FBBF24"/>
+                        </svg>
+                        <span>4.9/5 rating</span>
+                    </div>
+                    <div class="trust-item">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="#10B981" stroke-width="1.5"/>
+                            <path d="M5.5 8L7 9.5L10.5 6" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>No spam, ever</span>
+                    </div>
+                    <div class="trust-item">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <rect x="2" y="4" width="12" height="9" rx="1" stroke="#6366F1" stroke-width="1.5"/>
+                            <path d="M5 7H11M5 10H8" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                        <span>Weekly digest</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Image/Illustration -->
+            <div class="hero-visual">
+                <div class="floating-card card-1">
+                    <div class="card-icon">📧</div>
+                    <div class="card-content">
+                        <span class="card-title">New Article</span>
+                        <span class="card-subtitle">The Future of AI in Business</span>
+                    </div>
+                </div>
+                <div class="floating-card card-2">
+                    <div class="card-icon">🚀</div>
+                    <div class="card-content">
+                        <span class="card-title">Growth Tips</span>
+                        <span class="card-subtitle">10x your productivity</span>
+                    </div>
+                </div>
+                <div class="floating-card card-3">
+                    <div class="card-icon">💡</div>
+                    <div class="card-content">
+                        <span class="card-title">Weekly Insights</span>
+                        <span class="card-subtitle">Curated just for you</span>
+                    </div>
+                </div>
+                <div class="main-visual">
+                    <div class="email-preview">
+                        <div class="email-header">
+                            <div class="email-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <span class="email-title">📬 Your Weekly Digest</span>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-line long"></div>
+                            <div class="email-line medium"></div>
+                            <div class="email-line short"></div>
+                            <div class="email-divider"></div>
+                            <div class="email-line long"></div>
+                            <div class="email-line medium"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features">
+            <h2 class="section-title">What you'll get</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Curated Content</h3>
+                    <p>Hand-picked articles and resources tailored to your interests.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Early Access</h3>
+                    <p>Be the first to know about new features and exclusive content.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Privacy First</h3>
+                    <p>Your data is safe. We never share or sell your information.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>© 2025 EmailFlow. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Configuration & Scripts -->
+    <script src="config.js"></script>
+    <script src="newsletter.js"></script>
+</body>
+</html>
