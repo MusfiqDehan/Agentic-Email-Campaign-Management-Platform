@@ -542,18 +542,31 @@ class BulkContactCreateSerializer(serializers.Serializer):
                     }
                     custom_fields.update(metadata)
                     
-                    contact, was_created = Contact.objects.get_or_create(
+                    contact = Contact.all_objects.filter(
                         organization=organization,
-                        email=email,
-                        defaults={
-                            'first_name': first_name,
-                            'last_name': last_name,
-                            'phone': phone,
-                            'source': source,
-                            'tags': all_tags,
-                            'custom_fields': custom_fields
-                        }
-                    )
+                        email=email
+                    ).first()
+                    
+                    was_created = False
+                    if not contact:
+                        contact = Contact.objects.create(
+                            organization=organization,
+                            email=email,
+                            first_name=first_name,
+                            last_name=last_name,
+                            phone=phone,
+                            source=source,
+                            tags=all_tags,
+                            custom_fields=custom_fields
+                        )
+                        was_created = True
+                    else:
+                        # Existing contact found (could be soft-deleted)
+                        if contact.is_deleted:
+                            contact.is_deleted = False
+                            # Mark as created in terms of stats/UI if it was restored? 
+                            # Actually was_created=True might be misleading but fits the logic of adding it back.
+                            # But let's stay accurate to DB: was_created = False.
                     
                     if was_created:
                         created += 1

@@ -55,7 +55,7 @@ class ContactList(BaseModel):
     def update_stats(self):
         """Recalculate statistics from actual contact counts."""
         from django.db.models import Count, Q
-        stats = self.contacts.aggregate(
+        stats = self.contacts.filter(is_deleted=False).aggregate(
             total=Count('id'),
             active=Count('id', filter=Q(status='ACTIVE')),
             unsubscribed=Count('id', filter=Q(status='UNSUBSCRIBED')),
