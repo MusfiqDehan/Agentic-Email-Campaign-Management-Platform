@@ -5,8 +5,18 @@ import Link from 'next/link';
 import api from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Provider {
   id: string;
@@ -21,6 +31,8 @@ interface Provider {
 export default function ProvidersPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [providerToDelete, setProviderToDelete] = useState<string | null>(null);
 
   const fetchProviders = async () => {
     setIsLoading(true);
@@ -39,15 +51,23 @@ export default function ProvidersPage() {
     fetchProviders();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this provider?')) return;
+  const handleDeleteClick = (id: string) => {
+    setProviderToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!providerToDelete) return;
     try {
-      await api.delete(`/campaigns/org/providers/${id}/`);
+      await api.delete(`/campaigns/org/providers/${providerToDelete}/`);
       toast.success('Provider deleted');
       fetchProviders();
     } catch (error) {
       console.error(error);
       toast.error('Failed to delete provider');
+    } finally {
+      setDeleteDialogOpen(false);
+      setProviderToDelete(null);
     }
   };
 
@@ -98,7 +118,7 @@ export default function ProvidersPage() {
                   <Button variant="ghost" size="icon" onClick={() => handleHealthCheck(provider.id)} title="Check Health">
                     <RefreshCw className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(provider.id)}>
+                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteClick(provider.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -136,6 +156,34 @@ export default function ProvidersPage() {
           )}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+              </div>
+              <div>
+                <AlertDialogTitle>Delete Provider</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this provider? This action cannot be undone.
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
