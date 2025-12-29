@@ -110,47 +110,62 @@ export default function ProfilePage() {
     if (isLoading) {
         return (
             <div className="flex h-[80vh] items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="flex flex-col items-center gap-4">
+                    <div className="relative">
+                        <div className="h-16 w-16 rounded-full border-4 border-primary/20" />
+                        <div className="absolute inset-0 h-16 w-16 animate-spin rounded-full border-4 border-transparent border-t-primary" />
+                    </div>
+                    <p className="text-sm text-muted-foreground animate-pulse">Loading profile...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
+        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+            <div>
+                <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Settings</h2>
+                <p className="mt-1 text-muted-foreground">
+                    Manage your account settings and preferences
+                </p>
             </div>
 
-            <Tabs defaultValue="personal" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="personal" className="flex items-center gap-2">
-                        <UserIcon className="h-4 w-4" /> Personal Profile
+            <Tabs defaultValue="personal" className="space-y-6">
+                <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-flex">
+                    <TabsTrigger value="personal" className="flex items-center justify-center gap-2">
+                        <UserIcon className="h-4 w-4" />
+                        <span className="hidden sm:inline">Personal</span> Profile
                     </TabsTrigger>
-                    <TabsTrigger value="organization" className="flex items-center gap-2">
+                    <TabsTrigger value="organization" className="flex items-center justify-center gap-2">
                         <Building className="h-4 w-4" /> Organization
                     </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="personal">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Personal Information</CardTitle>
+                    <Card className="border-border/50 shadow-lg shadow-black/5">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="flex items-center gap-2">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                                    <UserIcon className="h-4 w-4 text-primary" />
+                                </div>
+                                Personal Information
+                            </CardTitle>
                             <CardDescription>
                                 Update your personal details and how others see you.
                             </CardDescription>
                         </CardHeader>
                         <form onSubmit={handleUpdateProfile}>
                             <CardContent className="space-y-6">
-                                <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
+                                <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 rounded-xl bg-muted/30 p-4">
                                     <div className="relative group">
-                                        <Avatar className="h-24 w-24 border-2 border-muted transition-opacity group-hover:opacity-75">
+                                        <Avatar className="h-24 w-24 border-4 border-background shadow-lg transition-transform group-hover:scale-105">
                                             <AvatarImage
                                                 src={profileData.profile_picture}
                                                 onError={(e) => {
                                                     console.error('Profile image fail', profileData.profile_picture);
                                                 }}
                                             />
-                                            <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                                            <AvatarFallback className="text-2xl gradient-bg text-white">
                                                 {profileData.first_name?.[0]}{profileData.last_name?.[0]}
                                             </AvatarFallback>
                                         </Avatar>
@@ -239,8 +254,12 @@ export default function ProfilePage() {
                                     />
                                 </div>
                             </CardContent>
-                            <CardFooter className="justify-end space-x-2">
-                                <Button type="submit" disabled={isSaving}>
+                            <CardFooter className="justify-end space-x-2 border-t pt-6">
+                                <Button 
+                                    type="submit" 
+                                    disabled={isSaving}
+                                    className="gradient-bg border-0 text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30"
+                                >
                                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Save Changes
                                 </Button>
@@ -250,17 +269,22 @@ export default function ProfilePage() {
                 </TabsContent>
 
                 <TabsContent value="organization">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Organization Details</CardTitle>
+                    <Card className="border-border/50 shadow-lg shadow-black/5">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="flex items-center gap-2">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10">
+                                    <Building className="h-4 w-4 text-purple-500" />
+                                </div>
+                                Organization Details
+                            </CardTitle>
                             <CardDescription>
                                 Manage your organization's public profile and branding.
                             </CardDescription>
                         </CardHeader>
                         <form onSubmit={handleUpdateOrganization}>
                             <CardContent className="space-y-6">
-                                <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
-                                    <div className="relative group border rounded-lg p-2 bg-slate-50">
+                                <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 rounded-xl bg-muted/30 p-4">
+                                    <div className="relative group rounded-xl border-2 border-dashed border-border p-3 bg-background transition-all hover:border-primary/50">
                                         <img
                                             src={profileData.organization_details?.logo || '/placeholder-logo.png'}
                                             alt="Org Logo"
@@ -322,8 +346,12 @@ export default function ProfilePage() {
                                     />
                                 </div>
                             </CardContent>
-                            <CardFooter className="justify-end">
-                                <Button type="submit" disabled={isSaving || !user?.is_org_admin}>
+                            <CardFooter className="justify-end border-t pt-6">
+                                <Button 
+                                    type="submit" 
+                                    disabled={isSaving || !user?.is_org_admin}
+                                    className={user?.is_org_admin ? "gradient-bg border-0 text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30" : ""}
+                                >
                                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     {user?.is_org_admin ? 'Update Organization' : 'Admin Only'}
                                 </Button>
