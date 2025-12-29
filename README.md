@@ -1,140 +1,443 @@
-# 📧 Email Campaign Management Platform
+# 📧 Agentic Email Campaign Management Platform
 
-A comprehensive monorepo containing both backend (Django REST API) and frontend (React TypeScript) applications for managing email marketing campaigns. This platform helps you easily add your own email credentials, manage contact lists, create custom email variables, and design custom templates to launch effective email campaigns.
+A comprehensive, modern email marketing platform with AI-powered features for managing email campaigns, contact lists, and email templates. Built with Django REST API backend and Next.js frontend with full dark/light theme support.
 
-## 🏗️ Architecture
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
+![Django](https://img.shields.io/badge/Django-5.2-green.svg)
+![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)
+![React](https://img.shields.io/badge/React-19-61DAFB.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6.svg)
 
-This project follows a **monorepo structure** with:
+---
 
-- **Backend**: Django REST API with PostgreSQL and Redis
-- **Frontend**: React TypeScript application  
-- **Shared**: Common types and utilities
-- **Deployments**: Docker configurations and deployment scripts
+## 📑 Table of Contents
 
-## 🚀 Quick Start
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Architecture](#-architecture)
+- [Project Structure](#-project-structure)
+- [Quick Start with Docker](#-quick-start-with-docker)
+- [Manual Development Setup](#-manual-development-setup)
+- [API Documentation](#-api-documentation)
+- [License](#-license)
 
-```bash
-# Clone the repository
-git clone https://github.com/MusfiqDehan/Email-Campaign-Management-Platform.git
-cd Email-Campaign-Management-Platform
+---
 
-# Start with Docker (Recommended)
-cp .env.example .env.local
-./_deployments/docker/scripts/docker-manage.sh up
+## ✨ Features
 
-# Access applications
-# Backend API: http://localhost:28000
-# Frontend: http://localhost:3000 (coming soon)
+### 🎯 Campaign Management
+- Create, edit, and launch email campaigns
+- Multi-step campaign wizard with live preview
+- Campaign analytics and tracking
+- Schedule campaigns for later
+
+### 👥 Contact Management
+- Import contacts from CSV
+- Create and manage contact lists
+- Contact segmentation
+- Unsubscribe management
+
+### 📝 Template Builder
+- Rich text email editor with HTML support
+- AI-powered content generation
+- Template categories and tags
+- Preview before sending
+
+### 🤖 AI Agent
+- Voice-enabled AI assistant
+- Natural language contact management
+- Smart suggestions and automation
+
+### 🎨 Modern UI/UX
+- Responsive design for all devices
+- Dark/Light theme with system preference detection
+- Smooth animations and transitions
+- Custom styled dialogs and notifications
+
+### 🔐 Security
+- JWT-based authentication
+- Email verification
+- Secure password reset
+- Role-based permissions
+
+---
+
+## 🛠 Tech Stack
+
+### Backend
+
+| Technology | Purpose |
+|------------|---------|
+| **Python 3.11+** | Core programming language |
+| **Django 5.2** | Web framework |
+| **Django REST Framework 3.15** | REST API development |
+| **PostgreSQL** | Primary database |
+| **Redis** | Caching & Celery broker |
+| **Celery 5.3** | Async task queue (email sending) |
+| **Celery Beat** | Scheduled tasks |
+| **SimpleJWT** | JWT authentication |
+| **drf-spectacular** | OpenAPI documentation |
+| **Gunicorn/Daphne** | Production WSGI/ASGI servers |
+| **Sentry** | Error tracking |
+
+### Frontend
+
+| Technology | Purpose |
+|------------|---------|
+| **Next.js 16** | React framework with App Router |
+| **React 19** | UI library |
+| **TypeScript 5** | Type-safe JavaScript |
+| **Tailwind CSS 4** | Utility-first CSS framework |
+| **Radix UI** | Accessible UI primitives |
+| **React Hook Form + Zod** | Form handling & validation |
+| **next-themes** | Dark/Light theme management |
+| **Lucide React** | Icon library |
+| **Sonner** | Toast notifications |
+| **Axios** | HTTP client |
+| **React Quill** | Rich text editor |
+
+### DevOps & Tooling
+
+| Technology | Purpose |
+|------------|---------|
+| **Docker & Docker Compose** | Containerization |
+| **Nginx** | Reverse proxy (production) |
+| **GitHub Actions** | CI/CD pipelines |
+| **ESLint** | JavaScript/TypeScript linting |
+| **Black & isort** | Python code formatting |
+| **Pytest** | Python testing |
+
+---
+
+## 🏗 Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         CLIENT LAYER                            │
+├─────────────────────────────────────────────────────────────────┤
+│  Next.js 16 (React 19 + TypeScript)                            │
+│  ├── App Router (Server & Client Components)                   │
+│  ├── Tailwind CSS + Radix UI                                   │
+│  ├── Theme Provider (Dark/Light)                               │
+│  └── Axios HTTP Client                                         │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ REST API (JSON)
+┌─────────────────────────────────────────────────────────────────┐
+│                         API LAYER                               │
+├─────────────────────────────────────────────────────────────────┤
+│  Django REST Framework                                          │
+│  ├── JWT Authentication (SimpleJWT)                             │
+│  ├── ViewSets & Serializers                                     │
+│  ├── Permission Classes                                         │
+│  └── API Versioning                                             │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      APPLICATION LAYER                          │
+├─────────────────────────────────────────────────────────────────┤
+│  Django 5.2                                                     │
+│  ├── Authentication App (Users, JWT, Email Verification)       │
+│  ├── Campaigns App (Campaigns, Templates, Contacts, Providers) │
+│  └── Utils App (Common utilities, Base models)                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+┌──────────────────┐ ┌──────────────┐ ┌──────────────────┐
+│   PostgreSQL     │ │    Redis     │ │     Celery       │
+│   (Database)     │ │   (Cache)    │ │  (Task Queue)    │
+└──────────────────┘ └──────────────┘ └──────────────────┘
+                                              │
+                                              ▼
+                                    ┌──────────────────┐
+                                    │  Email Services  │
+                                    │  (SMTP/SES/etc)  │
+                                    └──────────────────┘
 ```
 
-## 📁 Repository Structure
+---
 
-```
-├── _deployments/      # Docker and deployment configs
-├── _docs/            # Documentation
-├── _shared/          # Shared types and utilities
-├── backend/          # Django REST API
-└── frontend/         # React TypeScript App  
-```
+## 📁 Project Structure
 
-For detailed setup instructions, see [Monorepo Documentation](./_docs/monorepo/README.md).
-
-## 🔧 Development
-
-- **Backend Development**: See `backend/` directory
-- **Frontend Development**: See `frontend/` directory
-- **Docker Development**: Use `./_deployments/docker/scripts/docker-manage.sh`
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-# Email Campaign Management Platform - Monorepo
-
-This project follows a monorepo structure with frontend and backend applications in the same repository.
-
-## 📁 Repository Structure
+### Root Directory
 
 ```
 Email-Campaign-Management-Platform/
-├── .git/                          # Git repository
-├── .github/                       # GitHub workflows and templates
-├── README.md                      # This file
-├── LICENSE                        # Project license
-├── .env.example                   # Root-level environment template
-├── .env.local                     # Root-level local environment
-├── _docs/                         # Project documentation
-│   └── monorepo/
-├── _deployments/                  # Infrastructure & deployment configs
-│   ├── docker/
-│   │   ├── build/Dockerfile       # Backend Docker image
-│   │   └── compose/              # Docker compose configurations
-│   └── scripts/                  # Deployment scripts
-├── _shared/                       # Shared code and types
-│   ├── types/
-│   ├── constants/
-│   └── schemas/
-├── backend/                       # Django REST API
-│   ├── manage.py                 # Django management script
-│   ├── project_config/           # Django project settings
-│   ├── authentication/           # Authentication app
-│   ├── utils/                    # Common utilities
-│   ├── requirements/             # Python dependencies
-│   ├── static/                   # Static files
-│   ├── media/                    # Media uploads
-│   └── .env.local               # Backend-specific environment
-└── frontend/                     # React TypeScript application
-    ├── src/                     # Source code
-    ├── public/                  # Public assets
-    ├── package.json             # Node.js dependencies
-    └── .env.local               # Frontend-specific environment
+├── 📄 README.md                 # This documentation
+├── 📄 LICENSE                   # MIT License
+├── 📄 .gitignore               # Git ignore rules
+├── 📁 backend/                 # Django REST API
+├── 📁 frontend/                # Next.js Application
+└── 📁 frontend-newsletter/     # Static newsletter widget
 ```
 
-## 🚀 Quick Start
+### Backend Structure
+
+```
+backend/
+├── 📄 manage.py                 # Django management script
+├── 📄 requirements.txt          # Python dependencies
+├── 📄 Dockerfile               # Backend Docker image
+├── 📄 docker-compose.yml       # Backend services composition
+├── 📄 docker_entrypoint.sh     # Container startup script
+├── 📄 core.py                  # Core utilities
+│
+├── 📁 project_config/          # Django Project Configuration
+│   ├── __init__.py
+│   ├── settings.py             # Django settings
+│   ├── urls.py                 # Root URL configuration
+│   ├── wsgi.py                 # WSGI application
+│   ├── asgi.py                 # ASGI application
+│   └── celery.py               # Celery configuration
+│
+├── 📁 apps/                    # Django Applications
+│   │
+│   ├── 📁 authentication/      # User Authentication
+│   │   ├── models.py           # User, Organization models
+│   │   ├── views.py            # Auth API views
+│   │   ├── serializers.py      # DRF serializers
+│   │   ├── urls.py             # Auth endpoints
+│   │   ├── permissions.py      # Custom permissions
+│   │   ├── signals.py          # Django signals
+│   │   ├── services/           # Business logic services
+│   │   └── migrations/         # Database migrations
+│   │
+│   ├── 📁 campaigns/           # Campaign Management
+│   │   ├── models/             # Campaign, Template, Contact models
+│   │   ├── views/              # Campaign API views
+│   │   ├── serializers/        # DRF serializers
+│   │   ├── urls.py             # Campaign endpoints
+│   │   ├── tasks.py            # Celery tasks
+│   │   ├── signals.py          # Django signals
+│   │   ├── constants.py        # App constants
+│   │   ├── exceptions.py       # Custom exceptions
+│   │   ├── backends.py         # Email backends
+│   │   ├── utils/              # Helper utilities
+│   │   └── migrations/         # Database migrations
+│   │
+│   └── 📁 utils/               # Shared Utilities
+│       ├── base_models.py      # Abstract base models
+│       ├── pagination.py       # Custom pagination
+│       ├── filters.py          # Query filters
+│       ├── responses.py        # Response helpers
+│       ├── throttles.py        # Rate limiting
+│       ├── mixins.py           # View mixins
+│       └── exceptions.py       # Base exceptions
+│
+├── 📁 core/                    # Core Module
+│   ├── utils.py                # Utility functions
+│   ├── mixins.py               # Model mixins
+│   └── exceptions.py           # Core exceptions
+│
+├── 📁 static/                  # Static files
+├── 📁 media/                   # User uploads
+└── 📁 media_files/             # Media storage
+    ├── logos/                  # Organization logos
+    └── profiles/               # Profile images
+```
+
+### Frontend Structure
+
+```
+frontend/
+├── 📄 package.json              # Node.js dependencies
+├── 📄 tsconfig.json            # TypeScript configuration
+├── 📄 next.config.ts           # Next.js configuration
+├── 📄 postcss.config.mjs       # PostCSS configuration
+├── 📄 eslint.config.mjs        # ESLint configuration
+├── 📄 Dockerfile               # Frontend Docker image
+├── 📄 docker-compose.yml       # Frontend services composition
+│
+├── 📁 app/                     # Next.js App Router
+│   ├── 📄 layout.tsx           # Root layout
+│   ├── 📄 page.tsx             # Landing page
+│   ├── 📄 globals.css          # Global styles & theme
+│   │
+│   ├── 📁 login/               # Login page
+│   │   └── page.tsx
+│   ├── 📁 signup/              # Signup page
+│   │   └── page.tsx
+│   ├── 📁 verify-email/        # Email verification
+│   │   └── page.tsx
+│   │
+│   └── 📁 dashboard/           # Protected Dashboard
+│       ├── layout.tsx          # Dashboard layout
+│       ├── page.tsx            # Dashboard home
+│       │
+│       ├── 📁 campaigns/       # Campaign Management
+│       │   ├── page.tsx        # Campaign list
+│       │   ├── 📁 new/         # Create campaign
+│       │   └── 📁 [id]/        # Campaign details
+│       │
+│       ├── 📁 contacts/        # Contact Management
+│       │   ├── page.tsx        # Contact list
+│       │   ├── 📁 new/         # Add contact
+│       │   ├── 📁 import/      # Import contacts
+│       │   └── 📁 [id]/        # Contact details
+│       │
+│       ├── 📁 templates/       # Template Management
+│       │   ├── page.tsx        # Template list
+│       │   └── 📁 new/         # Create template
+│       │
+│       ├── 📁 settings/        # Settings
+│       │   └── 📁 providers/   # Email provider config
+│       │       ├── page.tsx
+│       │       └── 📁 new/
+│       │
+│       └── 📁 profile/         # User profile
+│           └── page.tsx
+│
+├── 📁 components/              # React Components
+│   ├── 📄 editor.tsx           # Rich text editor
+│   ├── 📄 providers.tsx        # App providers
+│   │
+│   ├── 📁 dashboard/           # Dashboard Components
+│   │   ├── sidebar.tsx         # Navigation sidebar
+│   │   ├── header.tsx          # Top header bar
+│   │   └── FloatingAgentInput.tsx  # AI agent input
+│   │
+│   └── 📁 ui/                  # UI Components (Radix-based)
+│       ├── alert-dialog.tsx    # Alert dialogs
+│       ├── alert.tsx           # Alert messages
+│       ├── avatar.tsx          # User avatars
+│       ├── badge.tsx           # Status badges
+│       ├── button.tsx          # Buttons
+│       ├── card.tsx            # Card containers
+│       ├── checkbox.tsx        # Checkboxes
+│       ├── dialog.tsx          # Modal dialogs
+│       ├── dropdown-menu.tsx   # Dropdown menus
+│       ├── form.tsx            # Form components
+│       ├── input.tsx           # Text inputs
+│       ├── label.tsx           # Form labels
+│       ├── select.tsx          # Select dropdowns
+│       ├── table.tsx           # Data tables
+│       ├── tabs.tsx            # Tab navigation
+│       ├── textarea.tsx        # Text areas
+│       ├── theme-toggle.tsx    # Theme switcher
+│       ├── toast.tsx           # Toast notifications
+│       └── toaster.tsx         # Toast container
+│
+├── 📁 contexts/                # React Contexts
+│   └── AuthContext.tsx         # Authentication context
+│
+├── 📁 lib/                     # Utility Libraries
+│   ├── axios.ts                # Axios HTTP client
+│   └── utils.ts                # Helper functions
+│
+└── 📁 public/                  # Static Assets
+```
+
+---
+
+## 🐳 Quick Start with Docker
 
 ### Prerequisites
-- Docker and Docker Compose
-- Node.js 18+ (for frontend development)
-- Python 3.11+ (for backend development)
 
-### 1. Clone and Setup
+- Docker Engine 20.10+
+- Docker Compose 2.0+
+
+### Option 1: Run Full Stack (Recommended)
+
 ```bash
-git clone https://github.com/MusfiqDehan/Email-Campaign-Management-Platform.git
-cd Email-Campaign-Management-Platform
+# Clone the repository
+git clone https://github.com/MusfiqDehan/Agentic-Email-Campaign-Management-Platform.git
+cd Agentic-Email-Campaign-Management-Platform
 
-# Copy environment templates
-cp .env.example .env.local
+# Create environment files
 cp backend/.env.example backend/.env.local
-cp frontend/.env.example frontend/.env.local  # (when created)
+
+# Start all services from root
+docker-compose -f backend/docker-compose.yml up -d
+docker-compose -f frontend/docker-compose.yml up -d
+
+# Access applications
+# Backend API: http://localhost:8000
+# Frontend:    http://localhost:3000
 ```
 
-### 2. Start Development Environment
+### Option 2: Run Backend Only
+
 ```bash
-# Start all services with Docker
-./_deployments/docker/scripts/docker-manage.sh up
+cd backend
 
-# Or start services individually:
-# Backend only
-cd backend && python manage.py runserver
+# Create environment file
+cp .env.example .env.local
 
-# Frontend only
-cd frontend && npm start
+# Start backend services (Django, PostgreSQL, Redis, Celery)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f web
+
+# Run migrations
+docker-compose exec web python manage.py migrate
+
+# Create superuser
+docker-compose exec web python manage.py createsuperuser
+
+# Stop services
+docker-compose down
 ```
 
-### 3. Access Applications
-- **Backend API**: http://localhost:28000
-- **Frontend App**: http://localhost:3000 (when ready)
-- **Database**: localhost:25432
-- **Redis**: localhost:26379
+### Option 3: Run Frontend Only
 
-## 🔧 Development Workflow
-
-### Backend Development
 ```bash
-cd backend/
+cd frontend
+
+# Start frontend service
+docker-compose up -d
+
+# View logs
+docker-compose logs -f frontend
+
+# Stop service
+docker-compose down
+```
+
+### Docker Commands Reference
+
+```bash
+# Backend commands
+docker-compose -f backend/docker-compose.yml exec web python manage.py migrate
+docker-compose -f backend/docker-compose.yml exec web python manage.py createsuperuser
+docker-compose -f backend/docker-compose.yml exec web python manage.py shell
+
+# View logs
+docker-compose -f backend/docker-compose.yml logs -f web
+docker-compose -f frontend/docker-compose.yml logs -f frontend
+
+# Rebuild images
+docker-compose -f backend/docker-compose.yml build --no-cache
+docker-compose -f frontend/docker-compose.yml build --no-cache
+
+# Stop all
+docker-compose -f backend/docker-compose.yml down
+docker-compose -f frontend/docker-compose.yml down
+```
+
+---
+
+## 🔧 Manual Development Setup
+
+### Backend Setup
+
+```bash
+cd backend
+
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# .venv\Scripts\activate   # Windows
 
 # Install dependencies
-pip install -r requirements/dev.txt
+pip install -r requirements.txt
+
+# Setup environment
+cp .env.example .env.local
+# Edit .env.local with your settings
 
 # Run migrations
 python manage.py migrate
@@ -144,109 +447,95 @@ python manage.py createsuperuser
 
 # Start development server
 python manage.py runserver
+
+# Start Celery worker (in another terminal)
+celery -A project_config worker -l info
+
+# Start Celery beat (in another terminal)
+celery -A project_config beat -l info
 ```
 
-### Frontend Development
+### Frontend Setup
+
 ```bash
-cd frontend/
+cd frontend
 
 # Install dependencies
 npm install
 
 # Start development server
-npm start
+npm run dev
 
 # Build for production
 npm run build
+
+# Start production server
+npm start
 ```
 
-### Docker Development
-```bash
-# Start all services
-./_deployments/docker/scripts/docker-manage.sh up
+---
 
-# View logs
-./_deployments/docker/scripts/docker-manage.sh logs web
+## 📚 API Documentation
 
-# Run Django commands
-./_deployments/docker/scripts/docker-manage.sh manage migrate
-./_deployments/docker/scripts/docker-manage.sh manage createsuperuser
+Once the backend is running, access the API documentation at:
 
-# Stop services
-./_deployments/docker/scripts/docker-manage.sh down
-```
+- **Swagger UI**: http://localhost:8000/api/docs/
+- **ReDoc**: http://localhost:8000/api/redoc/
+- **OpenAPI Schema**: http://localhost:8000/api/schema/
 
-## 📝 Environment Configuration
+### Main API Endpoints
 
-### Root Level (.env.local)
-Contains shared configuration between frontend and backend:
-- Database connection details
-- Redis connection details
-- Application URLs
-- Environment type
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/register/` | POST | User registration |
+| `/api/auth/login/` | POST | User login (JWT) |
+| `/api/auth/token/refresh/` | POST | Refresh JWT token |
+| `/api/campaigns/` | GET, POST | List/Create campaigns |
+| `/api/campaigns/{id}/` | GET, PUT, DELETE | Campaign CRUD |
+| `/api/campaigns/{id}/launch/` | POST | Launch campaign |
+| `/api/campaigns/templates/` | GET, POST | Email templates |
+| `/api/campaigns/contact-lists/` | GET, POST | Contact lists |
+| `/api/campaigns/contacts/` | GET, POST | Contacts |
+| `/api/campaigns/org/providers/` | GET, POST | Email providers |
 
-### Backend (backend/.env.local)
-Contains Django-specific configuration:
-- Django secret key
-- Debug settings
-- Email configuration
-- Security settings
+---
 
-### Frontend (frontend/.env.local)
-Contains React-specific configuration:
-- API endpoints
-- Feature flags
-- External service keys
+## 🎨 Theme Support
 
-## 🏗️ Architecture
+The application supports both dark and light themes with:
 
-### Backend (Django REST API)
-- **Authentication**: Custom user model with JWT authentication
-- **Apps**: Modular Django apps for different features
-- **Database**: PostgreSQL for data storage
-- **Cache**: Redis for caching and sessions
-- **API**: RESTful API with Django REST Framework
+- System preference detection
+- Manual toggle switch
+- Persistent preference storage
+- Smooth transitions
 
-### Frontend (React TypeScript)
-- **Framework**: React 18 with TypeScript
-- **State Management**: React Query for API state
-- **Styling**: TailwindCSS (to be added)
-- **Build Tool**: Create React App (will migrate to Vite)
+Toggle the theme using the sun/moon icon in the header.
 
-### Shared
-- **Types**: Shared TypeScript definitions
-- **Constants**: Shared application constants
-- **Schemas**: API schema definitions
-
-## 🚢 Deployment
-
-### Development
-```bash
-# Docker Compose local environment
-./_deployments/docker/scripts/docker-manage.sh up
-```
-
-### Production
-```bash
-# Production Docker setup (to be configured)
-ENV=prod ./_deployments/docker/scripts/docker-manage.sh up
-```
-
-## 📚 Documentation
-
-- [Backend API Documentation](./docs/API.md) - Coming soon
-- [Frontend Development Guide](./docs/FRONTEND.md) - Coming soon
-- [Deployment Guide](./docs/DEPLOYMENT.md) - Coming soon
-- [Architecture Overview](./docs/ARCHITECTURE.md) - Coming soon
+---
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature-name`
-3. Make your changes in the appropriate directory (backend/, frontend/, or shared/)
-4. Test your changes locally
-5. Submit a pull request
+3. Make your changes
+4. Run tests and linting
+5. Commit your changes: `git commit -m 'Add some feature'`
+6. Push to the branch: `git push origin feature/your-feature-name`
+7. Submit a pull request
+
+---
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👤 Author
+
+**Musfiq Dehan**
+- GitHub: [@MusfiqDehan](https://github.com/MusfiqDehan)
+
+---
+
+<p align="center">Made with ❤️ for email marketers everywhere</p>
