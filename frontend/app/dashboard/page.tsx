@@ -14,19 +14,23 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await api.get('/campaigns/org/stats/');
-        setStats(response.data);
-      } catch (error) {
-        console.error('Failed to fetch dashboard stats', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchStats = async () => {
+    try {
+      const response = await api.get('/campaigns/org/stats/');
+      setStats(response.data);
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchStats();
+
+    const handleRefresh = () => fetchStats();
+    window.addEventListener('agent-action-completed', handleRefresh);
+    return () => window.removeEventListener('agent-action-completed', handleRefresh);
   }, []);
 
   if (isLoading) {
