@@ -132,7 +132,7 @@ export default function LandingPage() {
               {/* Badge */}
               <div className="animate-fade-in mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-4 py-1.5 text-sm font-medium text-muted-foreground backdrop-blur-sm">
                 <Sparkles className="h-4 w-4 text-primary" />
-                <span>Now with AI-Powered Campaign Optimization</span>
+                <span>Now with AI-Powered Agentic Contact Management System</span>
                 <ChevronRight className="h-4 w-4" />
               </div>
               
