@@ -45,6 +45,7 @@ from .views import (
     # Public Views
     UnsubscribeView,
     GDPRForgetView,
+    PublicContactSubscribeView,
     
     # Admin Views
     AdminEmailProviderListCreateView,
@@ -285,6 +286,7 @@ urlpatterns = [
     
     path('unsubscribe/', UnsubscribeView.as_view(), name='unsubscribe'),
     path('gdpr/forget/', GDPRForgetView.as_view(), name='gdpr-forget'),
+    path('public/subscribe/', PublicContactSubscribeView.as_view(), name='public-subscribe'),
     
     # ========================================================================
     # SECTION 8: MONITORING & DEBUGGING

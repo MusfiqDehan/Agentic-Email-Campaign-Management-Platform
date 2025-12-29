@@ -102,19 +102,23 @@ class ContactAgentView(APIView):
                  return Response({"error": "Could not identify list name from prompt"}, status=status.HTTP_400_BAD_REQUEST)
 
             if action == "CREATE_CONTACT" or action == "ADD_TO_LIST":
-                # Consolidate CREATE and ADD_TO_LIST to ensure contact exists
-                contact, created = Contact.objects.get_or_create(
+                # Check all contacts (including soft-deleted)
+                contact = Contact.all_objects.filter(
                     organization=organization,
-                    email__iexact=email,
-                    defaults={
-                        "organization": organization,
-                        "email": email,
-                        "first_name": data.get("first_name", ""),
-                        "last_name": data.get("last_name", ""),
-                        "phone": data.get("phone", ""),
-                        "source": "AGENT"
-                    }
-                )
+                    email__iexact=email
+                ).first()
+                
+                created = False
+                if not contact:
+                    contact = Contact.objects.create(
+                        organization=organization,
+                        email=email,
+                        first_name=data.get("first_name", ""),
+                        last_name=data.get("last_name", ""),
+                        phone=data.get("phone", ""),
+                        source="AGENT"
+                    )
+                    created = True
                 
                 msg = "Contact created successfully." if created else "Contact updated successfully."
                 
@@ -137,6 +141,10 @@ class ContactAgentView(APIView):
                 
                 if updated:
                     contact.save()
+                    if contact.is_deleted is False:
+                        # If restored or updated, refresh all its lists
+                        for cl in contact.lists.all():
+                            cl.update_stats()
 
                 # Handle list addition
                 if list_name:
@@ -149,6 +157,7 @@ class ContactAgentView(APIView):
                         }
                     )
                     contact.lists.add(contact_list)
+                    contact_list.update_stats()
                     msg += f" Added to list '{contact_list.name}'."
                 
                 # Handle tags
@@ -175,6 +184,11 @@ class ContactAgentView(APIView):
                     contact.tags = list(set(current_tags + tags))
                 
                 contact.save()
+                
+                # Refresh stats for all lists this contact is in
+                for cl in contact.lists.all():
+                    cl.update_stats()
+                    
                 return Response({"message": "Contact updated successfully.", "contact": {"id": contact.id, "email": contact.email}})
 
             elif action == "DELETE_CONTACT":
@@ -184,6 +198,11 @@ class ContactAgentView(APIView):
                 
                 contact.is_deleted = True
                 contact.save()
+                
+                # Refresh stats for all lists this contact was in
+                for contact_list in contact.lists.all():
+                    contact_list.update_stats()
+                    
                 return Response({"message": f"Contact {contact.email} deleted successfully."})
 
             elif action == "ADD_TO_LIST":
@@ -199,6 +218,7 @@ class ContactAgentView(APIView):
                     name=list_name
                 )
                 contact.lists.add(contact_list)
+                contact_list.update_stats()
                 return Response({"message": f"Contact {email} added to list '{list_name}'."})
 
             elif action == "REMOVE_FROM_LIST":
@@ -212,6 +232,7 @@ class ContactAgentView(APIView):
                 contact_list = ContactList.objects.filter(organization=organization, name__iexact=list_name).first()
                 if contact_list:
                     contact.lists.remove(contact_list)
+                    contact_list.update_stats()
                     return Response({"message": f"Contact {contact.email} removed from list '{contact_list.name}'."})
                 else:
                     return Response({"error": f"List '{list_name}' not found."}, status=status.HTTP_404_NOT_FOUND)

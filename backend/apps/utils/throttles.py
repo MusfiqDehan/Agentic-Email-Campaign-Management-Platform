@@ -2,6 +2,23 @@ from rest_framework.throttling import SimpleRateThrottle
 from django.core.cache import cache
 
 
+class PublicSubscriptionThrottle(SimpleRateThrottle):
+    """
+    Rate throttle for public subscription endpoints.
+    
+    Limits requests per IP to prevent abuse of public signup forms.
+    Default: 30 requests per minute per IP.
+    """
+    
+    scope = 'public_subscription'
+    rate = '30/minute'
+    
+    def get_cache_key(self, request, view):
+        """Generate cache key based on IP address."""
+        ident = self.get_ident(request)
+        return f"throttle_{self.scope}_{ident}"
+
+
 class AuthBurstRateThrottle(SimpleRateThrottle):
     scope = 'auth_burst'
 

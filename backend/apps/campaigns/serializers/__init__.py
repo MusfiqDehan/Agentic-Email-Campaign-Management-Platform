@@ -84,6 +84,7 @@ from .campaign_serializers import (
     # Public Actions
     UnsubscribeSerializer,
     GDPRForgetSerializer,
+    PublicSubscribeSerializer,
 )
 
 # Backward compatibility aliases (deprecated - use new names)
@@ -127,6 +128,7 @@ __all__ = [
     'CampaignAnalyticsSerializer',
     'UnsubscribeSerializer',
     'GDPRForgetSerializer',
+    'PublicSubscribeSerializer',
     
     # Backward compatibility (deprecated)
     'TenantEmailConfigurationSerializer',

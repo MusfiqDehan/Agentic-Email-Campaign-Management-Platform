@@ -78,12 +78,12 @@ class ContactListSerializer(serializers.ModelSerializer):
         model = ContactList
         fields = [
             'id', 'organization', 'organization_name', 'name', 'description',
-            'double_opt_in', 'total_contacts', 'active_contacts', 
+            'subscription_token', 'double_opt_in', 'total_contacts', 'active_contacts', 
             'unsubscribed_contacts', 'bounced_contacts', 'tags',
             'is_active', 'is_published', 'created_at', 'updated_at'
         ]
         read_only_fields = [
-            'id', 'organization', 'total_contacts', 'active_contacts',
+            'id', 'organization', 'subscription_token', 'total_contacts', 'active_contacts',
             'unsubscribed_contacts', 'bounced_contacts', 'created_at', 'updated_at'
         ]
     
@@ -542,18 +542,31 @@ class BulkContactCreateSerializer(serializers.Serializer):
                     }
                     custom_fields.update(metadata)
                     
-                    contact, was_created = Contact.objects.get_or_create(
+                    contact = Contact.all_objects.filter(
                         organization=organization,
-                        email=email,
-                        defaults={
-                            'first_name': first_name,
-                            'last_name': last_name,
-                            'phone': phone,
-                            'source': source,
-                            'tags': all_tags,
-                            'custom_fields': custom_fields
-                        }
-                    )
+                        email=email
+                    ).first()
+                    
+                    was_created = False
+                    if not contact:
+                        contact = Contact.objects.create(
+                            organization=organization,
+                            email=email,
+                            first_name=first_name,
+                            last_name=last_name,
+                            phone=phone,
+                            source=source,
+                            tags=all_tags,
+                            custom_fields=custom_fields
+                        )
+                        was_created = True
+                    else:
+                        # Existing contact found (could be soft-deleted)
+                        if contact.is_deleted:
+                            contact.is_deleted = False
+                            # Mark as created in terms of stats/UI if it was restored? 
+                            # Actually was_created=True might be misleading but fits the logic of adding it back.
+                            # But let's stay accurate to DB: was_created = False.
                     
                     if was_created:
                         created += 1
@@ -1077,3 +1090,78 @@ class GDPRForgetSerializer(serializers.Serializer):
         if not value:
             raise serializers.ValidationError("Must confirm deletion")
         return value
+
+
+class PublicSubscribeSerializer(serializers.Serializer):
+    """
+    Serializer for public contact subscription.
+    
+    Used by public signup forms to collect contact information.
+    Includes honeypot field for spam protection.
+    """
+    
+    # Required fields
+    list_token = serializers.CharField(
+        max_length=64,
+        help_text="Subscription token identifying the contact list"
+    )
+    email = serializers.EmailField(
+        help_text="Contact's email address (required)"
+    )
+    
+    # Optional contact fields
+    first_name = serializers.CharField(
+        max_length=100, 
+        required=False, 
+        allow_blank=True,
+        help_text="Contact's first name"
+    )
+    last_name = serializers.CharField(
+        max_length=100, 
+        required=False, 
+        allow_blank=True,
+        help_text="Contact's last name"
+    )
+    phone = serializers.CharField(
+        max_length=20, 
+        required=False, 
+        allow_blank=True,
+        help_text="Contact's phone number"
+    )
+    custom_fields = serializers.JSONField(
+        required=False,
+        default=dict,
+        help_text="Additional custom fields as JSON object"
+    )
+    
+    # Honeypot field - should be hidden via CSS, bots auto-fill it
+    website = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+        help_text="Leave this field empty (honeypot for spam protection)"
+    )
+    
+    def validate_list_token(self, value):
+        """Validate that the list token exists and is active."""
+        contact_list = ContactList.objects.filter(
+            subscription_token=value,
+            is_active=True,
+            is_deleted=False
+        ).first()
+        
+        if not contact_list:
+            raise serializers.ValidationError("Invalid or inactive list token")
+        
+        return value
+    
+    def validate(self, data):
+        """Check honeypot field - if filled, it's likely a bot."""
+        website = data.get('website', '')
+        if website:
+            # Don't raise an error - just flag it
+            # The view will handle this by returning a fake success
+            data['_is_bot'] = True
+        else:
+            data['_is_bot'] = False
+        return data
