@@ -37,6 +37,10 @@ export default function ContactsPage() {
 
   useEffect(() => {
     fetchLists();
+
+    const handleRefresh = () => fetchLists();
+    window.addEventListener('agent-action-completed', handleRefresh);
+    return () => window.removeEventListener('agent-action-completed', handleRefresh);
   }, []);
 
   return (

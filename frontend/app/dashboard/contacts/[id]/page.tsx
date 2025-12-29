@@ -53,6 +53,10 @@ export default function ContactListDetailPage({ params }: { params: Promise<{ id
 
     useEffect(() => {
         fetchData();
+
+        const handleRefresh = () => fetchData();
+        window.addEventListener('agent-action-completed', handleRefresh);
+        return () => window.removeEventListener('agent-action-completed', handleRefresh);
     }, [id]);
 
     return (
