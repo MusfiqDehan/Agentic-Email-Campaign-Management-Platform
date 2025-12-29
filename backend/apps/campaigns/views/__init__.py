@@ -76,6 +76,7 @@ from .campaign_views import (
 from .campaign_views import (
     UnsubscribeView,
     GDPRForgetView,
+    PublicContactSubscribeView,
 )
 
 # Admin views - Providers
