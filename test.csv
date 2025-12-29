@@ -1,4 +1,0 @@
-email,first_name,last_name,phone,company,tags
-p4@example.com,Peter4,Doe,+1234567890,Acme Inc,"lead,newsletter"
-p5@example.com,Peter5,Smith,+0987654321,Tech Corp,"customer,premium"
-p6@example.com,Peter6,Wilson,,,newsletter
