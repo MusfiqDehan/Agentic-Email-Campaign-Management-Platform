@@ -5,8 +5,14 @@ import uuid
 import secrets
 from django.db import models
 from django.utils import timezone
+from django.utils.crypto import get_random_string
 from apps.utils.base_models import BaseModel
 from apps.authentication.models import Organization
+
+
+def generate_subscription_token():
+    """Generate a unique subscription token for public forms."""
+    return get_random_string(64)
 
 
 class ContactList(BaseModel):
@@ -24,6 +30,15 @@ class ContactList(BaseModel):
     )
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    
+    # Public subscription token for public signup forms
+    subscription_token = models.CharField(
+        max_length=64,
+        unique=True,
+        editable=False,
+        default=generate_subscription_token,
+        help_text="Unique token for public subscription forms"
+    )
     
     # List settings
     double_opt_in = models.BooleanField(
