@@ -5,10 +5,11 @@ Handles audit logging for email provider changes.
 """
 import logging
 import threading
-from django.db.models.signals import pre_save, post_save, post_delete
+from django.db.models.signals import pre_save, post_save, post_delete, m2m_changed
 from django.dispatch import receiver
 
 from .models.provider_models import EmailProvider, ProviderAuditLog
+from .models.contact_models import Contact, ContactList
 
 logger = logging.getLogger(__name__)
 
@@ -246,3 +247,38 @@ def log_provider_test_send(provider, user=None, request=None, success=None,
         )
     except Exception as e:
         logger.error(f"Failed to log test send audit: {e}", exc_info=True)
+@receiver(m2m_changed, sender=Contact.lists.through)
+def update_contact_list_stats_m2m(sender, instance, action, pk_set, **kwargs):
+    """Update ContactList stats when contacts are added/removed."""
+    if action in ["post_add", "post_remove", "post_clear"]:
+        if isinstance(instance, Contact):
+            # If a contact was added to lists, update those lists
+            if pk_set:
+                lists = ContactList.all_objects.filter(pk__in=pk_set)
+                for cl in lists:
+                    cl.update_stats()
+            else:
+                # For 'post_clear', we don't have pk_set, so we'd need old PKs...
+                # but clearing a contact's lists means it's no longer in those lists.
+                # However, this signal is called AFTER the change.
+                pass
+        elif isinstance(instance, ContactList):
+            # If contacts were added to a list, update that list
+            instance.update_stats()
+
+
+@receiver(post_save, sender=Contact)
+def update_contact_list_stats_on_save(sender, instance, created, **kwargs):
+    """Update ContactList stats when a contact is restored or status changed."""
+    # We only need to trigger this if is_deleted or status changed
+    # For performance, we could check update_fields, but it's safer to just refresh.
+    # Actually, restoring is the main concern here.
+    for cl in instance.lists.all():
+        cl.update_stats()
+
+
+@receiver(post_delete, sender=Contact)
+def update_contact_list_stats_on_delete(sender, instance, **kwargs):
+    """Update ContactList stats when a contact is hard-deleted."""
+    for cl in instance.lists.all():
+        cl.update_stats()

@@ -151,10 +151,10 @@ export default function NewCampaignPage() {
       </div>
 
       {/* Progress Steps */}
-      <div className="flex justify-between items-center px-10 py-4 bg-white rounded-lg border">
+      <div className="flex justify-between items-center px-10 py-4 bg-card rounded-xl border shadow-sm">
         {[1, 2, 3, 4, 5, 6].map((s) => (
           <div key={s} className="flex flex-col items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${step >= s ? 'bg-primary text-primary-foreground' : 'bg-gray-100 text-gray-500'
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${step >= s ? 'bg-gradient-to-br from-primary to-blue-600 text-white shadow-lg shadow-primary/30' : 'bg-muted text-muted-foreground'
               }`}>
               {step > s ? <Check className="h-4 w-4" /> : s}
             </div>
@@ -236,11 +236,11 @@ export default function NewCampaignPage() {
               </div>
 
               {currentTemplate && (
-                <div className="max-w-3xl mx-auto rounded-lg border p-6 bg-gray-50 bg-opacity-50">
+                <div className="max-w-3xl mx-auto rounded-xl border p-6 bg-muted/50">
                   <h4 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Template Preview</h4>
                   <div
                     dangerouslySetInnerHTML={{ __html: currentTemplate.email_body }}
-                    className="prose prose-sm max-w-none bg-white p-6 rounded-md border shadow-sm max-h-[400px] overflow-auto"
+                    className="prose prose-sm max-w-none bg-card p-6 rounded-lg border shadow-sm max-h-[400px] overflow-auto dark:prose-invert"
                   />
                 </div>
               )}
@@ -255,7 +255,7 @@ export default function NewCampaignPage() {
                 {contactLists.map(list => (
                   <div
                     key={list.id}
-                    className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedLists.includes(list.id) ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:border-gray-400'
+                    className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedLists.includes(list.id) ? 'border-primary bg-primary/10 ring-2 ring-primary shadow-lg shadow-primary/10' : 'hover:border-primary/50 hover:bg-muted/50'
                       }`}
                     onClick={() => handleListToggle(list.id)}
                   >
@@ -293,16 +293,16 @@ export default function NewCampaignPage() {
 
               <div className="space-y-4 pt-4 border-t">
                 <Label className="text-lg font-medium block text-center">Tracking & Settings</Label>
-                <div className="space-y-4 bg-gray-50 p-4 rounded-lg border">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-4 bg-muted/50 p-4 rounded-xl border">
+                  <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/80 transition-colors">
                     <Label htmlFor="track-opens" className="flex-1 cursor-pointer">Track Email Opens</Label>
                     <Checkbox id="track-opens" checked={trackOpens} onCheckedChange={(val) => setTrackOpens(val as boolean)} />
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/80 transition-colors">
                     <Label htmlFor="track-clicks" className="flex-1 cursor-pointer">Track Link Clicks</Label>
                     <Checkbox id="track-clicks" checked={trackClicks} onCheckedChange={(val) => setTrackClicks(val as boolean)} />
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/80 transition-colors">
                     <Label htmlFor="include-unsub" className="flex-1 cursor-pointer">Include Unsubscribe Link</Label>
                     <Checkbox id="include-unsub" checked={includeUnsubscribe} onCheckedChange={(val) => setIncludeUnsubscribe(val as boolean)} />
                   </div>
@@ -347,7 +347,7 @@ export default function NewCampaignPage() {
           {step === 6 && (
             <div className="space-y-6 max-w-3xl mx-auto">
               <h3 className="text-xl font-bold text-center">Review & Send</h3>
-              <div className="grid gap-6 md:grid-cols-2 p-6 rounded-lg bg-gray-50 border">
+              <div className="grid gap-6 md:grid-cols-2 p-6 rounded-xl bg-muted/50 border">
                 <div className="space-y-4">
                   <div className="space-y-1">
                     <span className="text-xs text-muted-foreground uppercase">Campaign Name</span>
@@ -390,11 +390,11 @@ export default function NewCampaignPage() {
           </Button>
 
           {step < 6 ? (
-            <Button onClick={nextStep} disabled={isLoading}>
+            <Button onClick={nextStep} disabled={isLoading} className="bg-gradient-to-r from-primary to-blue-600 hover:opacity-90">
               Next <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleCreate} disabled={isLoading} className="px-8">
+            <Button onClick={handleCreate} disabled={isLoading} className="px-8 bg-gradient-to-r from-primary to-blue-600 hover:opacity-90">
               {isLoading ? 'Creating...' : 'Create Campaign'}
             </Button>
           )}

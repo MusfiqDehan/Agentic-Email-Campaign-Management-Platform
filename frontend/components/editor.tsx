@@ -5,7 +5,7 @@ import 'react-quill-new/dist/quill.snow.css';
 
 const ReactQuill = dynamic(() => import('react-quill-new'), { 
   ssr: false,
-  loading: () => <div className="h-64 mb-12 bg-gray-100 rounded-md animate-pulse" />
+  loading: () => <div className="h-64 mb-12 bg-muted rounded-xl animate-pulse" />
 });
 
 interface EditorProps {
@@ -33,7 +33,7 @@ export default function Editor({ value, onChange, placeholder }: EditorProps) {
   ];
 
   return (
-    <div className="bg-white">
+    <div className="editor-wrapper bg-card border rounded-xl overflow-hidden">
       <ReactQuill
         theme="snow"
         value={value}

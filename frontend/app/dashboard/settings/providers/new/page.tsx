@@ -193,7 +193,7 @@ export default function NewProviderPage() {
             </div>
 
             {providerType === 'SMTP' && (
-              <div className="space-y-4 rounded-md border p-4 bg-gray-50">
+              <div className="space-y-4 rounded-xl border p-4 bg-muted/50">
                 <h3 className="font-medium">SMTP Configuration</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -238,7 +238,7 @@ export default function NewProviderPage() {
             )}
 
             {providerType === 'AWS_SES' && (
-              <div className="space-y-4 rounded-md border p-4 bg-gray-50">
+              <div className="space-y-4 rounded-xl border p-4 bg-muted/50">
                 <h3 className="font-medium">AWS SES Configuration</h3>
                 <div className="space-y-2">
                   <Label htmlFor="aws_access_key_id">Access Key ID</Label>
@@ -259,7 +259,7 @@ export default function NewProviderPage() {
             )}
 
             {['SENDGRID', 'BREVO'].includes(providerType) && (
-              <div className="space-y-4 rounded-md border p-4 bg-gray-50">
+              <div className="space-y-4 rounded-xl border p-4 bg-muted/50">
                 <h3 className="font-medium">API Configuration</h3>
                 <div className="space-y-2">
                   <Label htmlFor="api_key">API Key</Label>
@@ -287,7 +287,7 @@ export default function NewProviderPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-gradient-to-r from-primary to-blue-600 hover:opacity-90" disabled={isLoading}>
               {isLoading ? 'Saving...' : 'Save Provider'}
             </Button>
           </form>

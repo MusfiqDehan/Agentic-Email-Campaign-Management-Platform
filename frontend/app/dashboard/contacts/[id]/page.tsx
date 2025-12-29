@@ -4,9 +4,9 @@ import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import api from '@/lib/axios';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, User, Mail, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, User, Mail, Calendar, CheckCircle, XCircle, Copy, Check, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Contact {
@@ -22,6 +22,11 @@ interface Contact {
 interface ContactList {
     id: string;
     name: string;
+    description?: string;
+    subscription_token?: string;
+    double_opt_in?: boolean;
+    total_contacts?: number;
+    active_contacts?: number;
 }
 
 export default function ContactListDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,6 +34,18 @@ export default function ContactListDetailPage({ params }: { params: Promise<{ id
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [listInfo, setListInfo] = useState<ContactList | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [copied, setCopied] = useState(false);
+
+    const copyToClipboard = async (text: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopied(true);
+            toast.success('Subscription token copied to clipboard!');
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            toast.error('Failed to copy to clipboard');
+        }
+    };
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -53,6 +70,10 @@ export default function ContactListDetailPage({ params }: { params: Promise<{ id
 
     useEffect(() => {
         fetchData();
+
+        const handleRefresh = () => fetchData();
+        window.addEventListener('agent-action-completed', handleRefresh);
+        return () => window.removeEventListener('agent-action-completed', handleRefresh);
     }, [id]);
 
     return (
@@ -70,6 +91,50 @@ export default function ContactListDetailPage({ params }: { params: Promise<{ id
                     <p className="text-muted-foreground">View and manage contacts in this list.</p>
                 </div>
             </div>
+
+            {/* Subscription Token Card */}
+            {listInfo?.subscription_token && (
+                <Card className="border-dashed border-2 border-primary/20 bg-primary/5">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <LinkIcon className="h-5 w-5 text-primary" />
+                                <CardTitle className="text-lg">Public Subscription Token</CardTitle>
+                            </div>
+                            {listInfo.double_opt_in && (
+                                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
+                                    Double Opt-In Enabled
+                                </span>
+                            )}
+                        </div>
+                        <CardDescription>
+                            Use this token in your signup forms to allow public subscriptions to this list.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center gap-2">
+                            <code className="flex-1 bg-background border rounded-lg px-4 py-3 font-mono text-sm break-all">
+                                {listInfo.subscription_token}
+                            </code>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="shrink-0 h-12 w-12"
+                                onClick={() => copyToClipboard(listInfo.subscription_token!)}
+                            >
+                                {copied ? (
+                                    <Check className="h-4 w-4 text-green-500" />
+                                ) : (
+                                    <Copy className="h-4 w-4" />
+                                )}
+                            </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-3">
+                            API Endpoint: <code className="bg-muted px-1 rounded">POST /api/v1/campaigns/public/subscribe/</code>
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 <CardHeader>

@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Email Campaign Platform",
-  description: "Manage your email campaigns efficiently",
+  title: "EmailCampaign - Modern Email Marketing Platform",
+  description: "Powerful, AI-driven email campaign management for modern organizations. Create, send, and track email campaigns with ease.",
+  keywords: ["email marketing", "campaign management", "email automation", "newsletter"],
 };
 
 export default function RootLayout({
@@ -24,9 +25,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
       >
         <Providers>
           {children}

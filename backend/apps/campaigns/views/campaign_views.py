@@ -27,9 +27,11 @@ from ..serializers import (
     BulkContactCreateSerializer,
     UnsubscribeSerializer,
     GDPRForgetSerializer,
+    PublicSubscribeSerializer,
 )
 from drf_spectacular.utils import extend_schema
-from apps.utils.throttles import OrganizationRateThrottle, EmailSendingRateThrottle
+from apps.utils.throttles import OrganizationRateThrottle, EmailSendingRateThrottle, PublicSubscriptionThrottle
+from apps.utils.view_mixins import PublicCORSMixin
 
 
 # =============================================================================
@@ -1015,3 +1017,127 @@ class GDPRForgetView(APIView):
             'message': 'Contact data has been anonymized',
             'gdpr_compliant': True
         })
+
+
+class PublicContactSubscribeView(PublicCORSMixin, APIView):
+    """
+    Public endpoint for contact subscription via signup forms.
+    
+    This endpoint allows unauthenticated users to subscribe to a contact list
+    by providing their email and optional information.
+    
+    Features:
+    - No authentication required (public endpoint)
+    - Honeypot spam protection (website field)
+    - Rate limiting per IP
+    - CORS enabled for cross-origin form submissions
+    - Double opt-in support (based on list configuration)
+    
+    POST /public/subscribe/
+    
+    Request body:
+    {
+        "list_token": "abc123...",  # Required - identifies the contact list
+        "email": "user@example.com",  # Required
+        "first_name": "John",  # Optional
+        "last_name": "Doe",  # Optional
+        "phone": "+1234567890",  # Optional
+        "custom_fields": {"company": "Acme"},  # Optional
+        "website": ""  # Honeypot - must be empty
+    }
+    """
+    permission_classes = []  # Public endpoint - no authentication
+    throttle_classes = [PublicSubscriptionThrottle]
+    
+    def post(self, request):
+        """Subscribe a contact to a list via public form."""
+        serializer = PublicSubscribeSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(
+                {'error': 'Invalid data', 'details': serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check honeypot - if filled, return fake success to fool bots
+        if serializer.validated_data.get('_is_bot', False):
+            return Response({
+                'message': 'Successfully subscribed',
+                'status': 'subscribed'
+            }, status=status.HTTP_200_OK)
+        
+        # Get the contact list by subscription token
+        list_token = serializer.validated_data['list_token']
+        contact_list = ContactList.objects.filter(
+            subscription_token=list_token,
+            is_active=True,
+            is_deleted=False
+        ).first()
+        
+        if not contact_list:
+            return Response(
+                {'error': 'Invalid or inactive list'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        email = serializer.validated_data['email']
+        organization = contact_list.organization
+        
+        # Determine status based on double opt-in setting
+        contact_status = 'PENDING' if contact_list.double_opt_in else 'ACTIVE'
+        
+        # Create or update contact
+        contact, created = Contact.objects.get_or_create(
+            organization=organization,
+            email__iexact=email,
+            defaults={
+                'email': email,
+                'first_name': serializer.validated_data.get('first_name', ''),
+                'last_name': serializer.validated_data.get('last_name', ''),
+                'phone': serializer.validated_data.get('phone', ''),
+                'custom_fields': serializer.validated_data.get('custom_fields', {}),
+                'source': 'SIGNUP_FORM',
+                'status': contact_status,
+            }
+        )
+        
+        # If contact already exists, update optional fields if provided
+        if not created:
+            updated = False
+            if serializer.validated_data.get('first_name') and not contact.first_name:
+                contact.first_name = serializer.validated_data['first_name']
+                updated = True
+            if serializer.validated_data.get('last_name') and not contact.last_name:
+                contact.last_name = serializer.validated_data['last_name']
+                updated = True
+            if serializer.validated_data.get('phone') and not contact.phone:
+                contact.phone = serializer.validated_data['phone']
+                updated = True
+            if serializer.validated_data.get('custom_fields'):
+                contact.custom_fields.update(serializer.validated_data['custom_fields'])
+                updated = True
+            if updated:
+                contact.save()
+        
+        # Add contact to the list (many-to-many)
+        contact.lists.add(contact_list)
+        
+        # Update list statistics
+        contact_list.update_stats()
+        
+        # Response message based on double opt-in
+        if contact_list.double_opt_in and created:
+            message = 'Please check your email to confirm subscription'
+            sub_status = 'pending_confirmation'
+        elif not created:
+            message = 'Contact updated and added to list'
+            sub_status = 'updated'
+        else:
+            message = 'Successfully subscribed'
+            sub_status = 'subscribed'
+        
+        return Response({
+            'message': message,
+            'status': sub_status,
+            'double_opt_in': contact_list.double_opt_in
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
