@@ -7,9 +7,29 @@ import api from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ArrowLeft, Play, Copy, Eye, Send, AlertCircle, CheckCircle2, Clock, PauseCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Play, Copy, Eye, Send, AlertCircle, CheckCircle2, Clock, PauseCircle, XCircle, Rocket } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface Campaign {
     id: string;
@@ -37,6 +57,9 @@ export default function CampaignDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [previewContent, setPreviewContent] = useState<string | null>(null);
     const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+    const [launchDialogOpen, setLaunchDialogOpen] = useState(false);
+    const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+    const [duplicateName, setDuplicateName] = useState('');
 
     const fetchCampaign = async () => {
         setIsLoading(true);
@@ -71,9 +94,12 @@ export default function CampaignDetailPage() {
         }
     };
 
-    const handleLaunch = async () => {
-        if (!confirm('Are you sure you want to launch this campaign? This will start sending emails to your contact lists.')) return;
+    const handleLaunchClick = () => {
+        setLaunchDialogOpen(true);
+    };
 
+    const handleLaunchConfirm = async () => {
+        setLaunchDialogOpen(false);
         try {
             await api.post(`/campaigns/${id}/launch/`);
             toast.success('Campaign launched successfully!');
@@ -84,12 +110,17 @@ export default function CampaignDetailPage() {
         }
     };
 
-    const handleDuplicate = async () => {
-        const newName = prompt('Enter a name for the duplicated campaign:', `${campaign?.name} (Copy)`);
-        if (!newName) return;
+    const handleDuplicateClick = () => {
+        setDuplicateName(`${campaign?.name} (Copy)`);
+        setDuplicateDialogOpen(true);
+    };
+
+    const handleDuplicateConfirm = async () => {
+        if (!duplicateName.trim()) return;
+        setDuplicateDialogOpen(false);
 
         try {
-            const response = await api.post(`/campaigns/${id}/duplicate/`, { new_name: newName });
+            const response = await api.post(`/campaigns/${id}/duplicate/`, { new_name: duplicateName });
             toast.success('Campaign duplicated!');
             router.push(`/dashboard/campaigns/${response.data.id}`);
         } catch (error: any) {
@@ -131,14 +162,14 @@ export default function CampaignDetailPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleDuplicate}>
+                    <Button variant="outline" onClick={handleDuplicateClick}>
                         <Copy className="mr-2 h-4 w-4" /> Duplicate
                     </Button>
                     <Button variant="outline" onClick={handlePreview} disabled={isPreviewLoading}>
                         <Eye className="mr-2 h-4 w-4" /> {isPreviewLoading ? 'Generating...' : 'Preview Content'}
                     </Button>
                     {campaign.status === 'DRAFT' && (
-                        <Button onClick={handleLaunch}>
+                        <Button onClick={handleLaunchClick} className="bg-gradient-to-r from-primary to-blue-600 hover:opacity-90">
                             <Play className="mr-2 h-4 w-4" /> Launch Campaign
                         </Button>
                     )}
@@ -175,11 +206,11 @@ export default function CampaignDetailPage() {
                             <Card>
                                 <CardContent className="pt-6">
                                     {previewContent ? (
-                                        <div className="rounded-md border bg-white min-h-[500px] overflow-auto">
-                                            <div dangerouslySetInnerHTML={{ __html: previewContent }} className="prose prose-sm max-w-none" />
+                                        <div className="rounded-xl border bg-card min-h-[500px] overflow-auto">
+                                            <div dangerouslySetInnerHTML={{ __html: previewContent }} className="prose prose-sm max-w-none dark:prose-invert p-6" />
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-50 border border-dashed rounded-md text-muted-foreground">
+                                        <div className="flex flex-col items-center justify-center min-h-[400px] bg-muted/50 border border-dashed rounded-xl text-muted-foreground">
                                             <Eye className="h-12 w-12 mb-4 opacity-20" />
                                             <p>Click "Preview Content" to see the generated email.</p>
                                             <Button variant="link" onClick={handlePreview} disabled={isPreviewLoading}>
@@ -227,7 +258,7 @@ export default function CampaignDetailPage() {
                             <CardTitle>Campaign Status</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border">
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border">
                                 <span className="text-sm font-medium">Current Status</span>
                                 <Badge variant={campaign.status === 'SENT' ? 'default' : 'outline'}>{campaign.status}</Badge>
                             </div>
@@ -257,6 +288,80 @@ export default function CampaignDetailPage() {
                     </Card>
                 </div>
             </div>
+
+            {/* Launch Confirmation Dialog */}
+            <AlertDialog open={launchDialogOpen} onOpenChange={setLaunchDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                                <Rocket className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                                <AlertDialogTitle>Launch Campaign</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Are you sure you want to launch this campaign? This will start sending emails to your contact lists.
+                                </AlertDialogDescription>
+                            </div>
+                        </div>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-4">
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleLaunchConfirm}
+                            className="bg-gradient-to-r from-primary to-blue-600 hover:opacity-90"
+                        >
+                            Launch Now
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Duplicate Dialog */}
+            <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                                <Copy className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                                <DialogTitle>Duplicate Campaign</DialogTitle>
+                                <DialogDescription>
+                                    Create a copy of this campaign with a new name.
+                                </DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="duplicateName" className="text-sm font-medium">
+                            Campaign Name
+                        </Label>
+                        <Input
+                            id="duplicateName"
+                            value={duplicateName}
+                            onChange={(e) => setDuplicateName(e.target.value)}
+                            placeholder="Enter campaign name"
+                            className="mt-2"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleDuplicateConfirm();
+                            }}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDuplicateDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={handleDuplicateConfirm}
+                            disabled={!duplicateName.trim()}
+                            className="bg-gradient-to-r from-primary to-blue-600 hover:opacity-90"
+                        >
+                            Duplicate
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
