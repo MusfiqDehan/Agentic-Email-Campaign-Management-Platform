@@ -26,7 +26,7 @@ class SMSConfigurationModel(BaseModel):
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name_or_type = models.CharField(max_length=255, unique=True, null=True, blank=True)
-    org_id = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='organizations')
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='organizations_sms_configurations', null=True, blank=True)
     endpoint_url = models.CharField(max_length=255, null=True, blank=True)
     
     # Twilio-specific fields
@@ -69,7 +69,7 @@ class SMSTemplate(BaseModel):
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     template_name = models.CharField(max_length=255, unique=True)
-    tenant_id = models.UUIDField(blank=True, null=True, help_text="Tenant-specific template if set.")
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='organizations_sms_templates', null=True, blank=True)
     sms_body = models.CharField(max_length=160, help_text="Use {{variable_name}} for dynamic content.")
     # Storing recipient_numbers as a comma-separated string for flexibility
     recipient_numbers_list = models.TextField(blank=True, help_text="Comma-separated phone numbers.")

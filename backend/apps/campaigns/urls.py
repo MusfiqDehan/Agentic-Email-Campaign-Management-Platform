@@ -13,8 +13,7 @@ Simplified URL structure organized into clear sections:
 All endpoints use APIView for explicit control.
 """
 
-from django.urls import path, include
-
+from django.urls import path
 # Import campaign views
 from .views import (
     # Contact List Views
@@ -41,6 +40,7 @@ from .views import (
     CampaignDuplicateView,
     CampaignAnalyticsView,
     CampaignRefreshStatsView,
+    OrganizationStatsView,
     
     # Public Views
     UnsubscribeView,
@@ -80,30 +80,42 @@ from .views import (
     AutomationStatsView,
     EmailDispatchReportView,
     DebugAutoHealthCheckView,
+    
+    # Variable Views - Template Personalization
+    VariableListView,
+    VariableExtractView,
+    VariableValidateView,
+    CustomFieldSchemaView,
+    VariablePreviewView,
+
+    GenerateEmailContentAIView,
+    ContactAgentView
 )
 
 # Import enhanced views
 from .views.enhanced_views import (
     # Organization Email Configuration Views
-    TenantEmailConfigurationListCreateView,
-    TenantEmailConfigurationDetailView,
-    TenantEmailConfigurationResetUsageView,
-    TenantEmailConfigurationVerifyDomainView,
-    TenantEmailConfigurationUsageStatsView,
+    OrganizationEmailConfigurationListCreateView,
+    OrganizationEmailConfigurationDetailView,
+    OrganizationEmailConfigurationResetUsageView,
+    OrganizationEmailConfigurationVerifyDomainView,
+    OrganizationEmailConfigurationUsageStatsView,
     
-    # Email Provider Views
+    # Email Provider Views (Shared/Platform Providers - read-only for org users)
     EmailProviderListCreateView,
     EmailProviderDetailView,
     EmailProviderHealthCheckView,
     EmailProviderTestSendView,
     
-    # Organization Email Provider Views
-    TenantEmailProviderListCreateView,
-    TenantEmailProviderDetailView,
+    # Organization Email Provider Views (links org to providers)
+    OrganizationEmailProviderListCreateView,
+    OrganizationEmailProviderDetailView,
 
-    # Tenant Own Email Provider Views
-    TenantOwnEmailProviderListCreateView,
-    TenantOwnEmailProviderDetailView,
+    # Organization Own Email Provider Views (org-owned providers)
+    OrganizationOwnEmailProviderListCreateView,
+    OrganizationOwnEmailProviderDetailView,
+    OrganizationOwnEmailProviderHealthCheckView,
+    OrganizationOwnEmailProviderTestSendView,
     
     # Email Delivery Log Views
     EmailDeliveryLogListView,
@@ -170,19 +182,21 @@ urlpatterns = [
     path('templates/<uuid:pk>/', EmailTemplateDetailView.as_view(), name='email-template-detail'),
     
     # Organization Email Configuration
-    path('config/', TenantEmailConfigurationListCreateView.as_view(), name='org-email-config-list'),
-    path('config/<uuid:pk>/', TenantEmailConfigurationDetailView.as_view(), name='org-email-config-detail'),
-    path('config/<uuid:pk>/reset-usage/', TenantEmailConfigurationResetUsageView.as_view(), name='org-email-config-reset-usage'),
-    path('config/<uuid:pk>/verify-domain/', TenantEmailConfigurationVerifyDomainView.as_view(), name='org-email-config-verify-domain'),
-    path('config/usage-stats/', TenantEmailConfigurationUsageStatsView.as_view(), name='org-email-config-usage-stats'),
+    path('config/', OrganizationEmailConfigurationListCreateView.as_view(), name='org-email-config-list'),
+    path('config/<uuid:pk>/', OrganizationEmailConfigurationDetailView.as_view(), name='org-email-config-detail'),
+    path('config/<uuid:pk>/reset-usage/', OrganizationEmailConfigurationResetUsageView.as_view(), name='org-email-config-reset-usage'),
+    path('config/<uuid:pk>/verify-domain/', OrganizationEmailConfigurationVerifyDomainView.as_view(), name='org-email-config-verify-domain'),
+    path('config/usage-stats/', OrganizationEmailConfigurationUsageStatsView.as_view(), name='org-email-config-usage-stats'),
     
-    # Organization Email Providers
-    path('providers/', TenantEmailProviderListCreateView.as_view(), name='org-email-provider-list-create'),
-    path('providers/<uuid:pk>/', TenantEmailProviderDetailView.as_view(), name='org-email-provider-detail'),
+    # Organization Email Providers (links org to shared/platform providers)
+    path('providers/', OrganizationEmailProviderListCreateView.as_view(), name='org-email-provider-list-create'),
+    path('providers/<uuid:pk>/', OrganizationEmailProviderDetailView.as_view(), name='org-email-provider-detail'),
 
-    # Tenant Own Email Providers
-    path('own-providers/', TenantOwnEmailProviderListCreateView.as_view(), name='tenant-own-provider-list-create'),
-    path('own-providers/<uuid:pk>/', TenantOwnEmailProviderDetailView.as_view(), name='tenant-own-provider-detail'),
+    # Organization Own Email Providers (org-owned providers created by org admins)
+    path('org/providers/', OrganizationOwnEmailProviderListCreateView.as_view(), name='org-own-provider-list-create'),
+    path('org/providers/<uuid:pk>/', OrganizationOwnEmailProviderDetailView.as_view(), name='org-own-provider-detail'),
+    path('org/providers/<uuid:pk>/health-check/', OrganizationOwnEmailProviderHealthCheckView.as_view(), name='org-own-provider-health-check'),
+    path('org/providers/<uuid:pk>/test-send/', OrganizationOwnEmailProviderTestSendView.as_view(), name='org-own-provider-test-send'),
     
     # Shared Email Providers (read-only for regular users)
     path('shared-providers/', EmailProviderListCreateView.as_view(), name='shared-email-provider-list'),
@@ -275,8 +289,26 @@ urlpatterns = [
     # ========================================================================
     # SECTION 8: MONITORING & DEBUGGING
     # ========================================================================
-    
+    # Statistics & Analytics
+    path('org/stats/', OrganizationStatsView.as_view(), name='org-stats'),
     path('stats/', AutomationStatsView.as_view(), name='automation-stats'),
     path('dispatches/', EmailDispatchReportView.as_view(), name='email-dispatch-report'),
     path('health/', DebugAutoHealthCheckView.as_view(), name='health-check'),
+    
+    # ========================================================================
+    # SECTION 9: TEMPLATE VARIABLES
+    # For autocomplete and template personalization
+    # ========================================================================
+    
+    path('variables/', VariableListView.as_view(), name='variable-list'),
+    path('variables/extract/', VariableExtractView.as_view(), name='variable-extract'),
+    path('variables/validate/', VariableValidateView.as_view(), name='variable-validate'),
+    path('variables/preview/', VariablePreviewView.as_view(), name='variable-preview'),
+    path('variables/schema/', CustomFieldSchemaView.as_view(), name='custom-field-schema'),
+
+    # ========================================================================
+    # SECTION 10: AI & AGENT INTEGRATIONS
+    # ========================================================================
+    path('ai/generate/email/content/', GenerateEmailContentAIView.as_view(), name='generate-email-content-ai'),
+    path('ai/agent/contacts/', ContactAgentView.as_view(), name='contact-agent'),
 ]

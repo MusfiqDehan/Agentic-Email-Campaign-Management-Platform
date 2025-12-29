@@ -18,6 +18,7 @@ from .provider_models import (
     EmailProvider,
     OrganizationEmailProvider,
     TenantEmailProvider,  # Legacy alias
+    ProviderAuditLog,
 )
 
 # Automation models
@@ -50,6 +51,7 @@ __all__ = [
     'EmailProvider',
     'OrganizationEmailProvider',
     'TenantEmailProvider',  # Legacy alias
+    'ProviderAuditLog',
     
     # Automation
     'AutomationRule',

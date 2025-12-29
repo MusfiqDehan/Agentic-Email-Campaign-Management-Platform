@@ -65,21 +65,9 @@ class EmailTemplate(BaseModel):
     email_body = models.TextField(help_text="Use {{variable_name}} for dynamic content.")
     text_body = models.TextField(blank=True, help_text="Plain text fallback content.")
     
-    # Sender defaults (optional, can be overridden)
-    default_from_name = models.CharField(max_length=100, blank=True)
-    default_from_email = models.EmailField(blank=True)
-    default_reply_to = models.EmailField(blank=True)
-    
     # Template metadata
     description = models.TextField(blank=True, help_text="Internal description of this template")
     tags = models.JSONField(default=list, blank=True, help_text="Tags for organizing templates")
-    
-    # Variable schema (for documentation and validation)
-    variable_schema = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="JSON schema describing available variables. Example: {'first_name': 'string', 'company': 'string'}"
-    )
 
     class Meta:
         constraints = [

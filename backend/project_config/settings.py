@@ -251,6 +251,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media_files/')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -265,4 +268,15 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=config('EMAIL_HOST_USER', default='noreply@example.com'))
 
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 
+# ========================================================================
+# ORGANIZATION EMAIL PROVIDER SETTINGS
+# Platform-enforced limits for organization-owned email providers
+# ========================================================================
+
+# Maximum rate limits for organization-owned providers
+ORG_PROVIDER_MAX_RATE_PER_SECOND = config('ORG_PROVIDER_MAX_RATE_PER_SECOND', default=10, cast=int)
+ORG_PROVIDER_MAX_RATE_PER_MINUTE = config('ORG_PROVIDER_MAX_RATE_PER_MINUTE', default=100, cast=int)
+ORG_PROVIDER_MAX_RATE_PER_HOUR = config('ORG_PROVIDER_MAX_RATE_PER_HOUR', default=1000, cast=int)
+ORG_PROVIDER_MAX_DAILY_QUOTA = config('ORG_PROVIDER_MAX_DAILY_QUOTA', default=10000, cast=int)

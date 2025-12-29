@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum, Avg
 from django.db.models.functions import TruncHour, TruncDay
 
 from ..models import Campaign, Contact, ContactList, EmailDeliveryLog
@@ -263,6 +263,69 @@ class ContactDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class OrganizationStatsView(APIView):
+    """
+    Get organization-wide dashboard statistics.
+    
+    GET /org/stats/
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+
+    def get(self, request):
+        organization = request.user.organization
+        if not organization:
+            return Response({"error": "No organization found for user"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Basic Stats
+        total_campaigns = Campaign.objects.filter(organization=organization, is_deleted=False).count()
+        total_contacts = Contact.objects.filter(organization=organization, is_deleted=False).count()
+        
+        # Aggregate email stats across all campaigns
+        email_stats = Campaign.objects.filter(organization=organization, is_deleted=False).aggregate(
+            sent=Sum('stats_sent'),
+            delivered=Sum('stats_delivered'),
+            opened=Sum('stats_opened'),
+            clicked=Sum('stats_clicked')
+        )
+        
+        sent_count = email_stats.get('sent') or 0
+        opened_count = email_stats.get('opened') or 0
+        open_rate = (opened_count / sent_count * 100) if sent_count > 0 else 0
+
+        # Recent Campaigns
+        recent_campaigns = Campaign.objects.filter(
+            organization=organization, is_deleted=False
+        ).order_by('-created_at')[:5]
+        
+        campaigns_data = CampaignListSerializer(recent_campaigns, many=True, context={'request': request}).data
+
+        # Recent Delivery Logs
+        recent_logs = EmailDeliveryLog.objects.filter(
+            organization=organization
+        ).select_related('campaign', 'contact').order_by('-sent_at')[:10]
+        
+        logs_data = []
+        for log in recent_logs:
+            logs_data.append({
+                "id": str(log.id),
+                "recipient": log.recipient_email,
+                "status": log.delivery_status,
+                "subject": log.subject,
+                "campaign_name": log.campaign.name if log.campaign else "N/A",
+                "sent_at": log.sent_at
+            })
+
+        return Response({
+            "total_campaigns": total_campaigns,
+            "total_contacts": total_contacts,
+            "emails_sent": sent_count,
+            "open_rate": round(open_rate, 1),
+            "recent_campaigns": campaigns_data,
+            "recent_activity": logs_data
+        })
+
+
 @extend_schema(request=BulkContactCreateSerializer)
 class ContactBulkImportView(APIView):
     """
@@ -398,12 +461,34 @@ class CampaignLaunchView(APIView):
     
     def post(self, request, pk):
         """Launch campaign immediately."""
-        campaign = get_object_or_404(
-            Campaign,
-            pk=pk,
-            organization=request.user.organization,
-            is_deleted=False
-        )
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {'error': 'User is not associated with any organization.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Detailed campaign lookup with specific error messages
+        # First, check if campaign exists at all (including soft-deleted)
+        campaign = Campaign.all_objects.filter(pk=pk).first()
+        
+        if not campaign:
+            return Response(
+                {'error': f'Campaign with ID {pk} does not exist.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if campaign.is_deleted:
+            return Response(
+                {'error': 'This campaign has been deleted.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if campaign.organization_id != request.user.organization_id:
+            return Response(
+                {'error': 'You do not have permission to access this campaign.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         
         # Provide helpful error messages based on current status
         if campaign.status == 'SENDING':
@@ -447,6 +532,13 @@ class CampaignScheduleView(APIView):
     
     def post(self, request, pk):
         """Schedule campaign for future send."""
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {'error': 'User is not associated with any organization.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         campaign = get_object_or_404(
             Campaign,
             pk=pk,
@@ -487,6 +579,13 @@ class CampaignPauseView(APIView):
     
     def post(self, request, pk):
         """Pause sending campaign."""
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {'error': 'User is not associated with any organization.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         campaign = get_object_or_404(
             Campaign,
             pk=pk,
@@ -512,6 +611,13 @@ class CampaignResumeView(APIView):
     
     def post(self, request, pk):
         """Resume paused campaign."""
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {'error': 'User is not associated with any organization.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         campaign = get_object_or_404(
             Campaign,
             pk=pk,
@@ -537,6 +643,13 @@ class CampaignCancelView(APIView):
     
     def post(self, request, pk):
         """Cancel campaign."""
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {'error': 'User is not associated with any organization.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         campaign = get_object_or_404(
             Campaign,
             pk=pk,
@@ -565,6 +678,13 @@ class CampaignResetView(APIView):
     
     def post(self, request, pk):
         """Reset campaign to DRAFT status."""
+        # Ensure user has an organization
+        if not request.user.organization:
+            return Response(
+                {'error': 'User is not associated with any organization.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         campaign = get_object_or_404(
             Campaign,
             pk=pk,

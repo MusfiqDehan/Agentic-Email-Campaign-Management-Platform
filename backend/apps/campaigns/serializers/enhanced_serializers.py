@@ -1,8 +1,9 @@
 from rest_framework import serializers
 from django.db import transaction
+from django.conf import settings
 from django.utils import timezone
 from ..models import (
-    TenantEmailConfiguration, EmailProvider, TenantEmailProvider,
+    OrganizationEmailConfiguration, EmailProvider, OrganizationEmailProvider,
     EmailValidation, EmailQueue, EmailDeliveryLog, EmailAction,
     AutomationRule
 )
@@ -12,18 +13,22 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Legacy aliases for backward compatibility
+TenantEmailConfiguration = OrganizationEmailConfiguration
+TenantEmailProvider = OrganizationEmailProvider
 
-class TenantEmailConfigurationSerializer(serializers.ModelSerializer):
-    """Serializer for tenant email configuration"""
+
+class OrganizationEmailConfigurationSerializer(serializers.ModelSerializer):
+    """Serializer for organization email configuration"""
     
-    tenant_name = serializers.SerializerMethodField(read_only=True)
+    organization_name = serializers.SerializerMethodField(read_only=True)
     usage_percentage_daily = serializers.SerializerMethodField(read_only=True)
     usage_percentage_monthly = serializers.SerializerMethodField(read_only=True)
     can_send_email = serializers.SerializerMethodField(read_only=True)
     effective_from_domain = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
-        model = TenantEmailConfiguration
+        model = OrganizationEmailConfiguration
         fields = [
             'id', 'organization', 'plan_type', 'emails_per_day', 'emails_per_month',
             'emails_per_minute', 'custom_domain_allowed', 'advanced_analytics',
@@ -31,17 +36,17 @@ class TenantEmailConfigurationSerializer(serializers.ModelSerializer):
             'custom_domain', 'custom_domain_verified', 'emails_sent_today',
             'emails_sent_this_month', 'last_email_sent_at',
             'is_suspended', 'suspension_reason', 'bounce_rate', 'complaint_rate',
-            'reputation_score', 'tenant_name', 'usage_percentage_daily',
+            'reputation_score', 'organization_name', 'usage_percentage_daily',
             'usage_percentage_monthly', 'can_send_email', 'effective_from_domain',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
-            'emails_sent_today', 'emails_sent_this_month', 'last_email_sent_at',
+            'organization', 'emails_sent_today', 'emails_sent_this_month', 'last_email_sent_at',
             'last_daily_reset', 'last_monthly_reset', 'domain_verification_token',
             'bounce_rate', 'complaint_rate', 'reputation_score'
         ]
     
-    def get_tenant_name(self, obj):
+    def get_organization_name(self, obj):
         """Get organization name from the related organization object"""
         try:
             if obj.organization:
@@ -50,6 +55,10 @@ class TenantEmailConfigurationSerializer(serializers.ModelSerializer):
         except Exception as e:
             logger.error(f"Error fetching organization name: {e}")
             return 'Unknown'
+    
+    # Alias for backward compatibility
+    def get_tenant_name(self, obj):
+        return self.get_organization_name(obj)
     
     def get_usage_percentage_daily(self, obj):
         """Calculate daily usage percentage"""
@@ -64,13 +73,17 @@ class TenantEmailConfigurationSerializer(serializers.ModelSerializer):
         return round((obj.emails_sent_this_month / obj.emails_per_month) * 100, 2)
     
     def get_can_send_email(self, obj):
-        """Check if tenant can send email"""
+        """Check if organization can send email"""
         can_send, reason = obj.can_send_email()
         return {'can_send': can_send, 'reason': reason}
     
     def get_effective_from_domain(self, obj):
         """Get effective from domain"""
         return obj.get_effective_from_domain()
+
+
+# Legacy alias for backward compatibility
+TenantEmailConfigurationSerializer = OrganizationEmailConfigurationSerializer
 
 
 class EmailProviderSerializer(serializers.ModelSerializer):
@@ -202,29 +215,29 @@ class EmailProviderSerializer(serializers.ModelSerializer):
         return value
 
 
-class TenantOwnEmailProviderSerializer(serializers.ModelSerializer):
-    """Serializer for tenant-owned email providers"""
+class OrganizationOwnEmailProviderSerializer(serializers.ModelSerializer):
+    """Serializer for organization-owned email providers"""
     
     config = serializers.JSONField(write_only=True, required=False)
     auto_health_check = serializers.BooleanField(write_only=True, required=False, default=False)
     config_status = serializers.SerializerMethodField(read_only=True)
     health_info = serializers.SerializerMethodField(read_only=True)
-    is_tenant_owned = serializers.SerializerMethodField(read_only=True)
-    tenant_id = serializers.UUIDField(source='organization_id', read_only=True)
+    is_organization_owned = serializers.SerializerMethodField(read_only=True)
+    organization_id = serializers.UUIDField(source='organization.id', read_only=True)
     
     class Meta:
         model = EmailProvider
         fields = [
-            'id', 'tenant_id', 'name', 'provider_type', 'max_emails_per_minute',
+            'id', 'organization_id', 'name', 'provider_type', 'is_active', 'max_emails_per_minute',
             'max_emails_per_hour', 'max_emails_per_day', 'is_default', 'priority', 'is_shared',
             'last_health_check', 'health_status', 'health_details', 'emails_sent_today',
             'emails_sent_this_hour', 'last_used_at', 'config', 'auto_health_check',
-            'config_status', 'health_info', 'is_tenant_owned', 'created_at', 'updated_at'
+            'config_status', 'health_info', 'is_organization_owned', 'created_at', 'updated_at'
         ]
         read_only_fields = [
-            'tenant_id', 'last_health_check', 'health_status',
+            'organization_id', 'last_health_check', 'health_status',
             'health_details', 'emails_sent_today', 'emails_sent_this_hour',
-            'last_used_at', 'is_shared', 'is_tenant_owned'
+            'last_used_at', 'is_shared', 'is_organization_owned'
         ]
     
     def get_config_status(self, obj):
@@ -245,23 +258,59 @@ class TenantOwnEmailProviderSerializer(serializers.ModelSerializer):
             'last_check': obj.last_health_check
         }
     
-    def get_is_tenant_owned(self, obj):
-        """Check if this is a tenant-owned provider"""
+    def get_is_organization_owned(self, obj):
+        """Check if this is an organization-owned provider"""
         return obj.organization_id is not None and not obj.is_shared
+    
+    def validate(self, attrs):
+        """Validate rate limits against platform-enforced maximums"""
+        # Get platform limits from settings
+        max_per_minute = getattr(settings, 'ORG_PROVIDER_MAX_RATE_PER_MINUTE', 100)
+        max_per_hour = getattr(settings, 'ORG_PROVIDER_MAX_RATE_PER_HOUR', 1000)
+        max_per_day = getattr(settings, 'ORG_PROVIDER_MAX_DAILY_QUOTA', 10000)
+        
+        # Validate max_emails_per_minute
+        if 'max_emails_per_minute' in attrs:
+            if attrs['max_emails_per_minute'] > max_per_minute:
+                raise serializers.ValidationError({
+                    'max_emails_per_minute': f'Cannot exceed platform limit of {max_per_minute} emails per minute'
+                })
+        
+        # Validate max_emails_per_hour
+        if 'max_emails_per_hour' in attrs:
+            if attrs['max_emails_per_hour'] > max_per_hour:
+                raise serializers.ValidationError({
+                    'max_emails_per_hour': f'Cannot exceed platform limit of {max_per_hour} emails per hour'
+                })
+        
+        # Validate max_emails_per_day
+        if 'max_emails_per_day' in attrs:
+            if attrs['max_emails_per_day'] > max_per_day:
+                raise serializers.ValidationError({
+                    'max_emails_per_day': f'Cannot exceed platform limit of {max_per_day} emails per day'
+                })
+        
+        return attrs
     
     def create(self, validated_data):
         config = validated_data.pop('config', {})
         auto_health_check = validated_data.pop('auto_health_check', False)
         
-        # Set tenant_id from context and ensure it's not global
-        tenant_id = self.context.get('tenant_id')
-        if not tenant_id:
-            raise serializers.ValidationError("tenant_id must be provided in context")
+        # Set organization from context (set by view)
+        organization = self.context.get('organization')
+        organization_id = self.context.get('organization_id')
         
-        validated_data['organization_id'] = tenant_id
+        if not organization and not organization_id:
+            raise serializers.ValidationError("Organization must be provided in context")
+        
+        if organization:
+            validated_data['organization'] = organization
+        elif organization_id:
+            validated_data['organization_id'] = organization_id
+        
         validated_data['is_shared'] = False
         
-        logger.info(f"Creating tenant-owned provider: {validated_data.get('name')} for tenant {tenant_id}")
+        logger.info(f"Creating organization-owned provider: {validated_data.get('name')} for organization {organization or organization_id}")
         
         instance = super().create(validated_data)
         
@@ -324,8 +373,12 @@ class TenantOwnEmailProviderSerializer(serializers.ModelSerializer):
         return instance
 
 
-class TenantEmailProviderSerializer(serializers.ModelSerializer):
-    """Serializer for tenant email provider configuration"""
+# Legacy alias for backward compatibility
+TenantOwnEmailProviderSerializer = OrganizationOwnEmailProviderSerializer
+
+
+class OrganizationEmailProviderSerializer(serializers.ModelSerializer):
+    """Serializer for organization email provider configuration"""
     
     provider_name = serializers.CharField(source='provider.name', read_only=True)
     provider_type = serializers.CharField(source='provider.provider_type', read_only=True)
@@ -335,7 +388,7 @@ class TenantEmailProviderSerializer(serializers.ModelSerializer):
     custom_config = serializers.JSONField(write_only=True, required=False)
     
     class Meta:
-        model = TenantEmailProvider
+        model = OrganizationEmailProvider
         fields = [
             'id', 'organization', 'provider', 'provider_name', 'provider_type',
             'is_enabled', 'is_primary', 'custom_max_emails_per_minute',
@@ -346,7 +399,7 @@ class TenantEmailProviderSerializer(serializers.ModelSerializer):
             'custom_config', 'created_at', 'updated_at'
         ]
         read_only_fields = [
-            'custom_encrypted_config', 'emails_sent_today', 'emails_sent_this_hour',
+            'organization', 'custom_encrypted_config', 'emails_sent_today', 'emails_sent_this_hour',
             'last_used_at', 'bounce_rate', 'complaint_rate', 'delivery_rate'
         ]
     
@@ -393,6 +446,10 @@ class TenantEmailProviderSerializer(serializers.ModelSerializer):
             instance.save()
         
         return instance
+
+
+# Legacy alias for backward compatibility
+TenantEmailProviderSerializer = OrganizationEmailProviderSerializer
 
 
 class EmailValidationSerializer(serializers.ModelSerializer):

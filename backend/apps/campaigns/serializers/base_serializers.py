@@ -33,8 +33,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'organization', 'organization_id', 'template_name', 'category', 
             'email_subject', 'preview_text', 'email_body', 'text_body',
-            'default_from_name', 'default_from_email', 'default_reply_to',
-            'description', 'tags', 'variable_schema',
+            'description', 'tags',
             'is_active', 'is_published', 'created_at', 'updated_at'
         ]
         read_only_fields = ('id', 'organization', 'created_at', 'updated_at')

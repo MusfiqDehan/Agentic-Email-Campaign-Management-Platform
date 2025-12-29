@@ -8,7 +8,14 @@ from rest_framework import serializers
 from django.utils import timezone
 from django.db import transaction
 
-from ..models import Campaign, Contact, ContactList, EmailTemplate, OrganizationEmailProvider
+from ..models import (
+    Campaign,
+    Contact,
+    ContactList,
+    EmailTemplate,
+    EmailProvider,
+    OrganizationEmailProvider,
+)
 from ..constants import BULK_OPERATION_ASYNC_THRESHOLD
 
 # Try to import openpyxl for XLSX support
@@ -17,6 +24,49 @@ try:
     XLSX_SUPPORTED = True
 except ImportError:
     XLSX_SUPPORTED = False
+
+
+class OrganizationScopedProviderField(serializers.PrimaryKeyRelatedField):
+    """Resolve email providers scoped to the requester's organization."""
+
+    def _get_request(self):
+        if hasattr(self, 'context') and self.context.get('request'):
+            return self.context['request']
+        parent = getattr(self, 'parent', None)
+        if parent and parent.context.get('request'):
+            return parent.context['request']
+        root = getattr(self, 'root', None)
+        if root and getattr(root, 'context', None):
+            return root.context.get('request')
+        return None
+
+    def to_internal_value(self, data):
+        try:
+            return super().to_internal_value(data)
+        except serializers.ValidationError as exc:
+            request = self._get_request()
+            organization = getattr(getattr(request, 'user', None), 'organization', None)
+            if not organization:
+                raise exc
+
+            provider_id = str(data)
+            provider = EmailProvider.objects.filter(
+                id=provider_id,
+                organization=organization,
+                is_shared=False,
+                is_deleted=False,
+            ).first()
+
+            if not provider:
+                raise serializers.ValidationError("Email provider not available for this organization.")
+
+            org_provider, _ = OrganizationEmailProvider.objects.get_or_create(
+                organization=organization,
+                provider=provider,
+                defaults={'is_enabled': True, 'is_primary': provider.is_default},
+            )
+
+            return org_provider
 
 
 class ContactListSerializer(serializers.ModelSerializer):
@@ -563,6 +613,11 @@ class CampaignSerializer(serializers.ModelSerializer):
         source='email_template.template_name', 
         read_only=True
     )
+    email_provider = OrganizationScopedProviderField(
+        queryset=OrganizationEmailProvider.objects.none(),
+        required=False,
+        allow_null=True
+    )
     email_provider_name = serializers.CharField(
         source='email_provider.provider.name',
         read_only=True
@@ -640,6 +695,15 @@ class CampaignSerializer(serializers.ModelSerializer):
             'stats_unique_opens', 'stats_unique_clicks', 'stats_updated_at',
             'created_at', 'updated_at'
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request') if hasattr(self, 'context') else None
+        organization = getattr(getattr(request, 'user', None), 'organization', None)
+        if organization and 'email_provider' in self.fields:
+            self.fields['email_provider'].queryset = OrganizationEmailProvider.objects.filter(
+                organization=organization
+            )
     
     def to_internal_value(self, data):
         """
@@ -675,17 +739,40 @@ class CampaignSerializer(serializers.ModelSerializer):
                 config = email_provider.get_effective_config()
             else:
                 config = email_provider.decrypt_config()
-            
-            from_email = config.get('from_email', '')
+
+            raw_from_email = (
+                config.get('from_email')
+                or config.get('default_from_email')
+                or config.get('sender_email')
+                or ''
+            )
+            from_name = (
+                config.get('from_name')
+                or config.get('default_from_name')
+                or config.get('sender_name')
+                or ''
+            )
+
+            email_address = raw_from_email.strip()
+            parsed_name = None
+
             # Parse "Name <email>" format if present
-            if from_email and '<' in from_email and '>' in from_email:
+            if raw_from_email and '<' in raw_from_email and '>' in raw_from_email:
                 import re
-                match = re.match(r'^(.+?)\s*<(.+?)>$', from_email.strip())
+                match = re.match(r'^(.+?)\s*<(.+?)>$', raw_from_email.strip())
                 if match:
-                    return match.group(1).strip(), match.group(2).strip()
+                    parsed_name = match.group(1).strip()
+                    email_address = match.group(2).strip()
+
+            if not from_name:
+                from_name = parsed_name or ''
+
+            if not from_name and email_address:
+                local_part = email_address.split('@', 1)[0]
+                friendly_name = local_part.replace('.', ' ').replace('_', ' ').strip()
+                from_name = friendly_name.title() if friendly_name else ''
             
-            from_name = config.get('from_name', '')
-            return from_name, from_email
+            return (from_name or None), (email_address or None)
         except Exception:
             return None, None
     
@@ -709,8 +796,10 @@ class CampaignSerializer(serializers.ModelSerializer):
             from_email = from_email if 'from_email' in attrs else self.instance.from_email
             subject = subject if 'subject' in attrs else self.instance.subject
         
-        # Get provider config for fallback
+        # Get template + provider fallback values
         provider_from_name, provider_from_email = self._get_provider_config(email_provider)
+        template_from_name = getattr(email_template, 'default_from_name', None)
+        template_from_email = getattr(email_template, 'default_from_email', None)
         
         # Check if we have HTML content either directly or from template
         has_html = bool(html_content)
@@ -722,7 +811,7 @@ class CampaignSerializer(serializers.ModelSerializer):
         
         # Check if we have from_name (direct > template > provider)
         has_from_name = bool(from_name)
-        has_template_from_name = email_template and email_template.default_from_name
+        has_template_from_name = bool(template_from_name)
         has_provider_from_name = bool(provider_from_name)
         if not has_from_name and not has_template_from_name and not has_provider_from_name:
             raise serializers.ValidationError({
@@ -731,7 +820,7 @@ class CampaignSerializer(serializers.ModelSerializer):
         
         # Check if we have from_email (direct > template > provider)
         has_from_email = bool(from_email)
-        has_template_from_email = email_template and email_template.default_from_email
+        has_template_from_email = bool(template_from_email)
         has_provider_from_email = bool(provider_from_email)
         if not has_from_email and not has_template_from_email and not has_provider_from_email:
             raise serializers.ValidationError({
@@ -775,6 +864,9 @@ class CampaignSerializer(serializers.ModelSerializer):
         
         # Get provider config for fallback
         provider_from_name, provider_from_email = self._get_provider_config(email_provider)
+        template_from_name = getattr(email_template, 'default_from_name', None)
+        template_from_email = getattr(email_template, 'default_from_email', None)
+        template_reply_to = getattr(email_template, 'default_reply_to', None)
         
         # Populate HTML content if not provided (from template)
         if not validated_data.get('html_content') and email_template:
@@ -794,21 +886,21 @@ class CampaignSerializer(serializers.ModelSerializer):
         
         # Populate from_name if not provided (template > provider)
         if not validated_data.get('from_name'):
-            if email_template and email_template.default_from_name:
-                validated_data['from_name'] = email_template.default_from_name
+            if template_from_name:
+                validated_data['from_name'] = template_from_name
             elif provider_from_name:
                 validated_data['from_name'] = provider_from_name
         
         # Populate from_email if not provided (template > provider)
         if not validated_data.get('from_email'):
-            if email_template and email_template.default_from_email:
-                validated_data['from_email'] = email_template.default_from_email
+            if template_from_email:
+                validated_data['from_email'] = template_from_email
             elif provider_from_email:
                 validated_data['from_email'] = provider_from_email
         
         # Populate reply_to if not provided (from template)
-        if not validated_data.get('reply_to') and email_template:
-            validated_data['reply_to'] = email_template.default_reply_to or ''
+        if not validated_data.get('reply_to') and template_reply_to is not None:
+            validated_data['reply_to'] = template_reply_to or ''
         
         return validated_data
     

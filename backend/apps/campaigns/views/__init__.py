@@ -52,6 +52,8 @@ from .campaign_views import (
     ContactBulkImportView,
 )
 
+from .contact_agent_views import ContactAgentView
+
 # Campaign views - Campaigns
 from .campaign_views import (
     CampaignListCreateView,
@@ -67,6 +69,7 @@ from .campaign_views import (
     CampaignDuplicateView,
     CampaignAnalyticsView,
     CampaignRefreshStatsView,
+    OrganizationStatsView,
 )
 
 # Campaign views - Public
@@ -94,6 +97,17 @@ from .admin_views import (
     AdminOrganizationUpgradePlanView,
     AdminPlatformStatsView,
 )
+
+# Variable views - Template Personalization
+from .variable_views import (
+    VariableListView,
+    VariableExtractView,
+    VariableValidateView,
+    CustomFieldSchemaView,
+    VariablePreviewView,
+)
+
+from .ai_gen import GenerateEmailContentAIView
 
 # Activation views (simplified - is_active/is_published toggles)
 # Commented out: These views depend on automation_rule module which no longer exists
@@ -133,6 +147,7 @@ __all__ = [
     'ContactListView',
     'ContactDetailView',
     'ContactBulkImportView',
+    'ContactAgentView',
     
     # Campaign Views
     'CampaignListCreateView',
@@ -148,6 +163,7 @@ __all__ = [
     'CampaignDuplicateView',
     'CampaignAnalyticsView',
     'CampaignRefreshStatsView',
+    'OrganizationStatsView',
     
     # Public Views
     'UnsubscribeView',
@@ -168,4 +184,14 @@ __all__ = [
     'AdminOrganizationUnsuspendView',
     'AdminOrganizationUpgradePlanView',
     'AdminPlatformStatsView',
+    
+    # Variable Views - Template Personalization
+    'VariableListView',
+    'VariableExtractView',
+    'VariableValidateView',
+    'CustomFieldSchemaView',
+    'VariablePreviewView',
+
+    # AI Generation View
+    'GenerateEmailContentAIView',
 ]

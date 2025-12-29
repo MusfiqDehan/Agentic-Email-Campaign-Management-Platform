@@ -27,7 +27,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    username = serializers.CharField(max_length=150)
+    username = serializers.CharField(max_length=150, required=False)
     password = serializers.CharField(write_only=True)
     organization_name = serializers.CharField(max_length=120)
     first_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
@@ -43,6 +43,10 @@ class SignupSerializer(serializers.Serializer):
         org_name = validated_data.pop("organization_name")
         password = validated_data.pop("password")
         is_platform_admin = validated_data.pop("is_platform_admin", False)
+        
+        if "username" not in validated_data:
+            validated_data["username"] = validated_data["email"]
+            
         user = User(**validated_data)
         user.set_password(password)
         user.is_active = False  # Require email verification
@@ -154,6 +158,33 @@ class ResetPasswordSerializer(serializers.Serializer):
         token_obj.is_used = True
         token_obj.save(update_fields=['is_used'])
         return user
+
+
+class OrganizationProfileSerializer(serializers.ModelSerializer):
+    """Serializer for organization profile details."""
+    class Meta:
+        model = Organization
+        fields = ["id", "name", "slug", "description", "logo", "created_at"]
+        read_only_fields = ["id", "slug", "created_at"]
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializer for user profile details."""
+    organization_details = OrganizationProfileSerializer(source='organization', read_only=True)
+    is_org_admin = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id", "username", "email", "first_name", "last_name", 
+            "phone_number", "profile_picture", "gender", "date_of_birth",
+            "occupation", "country", "city", "address", "organization_details",
+            "is_org_admin"
+        ]
+        read_only_fields = ["id", "username", "email", "organization_details", "is_org_admin"]
+
+    def get_is_org_admin(self, obj):
+        return obj.is_org_admin
 
 
 class EmailVerificationSerializer(serializers.Serializer):

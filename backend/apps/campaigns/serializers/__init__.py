@@ -36,8 +36,14 @@ from .base_serializers import (
 
 # Import from enhanced_serializers.py
 from .enhanced_serializers import (
-    # Organization Email Provider
-    TenantEmailProviderSerializer as OrganizationEmailProviderSerializer,
+    # Organization Email Configuration
+    OrganizationEmailConfigurationSerializer as EnhancedOrganizationEmailConfigurationSerializer,
+    
+    # Organization Email Provider (links org to providers)
+    OrganizationEmailProviderSerializer,
+    
+    # Organization Own Email Provider (org-owned providers)
+    OrganizationOwnEmailProviderSerializer,
     
     # Email Tracking
     EmailValidationSerializer,
@@ -48,6 +54,11 @@ from .enhanced_serializers import (
     # Enhanced Rule
     EnhancedAutomationRuleSerializer,
     TriggerEmailEnhancedSerializer,
+    
+    # Legacy aliases
+    TenantEmailConfigurationSerializer,
+    TenantEmailProviderSerializer,
+    TenantOwnEmailProviderSerializer,
 )
 
 # Import from campaign_serializers.py
@@ -76,8 +87,7 @@ from .campaign_serializers import (
 )
 
 # Backward compatibility aliases (deprecated - use new names)
-TenantEmailConfigurationSerializer = OrganizationEmailConfigurationSerializer
-TenantEmailProviderSerializer = OrganizationEmailProviderSerializer
+# Note: These are now imported directly from enhanced_serializers
 
 __all__ = [
     # Base serializers
@@ -94,6 +104,7 @@ __all__ = [
     
     # Enhanced serializers
     'OrganizationEmailProviderSerializer',
+    'OrganizationOwnEmailProviderSerializer',
     'EmailValidationSerializer',
     'EmailQueueSerializer',
     'EmailActionSerializer',
@@ -120,4 +131,5 @@ __all__ = [
     # Backward compatibility (deprecated)
     'TenantEmailConfigurationSerializer',
     'TenantEmailProviderSerializer',
+    'TenantOwnEmailProviderSerializer',
 ]

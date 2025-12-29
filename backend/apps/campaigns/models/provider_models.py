@@ -292,3 +292,180 @@ class OrganizationEmailProvider(BaseModel):
 
 # Legacy alias for backward compatibility during migration
 TenantEmailProvider = OrganizationEmailProvider
+
+
+class ProviderAuditLog(models.Model):
+    """
+    Audit log for tracking email provider changes.
+    
+    Records creation, modification, and deletion of email providers
+    for security auditing and compliance purposes.
+    """
+    
+    ACTION_CHOICES = [
+        ('created', 'Created'),
+        ('updated', 'Updated'),
+        ('deleted', 'Deleted'),
+        ('health_check', 'Health Check'),
+        ('test_send', 'Test Send'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Provider reference (nullable for deleted providers)
+    provider = models.ForeignKey(
+        EmailProvider,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_logs',
+        help_text="Reference to the provider (null if provider was deleted)"
+    )
+    
+    # Store provider name separately for reference after deletion
+    provider_name = models.CharField(
+        max_length=100,
+        help_text="Provider name at time of action (preserved after deletion)"
+    )
+    
+    provider_type = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Provider type at time of action"
+    )
+    
+    # Organization reference
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='provider_audit_logs',
+        help_text="Organization that owns/owned the provider"
+    )
+    
+    # User who performed the action
+    user = models.ForeignKey(
+        'authentication.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='provider_audit_logs',
+        help_text="User who performed the action"
+    )
+    
+    # Action details
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    
+    # Changed fields (with sensitive data masked)
+    changed_fields = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Fields that were changed, with old and new values (credentials masked)"
+    )
+    
+    # Request metadata
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    
+    # Additional context
+    details = models.TextField(
+        blank=True,
+        help_text="Additional details about the action"
+    )
+    
+    # Timestamp
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['organization', 'created_at']),
+            models.Index(fields=['provider', 'created_at']),
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['action', 'created_at']),
+        ]
+        verbose_name = "Provider Audit Log"
+        verbose_name_plural = "Provider Audit Logs"
+    
+    def __str__(self):
+        return f"{self.action} - {self.provider_name} by {self.user} at {self.created_at}"
+    
+    @classmethod
+    def mask_sensitive_data(cls, data):
+        """
+        Mask sensitive fields in the data dictionary.
+        
+        Replaces values of sensitive fields (password, key, secret, token, etc.)
+        with [REDACTED] to avoid storing credentials in audit logs.
+        """
+        if not isinstance(data, dict):
+            return data
+        
+        sensitive_keywords = [
+            'password', 'key', 'secret', 'token', 'credential',
+            'api_key', 'api_secret', 'access_key', 'private_key',
+            'smtp_password', 'auth_token', 'bearer'
+        ]
+        
+        masked_data = {}
+        for field_key, field_value in data.items():
+            # Check if field name contains sensitive keywords
+            is_sensitive = any(
+                keyword in field_key.lower() 
+                for keyword in sensitive_keywords
+            )
+            
+            if is_sensitive and field_value:
+                masked_data[field_key] = '[REDACTED]'
+            elif isinstance(field_value, dict):
+                # Recursively mask nested dictionaries
+                masked_data[field_key] = cls.mask_sensitive_data(field_value)
+            else:
+                masked_data[field_key] = field_value
+        
+        return masked_data
+    
+    @classmethod
+    def log_action(cls, provider, action, user=None, request=None, 
+                   changed_fields=None, details=''):
+        """
+        Create an audit log entry for a provider action.
+        
+        Args:
+            provider: EmailProvider instance
+            action: Action type (created, updated, deleted, health_check, test_send)
+            user: User who performed the action
+            request: HTTP request (for IP and user agent)
+            changed_fields: Dict of {field: {old: value, new: value}}
+            details: Additional details string
+        """
+        # Mask sensitive data in changed fields
+        masked_changes = cls.mask_sensitive_data(changed_fields or {})
+        
+        # Extract request metadata
+        ip_address = None
+        user_agent = ''
+        if request:
+            # Get IP address from various headers
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                ip_address = x_forwarded_for.split(',')[0].strip()
+            else:
+                ip_address = request.META.get('REMOTE_ADDR')
+            
+            user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]  # Limit length
+        
+        return cls.objects.create(
+            provider=provider if action != 'deleted' else None,
+            provider_name=provider.name if provider else 'Unknown',
+            provider_type=provider.provider_type if provider else '',
+            organization=provider.organization if provider else None,
+            user=user,
+            action=action,
+            changed_fields=masked_changes,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            details=details
+        )
+
