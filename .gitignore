@@ -1,14 +1,14 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[codz]
-*$py.class
 
 # C extensions
 *.so
 
+media_files/
+profiles/
+
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -60,6 +60,11 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+/staticfiles/
+/media/
+/logs/
+*.sql
+backups/
 
 # Flask stuff:
 instance/
@@ -136,6 +141,9 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.dev
+.env.prod
 .envrc
 .venv
 env/

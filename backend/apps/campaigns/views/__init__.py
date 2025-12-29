@@ -1,0 +1,197 @@
+"""
+Views Package for Campaigns Application
+
+Exports all views organized by purpose:
+- Core views: Email templates, automation rules, SMS
+- Campaign views: Campaigns, contacts, lists
+- Admin views: Platform admin operations
+- Enhanced views: Advanced provider and tracking features
+
+All views use APIView for explicit control over request handling.
+"""
+
+# Core views - Email Templates & Automation Rules
+from .email_automation import (
+    EmailTemplateListCreateView,
+    EmailTemplateDetailView,
+    AutomationRuleListCreateView,
+    AutomationRuleDetailView,
+    AutomationStatsView,
+    EmailDispatchReportView,
+)
+
+# Core views - SMS
+from .sms_automation import (
+    SMSConfigurationListCreateView,
+    SMSConfigurationDetailView,
+    SMSTemplateListCreateView,
+    SMSTemplateDetailView,
+)
+
+from .trigger_sms import (
+    TriggerSMSView,
+    TriggerWhatsAppView,
+)
+
+# Debug views
+from .debug_views import (
+    DebugAutoHealthCheckView,
+)
+
+# Campaign views - Contact Lists
+from .campaign_views import (
+    ContactListListCreateView,
+    ContactListDetailView,
+    ContactListRefreshStatsView,
+)
+
+# Campaign views - Contacts
+from .campaign_views import (
+    ContactListView,
+    ContactDetailView,
+    ContactBulkImportView,
+)
+
+from .contact_agent_views import ContactAgentView
+
+# Campaign views - Campaigns
+from .campaign_views import (
+    CampaignListCreateView,
+    CampaignDetailView,
+    CampaignLaunchView,
+    CampaignScheduleView,
+    CampaignPauseView,
+    CampaignResumeView,
+    CampaignCancelView,
+    CampaignResetView,
+    CampaignPreviewView,
+    CampaignTestSendView,
+    CampaignDuplicateView,
+    CampaignAnalyticsView,
+    CampaignRefreshStatsView,
+    OrganizationStatsView,
+)
+
+# Campaign views - Public
+from .campaign_views import (
+    UnsubscribeView,
+    GDPRForgetView,
+)
+
+# Admin views - Providers
+from .admin_views import (
+    IsPlatformAdmin,
+    AdminEmailProviderListCreateView,
+    AdminEmailProviderDetailView,
+    AdminEmailProviderSetDefaultView,
+    AdminEmailProviderHealthCheckView,
+    AdminEmailProviderTestSendView,
+)
+
+# Admin views - Organizations
+from .admin_views import (
+    AdminOrganizationConfigListView,
+    AdminOrganizationConfigDetailView,
+    AdminOrganizationSuspendView,
+    AdminOrganizationUnsuspendView,
+    AdminOrganizationUpgradePlanView,
+    AdminPlatformStatsView,
+)
+
+# Variable views - Template Personalization
+from .variable_views import (
+    VariableListView,
+    VariableExtractView,
+    VariableValidateView,
+    CustomFieldSchemaView,
+    VariablePreviewView,
+)
+
+from .ai_gen import GenerateEmailContentAIView
+
+# Activation views (simplified - is_active/is_published toggles)
+# Commented out: These views depend on automation_rule module which no longer exists
+# TODO: Refactor activation views with new architecture
+# from .activation_views import *
+
+__all__ = [
+    # Email Template Views
+    'EmailTemplateListCreateView',
+    'EmailTemplateDetailView',
+    
+    # Automation Rule Views
+    'AutomationRuleListCreateView',
+    'AutomationRuleDetailView',
+    
+    # Stats Views
+    'AutomationStatsView',
+    'EmailDispatchReportView',
+    
+    # SMS Views
+    'SMSConfigurationListCreateView',
+    'SMSConfigurationDetailView',
+    'SMSTemplateListCreateView',
+    'SMSTemplateDetailView',
+    'TriggerSMSView',
+    'TriggerWhatsAppView',
+    
+    # Debug Views
+    'DebugAutoHealthCheckView',
+    
+    # Contact List Views
+    'ContactListListCreateView',
+    'ContactListDetailView',
+    'ContactListRefreshStatsView',
+    
+    # Contact Views
+    'ContactListView',
+    'ContactDetailView',
+    'ContactBulkImportView',
+    'ContactAgentView',
+    
+    # Campaign Views
+    'CampaignListCreateView',
+    'CampaignDetailView',
+    'CampaignLaunchView',
+    'CampaignScheduleView',
+    'CampaignPauseView',
+    'CampaignResumeView',
+    'CampaignCancelView',
+    'CampaignResetView',
+    'CampaignPreviewView',
+    'CampaignTestSendView',
+    'CampaignDuplicateView',
+    'CampaignAnalyticsView',
+    'CampaignRefreshStatsView',
+    'OrganizationStatsView',
+    
+    # Public Views
+    'UnsubscribeView',
+    'GDPRForgetView',
+    
+    # Admin Views - Providers
+    'IsPlatformAdmin',
+    'AdminEmailProviderListCreateView',
+    'AdminEmailProviderDetailView',
+    'AdminEmailProviderSetDefaultView',
+    'AdminEmailProviderHealthCheckView',
+    'AdminEmailProviderTestSendView',
+    
+    # Admin Views - Organizations
+    'AdminOrganizationConfigListView',
+    'AdminOrganizationConfigDetailView',
+    'AdminOrganizationSuspendView',
+    'AdminOrganizationUnsuspendView',
+    'AdminOrganizationUpgradePlanView',
+    'AdminPlatformStatsView',
+    
+    # Variable Views - Template Personalization
+    'VariableListView',
+    'VariableExtractView',
+    'VariableValidateView',
+    'CustomFieldSchemaView',
+    'VariablePreviewView',
+
+    # AI Generation View
+    'GenerateEmailContentAIView',
+]
