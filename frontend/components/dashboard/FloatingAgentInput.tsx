@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, Sparkles, X, Mic, MicOff } from 'lucide-react';
-import api from '@/lib/axios';
+import api from '@/config/axios';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn } from '@/config/utils';
 
 export function FloatingAgentInput() {
     const [prompt, setPrompt] = useState('');

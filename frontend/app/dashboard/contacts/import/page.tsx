@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from "lucide-react";
-import api from "@/lib/axios";
+import api from "@/config/axios";
 
 import { Button } from "@/components/ui/button";
 import {

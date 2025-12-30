@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
-import api from '@/lib/axios';
+import api from '@/config/axios';
 import { useRouter } from 'next/navigation';
 
 interface User {

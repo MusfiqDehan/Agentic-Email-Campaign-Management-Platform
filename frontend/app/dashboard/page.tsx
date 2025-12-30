@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { BarChart3, Users, Send, Mail, Loader2, CheckCircle2, Clock, MailWarning, TrendingUp, ArrowUpRight, Plus } from 'lucide-react';
-import api from '@/lib/axios';
+import api from '@/config/axios';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
