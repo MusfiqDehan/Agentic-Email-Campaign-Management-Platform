@@ -9,6 +9,8 @@ A comprehensive, modern email marketing platform with AI-powered features for ma
 ![React](https://img.shields.io/badge/React-19-61DAFB.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6.svg)
 
+![Homepage of website](frontend/public/screenshot.png)
+
 ---
 
 ## 📑 Table of Contents
