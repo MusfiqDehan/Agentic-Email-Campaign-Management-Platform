@@ -1,5 +1,6 @@
 'use client';
 
+import { Campaign } from '@/services/campaigns';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/config/axios';
@@ -9,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Send, Search, Filter, MoreHorizontal, Eye, Edit, Trash2, Calendar, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import { useTrackCampaignUpdates } from '@/hooks/useTrackCampaignUpdates';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,26 +18,23 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-interface Campaign {
-  id: string;
-  name: string;
-  subject: string;
-  status: string;
-  total_recipients: number;
-  created_at: string;
-}
-
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [initialCampaigns, setInitialCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Use real-time campaign tracking
+  const { campaigns, setCampaigns } = useTrackCampaignUpdates(initialCampaigns, (campaign) => {
+    // Toast on campaign status change
+    toast.info(`Campaign "${campaign.name}" status: ${campaign.status}`);
+  });
 
   const fetchCampaigns = async () => {
     setIsLoading(true);
     try {
       const response = await api.get('/campaigns/');
       const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
-      setCampaigns(data);
+      setInitialCampaigns(data);
     } catch (error) {
       console.error(error);
       toast.error('Failed to fetch campaigns');

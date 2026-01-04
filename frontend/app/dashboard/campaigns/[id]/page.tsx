@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ArrowLeft, Play, Copy, Eye, Send, AlertCircle, CheckCircle2, Clock, PauseCircle, XCircle, Rocket } from 'lucide-react';
+import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -61,6 +62,9 @@ export default function CampaignDetailPage() {
     const [launchDialogOpen, setLaunchDialogOpen] = useState(false);
     const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
     const [duplicateName, setDuplicateName] = useState('');
+    
+    // Real-time updates
+    const { onCampaignStatusUpdate } = useRealtimeUpdates();
 
     const fetchCampaign = useCallback(async () => {
         setIsLoading(true);
@@ -80,6 +84,38 @@ export default function CampaignDetailPage() {
             fetchCampaign();
         }
     }, [id, fetchCampaign]);
+
+    // Subscribe to real-time campaign status updates
+    useEffect(() => {
+        if (!id) return;
+        
+        const unsubscribe = onCampaignStatusUpdate(id, (update) => {
+            setCampaign(prev => {
+                if (!prev) return null;
+                
+                const hasStatusChange = prev.status !== update.status;
+                
+                if (hasStatusChange) {
+                    toast.info(`Campaign status changed: ${prev.status} → ${update.status}`, {
+                        duration: 3000
+                    });
+                }
+                
+                return {
+                    ...prev,
+                    status: update.status,
+                    stats_sent: update.stats_sent,
+                    stats_delivered: update.stats_delivered,
+                    stats_opened: update.stats_opened,
+                    stats_clicked: update.stats_clicked,
+                    stats_total_recipients: update.stats_total_recipients,
+                    updated_at: update.updated_at
+                };
+            });
+        });
+        
+        return unsubscribe;
+    }, [id, onCampaignStatusUpdate]);
 
     const handlePreview = async () => {
         setIsPreviewLoading(true);
