@@ -45,6 +45,9 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
+    # Daphne MUST be first for WebSocket support
+    'daphne',
+    
     # Default Django apps
     'django.contrib.admin',
     'django.contrib.auth',
@@ -66,6 +69,7 @@ INSTALLED_APPS = [
     'django_filters',
     'django_ses',
     'corsheaders',
+    'channels',
 
     # Local apps
     'apps.authentication',
@@ -106,6 +110,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'project_config.wsgi.application'
+ASGI_APPLICATION = 'project_config.asgi.application'
+
+# Channel Layers Configuration for WebSocket
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [f"redis://:{config('REDIS_PASSWORD')}@redis-ecmp:6379/0"],
+        },
+    },
+}
 
 # Any global settings for a REST framework API are kept in a single configuration dictionary here
 REST_FRAMEWORK = {
