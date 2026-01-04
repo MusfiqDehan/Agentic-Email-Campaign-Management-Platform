@@ -50,24 +50,6 @@ const sidebarItems = [
     icon: FileText,
     color: 'text-orange-500'
   },
-  {
-    title: 'Notifications',
-    href: '/dashboard/notifications',
-    icon: Bell,
-    color: 'text-yellow-500'
-  },
-  {
-    title: 'Settings',
-    href: '/dashboard/settings/providers',
-    icon: Settings,
-    color: 'text-gray-500'
-  },
-  {
-    title: 'Profile',
-    href: '/dashboard/profile',
-    icon: User,
-    color: 'text-pink-500'
-  },
 ];
 
 const platformAdminItems = [
