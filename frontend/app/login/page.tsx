@@ -127,6 +127,14 @@ export default function LoginPage() {
                 <p className="text-sm text-destructive">{errors.password.message}</p>
               )}
             </div>
+            <div className="flex items-center justify-end">
+              <Link 
+                href="/reset-password/request" 
+                className="text-sm text-primary hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <Button 
               type="submit" 
               className="w-full gradient-bg border-0 text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30" 
@@ -185,10 +193,7 @@ export default function LoginPage() {
       </Card>
       
       <p className="mt-8 text-xs text-muted-foreground text-center max-w-sm">
-        By continuing, you agree to our{' '}
-        <Link href="/terms" className="underline hover:text-foreground">Terms of Service</Link>
-        {' '}and{' '}
-        <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>
+        By continuing, you agree to our Terms of Service and Privacy Policy
       </p>
     </div>
   );
