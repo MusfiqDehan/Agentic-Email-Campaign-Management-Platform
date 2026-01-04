@@ -34,6 +34,9 @@ from .automation_rule_model import AutomationRule
 from .campaign_models import Campaign
 from .contact_models import ContactList, Contact
 
+# Notification models
+from .notification_models import Notification
+
 # SMS models
 from .sms_config_models import SMSConfigurationModel, SMSTemplate
 
@@ -70,6 +73,9 @@ __all__ = [
     'Campaign',
     'ContactList',
     'Contact',
+    
+    # Notifications
+    'Notification',
     
     # SMS
     'SMSConfigurationModel',
