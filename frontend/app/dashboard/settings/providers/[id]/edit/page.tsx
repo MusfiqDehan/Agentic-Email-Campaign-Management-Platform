@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useForm, type FieldErrors } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import api from '@/config/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 const providerSchema = z.object({
@@ -43,12 +43,15 @@ const providerSchema = z.object({
 type ProviderFormValues = z.infer<typeof providerSchema>;
 type ProviderType = ProviderFormValues['provider_type'];
 
-export default function NewProviderPage() {
+export default function EditProviderPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const params = useParams();
+  const id = params.id as string;
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [providerType, setProviderType] = useState<ProviderType>('SMTP');
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<ProviderFormValues>({
+  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<ProviderFormValues>({
     resolver: zodResolver(providerSchema),
     defaultValues: {
       provider_type: 'SMTP',
@@ -71,49 +74,77 @@ export default function NewProviderPage() {
     }
   });
 
+  useEffect(() => {
+    const fetchProvider = async () => {
+      try {
+        const response = await api.get(`/campaigns/org/providers/${id}/`);
+        const provider = response.data.data;
+        const config = provider.config || {};
+        
+        setProviderType(provider.provider_type);
+        
+        reset({
+          name: provider.name,
+          provider_type: provider.provider_type,
+          is_default: provider.is_default,
+          is_active: provider.is_active,
+          auto_health_check: false, // Don't auto-check on load
+          from_email: config.from_email || '',
+          // SMTP
+          smtp_server: config.smtp_server || '',
+          smtp_port: config.smtp_port?.toString() || '',
+          smtp_username: config.username || '',
+          smtp_password: '', // Don't populate password for security
+          use_tls: config.use_tls ?? true,
+          use_ssl: config.use_ssl ?? false,
+          // AWS
+          aws_access_key_id: config.aws_access_key_id || '',
+          aws_secret_access_key: '', // Don't populate secret
+          aws_session_token: '',
+          region_name: config.region_name || '',
+          // API Key based
+          api_key: '', // Don't populate API key
+        });
+      } catch (error) {
+        console.error(error);
+        toast.error('Failed to fetch provider details');
+        router.push('/dashboard/settings/providers');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id) fetchProvider();
+  }, [id, reset, router]);
+
   const onSubmit = async (data: ProviderFormValues) => {
-    setIsLoading(true);
+    setIsSaving(true);
     try {
       let config: Record<string, unknown> = {};
 
       if (data.provider_type === 'SMTP') {
-        if (!data.smtp_server || !data.smtp_port || !data.smtp_username || !data.smtp_password) {
-          toast.error('Please fill all SMTP configuration fields');
-          setIsLoading(false);
-          return;
-        }
         config = {
           smtp_server: data.smtp_server,
-          smtp_port: parseInt(data.smtp_port),
+          smtp_port: parseInt(data.smtp_port || '587'),
           username: data.smtp_username,
-          password: data.smtp_password,
           from_email: data.from_email,
           use_tls: data.use_tls,
           use_ssl: data.use_ssl,
         };
+        if (data.smtp_password) config.password = data.smtp_password;
       } else if (data.provider_type === 'AWS_SES') {
-        if (!data.aws_access_key_id || !data.aws_secret_access_key || !data.region_name) {
-          toast.error('Please fill all AWS SES configuration fields');
-          setIsLoading(false);
-          return;
-        }
         config = {
           aws_access_key_id: data.aws_access_key_id,
-          aws_secret_access_key: data.aws_secret_access_key,
-          aws_session_token: data.aws_session_token || undefined,
           region_name: data.region_name,
           from_email: data.from_email,
         };
+        if (data.aws_secret_access_key) config.aws_secret_access_key = data.aws_secret_access_key;
+        if (data.aws_session_token) config.aws_session_token = data.aws_session_token;
       } else if (['SENDGRID', 'BREVO'].includes(data.provider_type)) {
-        if (!data.api_key) {
-          toast.error('Please fill the API Key field');
-          setIsLoading(false);
-          return;
-        }
         config = {
-          api_key: data.api_key,
           from_email: data.from_email
-        }
+        };
+        if (data.api_key) config.api_key = data.api_key;
       }
 
       const payload = {
@@ -125,22 +156,25 @@ export default function NewProviderPage() {
         config: config,
       };
 
-      await api.post('/campaigns/org/providers/', payload);
-      toast.success('Provider created successfully');
+      await api.patch(`/campaigns/org/providers/${id}/`, payload);
+      toast.success('Provider updated successfully');
       router.push('/dashboard/settings/providers');
     } catch (error: unknown) {
       console.error('API Error:', error);
       const axiosError = error as AxiosError<{ detail?: string; error?: string }>;
-      toast.error(axiosError.response?.data?.detail || axiosError.response?.data?.error || 'Failed to create provider');
+      toast.error(axiosError.response?.data?.detail || axiosError.response?.data?.error || 'Failed to update provider');
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
-  const onInvalid = (errors: FieldErrors<ProviderFormValues>) => {
-    console.error('Validation Errors:', errors);
-    toast.error('Please check the form for errors');
-  };
+  if (isLoading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -151,18 +185,18 @@ export default function NewProviderPage() {
           </Button>
         </Link>
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Add Provider</h2>
-          <p className="text-muted-foreground">Configure a new email sending service.</p>
+          <h2 className="text-3xl font-bold tracking-tight">Edit Provider</h2>
+          <p className="text-muted-foreground">Update your email provider configuration.</p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Provider Details</CardTitle>
-          <CardDescription>Enter the configuration details for your email provider.</CardDescription>
+          <CardDescription>Modify the configuration details for your email provider.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="name">Provider Name</Label>
               <Input id="name" placeholder="e.g., Corporate Gmail" {...register('name')} />
@@ -177,7 +211,8 @@ export default function NewProviderPage() {
                   setValue('provider_type', typed);
                   setProviderType(typed);
                 }}
-                defaultValue="SMTP"
+                value={providerType}
+                disabled
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select provider type" />
@@ -189,14 +224,13 @@ export default function NewProviderPage() {
                   <SelectItem value="BREVO">Brevo</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.provider_type && <p className="text-sm text-red-500">{errors.provider_type.message}</p>}
+              <p className="text-xs text-muted-foreground">Provider type cannot be changed after creation.</p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="from_email">From Email</Label>
               <Input id="from_email" placeholder="sender@example.com" {...register('from_email')} />
               {errors.from_email && <p className="text-sm text-red-500">{errors.from_email.message}</p>}
-              <p className="text-xs text-muted-foreground">The email address that will appear as the sender.</p>
             </div>
 
             {providerType === 'SMTP' && (
@@ -206,23 +240,19 @@ export default function NewProviderPage() {
                   <div className="space-y-2">
                     <Label htmlFor="smtp_server">SMTP Host</Label>
                     <Input id="smtp_server" placeholder="smtp.gmail.com" {...register('smtp_server')} />
-                    {errors.smtp_server && <p className="text-sm text-red-500">{errors.smtp_server.message}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="smtp_port">Port</Label>
                     <Input id="smtp_port" placeholder="587" {...register('smtp_port')} />
-                    {errors.smtp_port && <p className="text-sm text-red-500">{errors.smtp_port.message}</p>}
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="smtp_username">Username</Label>
                   <Input id="smtp_username" {...register('smtp_username')} />
-                  {errors.smtp_username && <p className="text-sm text-red-500">{errors.smtp_username.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="smtp_password">Password</Label>
+                  <Label htmlFor="smtp_password">Password (Leave blank to keep current)</Label>
                   <Input id="smtp_password" type="password" {...register('smtp_password')} />
-                  {errors.smtp_password && <p className="text-sm text-red-500">{errors.smtp_password.message}</p>}
                 </div>
                 <div className="flex gap-6">
                   <div className="flex items-center space-x-2">
@@ -250,22 +280,18 @@ export default function NewProviderPage() {
                 <div className="space-y-2">
                   <Label htmlFor="aws_access_key_id">Access Key ID</Label>
                   <Input id="aws_access_key_id" {...register('aws_access_key_id')} />
-                  {errors.aws_access_key_id && <p className="text-sm text-red-500">{errors.aws_access_key_id.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="aws_secret_access_key">Secret Access Key</Label>
+                  <Label htmlFor="aws_secret_access_key">Secret Access Key (Leave blank to keep current)</Label>
                   <Input id="aws_secret_access_key" type="password" {...register('aws_secret_access_key')} />
-                  {errors.aws_secret_access_key && <p className="text-sm text-red-500">{errors.aws_secret_access_key.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="aws_session_token">Session Token (Optional)</Label>
                   <Input id="aws_session_token" type="password" {...register('aws_session_token')} />
-                  {errors.aws_session_token && <p className="text-sm text-red-500">{errors.aws_session_token.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="region_name">Region</Label>
                   <Input id="region_name" placeholder="us-east-1" {...register('region_name')} />
-                  {errors.region_name && <p className="text-sm text-red-500">{errors.region_name.message}</p>}
                 </div>
               </div>
             )}
@@ -274,9 +300,8 @@ export default function NewProviderPage() {
               <div className="space-y-4 rounded-xl border p-4 bg-muted/50">
                 <h3 className="font-medium">API Configuration</h3>
                 <div className="space-y-2">
-                  <Label htmlFor="api_key">API Key</Label>
+                  <Label htmlFor="api_key">API Key (Leave blank to keep current)</Label>
                   <Input id="api_key" type="password" {...register('api_key')} />
-                  {errors.api_key && <p className="text-sm text-red-500">{errors.api_key.message}</p>}
                 </div>
               </div>
             )}
@@ -286,21 +311,29 @@ export default function NewProviderPage() {
                 <Checkbox
                   id="is_default"
                   onCheckedChange={(checked) => setValue('is_default', checked as boolean)}
+                  defaultChecked={false}
                 />
                 <Label htmlFor="is_default">Set as default provider</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox
+                  id="is_active"
+                  onCheckedChange={(checked) => setValue('is_active', checked as boolean)}
+                  defaultChecked={true}
+                />
+                <Label htmlFor="is_active">Provider is active</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
                   id="auto_health_check"
                   onCheckedChange={(checked) => setValue('auto_health_check', checked as boolean)}
-                  defaultChecked={true}
                 />
                 <Label htmlFor="auto_health_check">Run health check on save</Label>
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-gradient-to-r from-primary to-blue-600 hover:opacity-90" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save Provider'}
+            <Button type="submit" className="w-full bg-gradient-to-r from-primary to-blue-600 hover:opacity-90" disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Update Provider'}
             </Button>
           </form>
         </CardContent>

@@ -6,6 +6,7 @@ import api from '@/config/axios';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import type { AxiosError } from 'axios';
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -15,24 +16,25 @@ function VerifyEmailContent() {
   const [message, setMessage] = useState('Verifying your email...');
 
   useEffect(() => {
-    if (!token) {
-      setStatus('error');
-      setMessage('Invalid verification link.');
-      return;
-    }
-
     const verify = async () => {
+      if (!token) {
+        setStatus('error');
+        setMessage('Invalid verification link.');
+        return;
+      }
+
       try {
         await api.get(`/auth/verify-email/?token=${token}`);
         setStatus('success');
         setMessage('Email verified successfully! You can now login.');
-      } catch (error: any) {
+      } catch (error: unknown) {
         setStatus('error');
-        setMessage(error.response?.data?.detail || 'Verification failed. The link may be expired.');
+        const axiosError = error as AxiosError<{ detail?: string }>;
+        setMessage(axiosError.response?.data?.detail || 'Verification failed. The link may be expired.');
       }
     };
 
-    verify();
+    void verify();
   }, [token]);
 
   return (

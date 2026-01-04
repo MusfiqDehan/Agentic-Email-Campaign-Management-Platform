@@ -3,16 +3,40 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { BarChart3, Users, Send, Mail, Loader2, CheckCircle2, Clock, MailWarning, TrendingUp, ArrowUpRight, Plus } from 'lucide-react';
+import { BarChart3, Users, Send, Mail, CheckCircle2, Clock, MailWarning, TrendingUp, ArrowUpRight, Plus } from 'lucide-react';
 import api from '@/config/axios';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 
+interface RecentCampaign {
+  id: string;
+  name: string;
+  created_at: string;
+  status: string;
+}
+
+interface RecentActivity {
+  id: string;
+  recipient: string;
+  campaign_name: string;
+  status: string;
+  sent_at: string;
+}
+
+interface DashboardStats {
+  total_campaigns?: number;
+  total_contacts?: number;
+  emails_sent?: number;
+  open_rate?: number;
+  recent_campaigns?: RecentCampaign[];
+  recent_activity?: RecentActivity[];
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchStats = async () => {
@@ -55,7 +79,7 @@ export default function DashboardPage() {
       icon: Send,
       color: "text-primary",
       bgColor: "bg-primary/10",
-      change: "+12%",
+      change: "+0%",
       changeType: "positive"
     },
     {
@@ -64,7 +88,7 @@ export default function DashboardPage() {
       icon: Users,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
-      change: "+8%",
+      change: "+0%",
       changeType: "positive"
     },
     {
@@ -73,7 +97,7 @@ export default function DashboardPage() {
       icon: Mail,
       color: "text-green-500",
       bgColor: "bg-green-500/10",
-      change: "+23%",
+      change: "+0%",
       changeType: "positive"
     },
     {
@@ -82,10 +106,13 @@ export default function DashboardPage() {
       icon: BarChart3,
       color: "text-orange-500",
       bgColor: "bg-orange-500/10",
-      change: "+5%",
+      change: "+0%",
       changeType: "positive"
     },
   ];
+
+  const recentCampaigns = stats?.recent_campaigns ?? [];
+  const recentActivity = stats?.recent_activity ?? [];
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -96,7 +123,7 @@ export default function DashboardPage() {
             Welcome back, <span className="gradient-text">{user?.first_name || 'there'}</span> 👋
           </h2>
           <p className="mt-1 text-muted-foreground">
-            Here's what's happening with your campaigns today.
+            Here&apos;s what&apos;s happening with your campaigns today.
           </p>
         </div>
         <Link href="/dashboard/campaigns/new">
@@ -151,9 +178,9 @@ export default function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent>
-            {stats?.recent_campaigns?.length > 0 ? (
+            {recentCampaigns.length > 0 ? (
               <div className="space-y-3">
-                {stats.recent_campaigns.map((campaign: any) => (
+                {recentCampaigns.map((campaign) => (
                   <Link 
                     key={campaign.id} 
                     href={`/dashboard/campaigns/${campaign.id}`}
@@ -203,9 +230,9 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {stats?.recent_activity?.length > 0 ? (
+            {recentActivity.length > 0 ? (
               <div className="space-y-4">
-                {stats.recent_activity.map((log: any) => (
+                {recentActivity.map((log) => (
                   <div key={log.id} className="flex items-start gap-3">
                     <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
                       log.status === 'DELIVERED' || log.status === 'SENT' 

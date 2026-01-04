@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { 
   ArrowRight, 
-  CheckCircle, 
   Mail, 
   BarChart3, 
   Zap, 
@@ -11,7 +10,6 @@ import {
   Users, 
   Sparkles,
   Globe,
-  TrendingUp,
   Clock,
   Target,
   Star,
@@ -257,7 +255,7 @@ export default function LandingPage() {
                     ))}
                   </div>
                   <blockquote className="flex-1 text-lg leading-relaxed">
-                    "{testimonial.quote}"
+                    “{testimonial.quote}”
                   </blockquote>
                   <div className="mt-6 flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full gradient-bg text-sm font-medium text-white">

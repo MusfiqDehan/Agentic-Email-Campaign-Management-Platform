@@ -28,6 +28,7 @@ celery==5.3.4
 django-celery-beat==2.8.0
 django-celery-results==2.5.1
 drf-spectacular==0.27.2
+django-health-check==3.18.3
 drf-spectacular-sidecar==2024.12.1
 django-ses==4.4.0
 django-health-check==3.18.3

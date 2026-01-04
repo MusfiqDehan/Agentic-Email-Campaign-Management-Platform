@@ -89,6 +89,8 @@ services:
     container_name: celery-ecmp
     command: celery -A project_config.celery worker --loglevel=info
     entrypoint: []
+    volumes:
+      - .:/usr/src/app
     depends_on:
       - redis
       - backend
@@ -104,6 +106,8 @@ services:
     container_name: celery-beat-ecmp
     command: celery -A project_config.celery beat --loglevel=info
     entrypoint: []
+    volumes:
+      - .:/usr/src/app
     depends_on:
       - redis
       - backend

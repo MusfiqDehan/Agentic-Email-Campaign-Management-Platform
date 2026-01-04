@@ -12,9 +12,12 @@ interface User {
   last_name: string;
   profile_picture?: string;
   is_org_admin?: boolean;
+  is_platform_admin?: boolean;
   organization?: {
     id: string;
     name: string;
+    is_owner?: boolean;
+    is_admin?: boolean;
   };
 }
 
@@ -107,4 +110,22 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+/**
+ * Hook to check if the current user is a platform administrator.
+ * @returns boolean indicating if user has platform admin privileges
+ */
+export function usePlatformAdmin(): boolean {
+  const { user } = useAuth();
+  return user?.is_platform_admin ?? false;
+}
+
+/**
+ * Hook to check if the current user is an organization administrator.
+ * @returns boolean indicating if user is owner or admin of their organization
+ */
+export function useOrgAdmin(): boolean {
+  const { user } = useAuth();
+  return user?.organization?.is_owner || user?.organization?.is_admin || false;
 }

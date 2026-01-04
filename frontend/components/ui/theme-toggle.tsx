@@ -73,7 +73,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 
 // Simple toggle button version (no dropdown)
 export function ThemeToggleSimple({ className }: { className?: string }) {
-  const { setTheme, theme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {

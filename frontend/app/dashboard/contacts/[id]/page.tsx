@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useCallback, useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import api from '@/config/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, User, Mail, Calendar, CheckCircle, XCircle, Copy, Check, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, Mail, Calendar, CheckCircle, XCircle, Copy, Check, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Contact {
@@ -42,12 +42,12 @@ export default function ContactListDetailPage({ params }: { params: Promise<{ id
             setCopied(true);
             toast.success('Subscription token copied to clipboard!');
             setTimeout(() => setCopied(false), 2000);
-        } catch (err) {
+        } catch {
             toast.error('Failed to copy to clipboard');
         }
     };
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
             // Fetch list details
@@ -66,7 +66,7 @@ export default function ContactListDetailPage({ params }: { params: Promise<{ id
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [id]);
 
     useEffect(() => {
         fetchData();
@@ -74,7 +74,7 @@ export default function ContactListDetailPage({ params }: { params: Promise<{ id
         const handleRefresh = () => fetchData();
         window.addEventListener('agent-action-completed', handleRefresh);
         return () => window.removeEventListener('agent-action-completed', handleRefresh);
-    }, [id]);
+    }, [fetchData]);
 
     return (
         <div className="space-y-6">

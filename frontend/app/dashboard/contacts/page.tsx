@@ -5,7 +5,7 @@ import Link from 'next/link';
 import api from '@/config/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Users, Upload, Search, UserCheck, UserX, ArrowUpRight } from 'lucide-react';
+import { Plus, Users, Upload, Search, UserCheck, ArrowUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 

@@ -218,7 +218,7 @@ class EmailProviderSerializer(serializers.ModelSerializer):
 class OrganizationOwnEmailProviderSerializer(serializers.ModelSerializer):
     """Serializer for organization-owned email providers"""
     
-    config = serializers.JSONField(write_only=True, required=False)
+    config = serializers.JSONField(required=False)
     auto_health_check = serializers.BooleanField(write_only=True, required=False, default=False)
     config_status = serializers.SerializerMethodField(read_only=True)
     health_info = serializers.SerializerMethodField(read_only=True)
@@ -240,6 +240,24 @@ class OrganizationOwnEmailProviderSerializer(serializers.ModelSerializer):
             'last_used_at', 'is_shared', 'is_organization_owned'
         ]
     
+    def to_representation(self, instance):
+        """Decrypt and mask sensitive configuration fields for display."""
+        data = super().to_representation(instance)
+        try:
+            config = instance.decrypt_config()
+            # Mask sensitive fields
+            sensitive_keys = [
+                'password', 'smtp_password', 'aws_secret_access_key', 
+                'api_key', 'aws_session_token', 'secret_key'
+            ]
+            for key in sensitive_keys:
+                if key in config and config[key]:
+                    config[key] = '********'
+            data['config'] = config
+        except Exception:
+            data['config'] = {}
+        return data
+
     def get_config_status(self, obj):
         """Check if configuration is valid"""
         try:
@@ -349,11 +367,18 @@ class OrganizationOwnEmailProviderSerializer(serializers.ModelSerializer):
         instance = super().update(instance, validated_data)
         
         if config is not None:
-            instance.encrypt_config(config)
+            # Merge with existing config to avoid losing fields not sent by frontend
+            current_config = instance.decrypt_config()
+            for key, value in config.items():
+                # Only update if value is not the mask
+                if value != '********':
+                    current_config[key] = value
+            
+            instance.encrypt_config(current_config)
             
             if auto_health_check:
                 try:
-                    provider = EmailProviderFactory.create_provider(instance.provider_type, config)
+                    provider = EmailProviderFactory.create_provider(instance.provider_type, current_config)
                     is_healthy, message = provider.health_check()
                     
                     instance.health_status = 'HEALTHY' if is_healthy else 'UNHEALTHY'
