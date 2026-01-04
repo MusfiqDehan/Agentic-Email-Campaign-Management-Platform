@@ -89,3 +89,24 @@ class ReadOnly(BasePermission):
     
     def has_permission(self, request, view):
         return request.method in SAFE_METHODS
+
+
+class IsPlatformAdmin(BasePermission):
+    """
+    Permission class for platform administrators.
+    
+    Checks if the authenticated user has platform admin privileges.
+    Use this for endpoints that require system-wide administrative access.
+    
+    Usage:
+        permission_classes = [IsPlatformAdmin]
+    """
+    message = "You must be a platform administrator to perform this action."
+    
+    def has_permission(self, request, view):
+        # Must be authenticated
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
+        # Must be platform admin
+        return getattr(request.user, 'is_platform_admin', False)
