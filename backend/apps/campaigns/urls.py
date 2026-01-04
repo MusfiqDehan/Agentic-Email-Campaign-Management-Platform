@@ -93,6 +93,15 @@ from .views import (
     ContactAgentView
 )
 
+# Import notification views
+from .views.notification_views import (
+    NotificationListView,
+    UnreadNotificationCountView,
+    MarkNotificationReadView,
+    MarkAllNotificationsReadView,
+    DeleteNotificationView,
+)
+
 # Import template operation views
 from .views.template_operations import (
     EmailTemplateUseView,
@@ -392,4 +401,14 @@ urlpatterns = [
     # Update status and stats
     path('organization/template-updates/', OrganizationTemplateUpdateStatusView.as_view(), name='organization-template-updates'),
     path('organization/team-template-stats/', OrganizationTeamTemplateStatsView.as_view(), name='organization-team-stats'),
+    
+    # ========================================================================
+    # SECTION 14: NOTIFICATIONS
+    # Real-time notifications for campaigns and system events
+    # ========================================================================
+    path('notifications/', NotificationListView.as_view(), name='notification-list'),
+    path('notifications/unread-count/', UnreadNotificationCountView.as_view(), name='notification-unread-count'),
+    path('notifications/<uuid:pk>/mark-read/', MarkNotificationReadView.as_view(), name='notification-mark-read'),
+    path('notifications/mark-all-read/', MarkAllNotificationsReadView.as_view(), name='notification-mark-all-read'),
+    path('notifications/<uuid:pk>/', DeleteNotificationView.as_view(), name='notification-delete'),
 ]
