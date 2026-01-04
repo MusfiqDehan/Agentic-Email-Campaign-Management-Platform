@@ -17,6 +17,9 @@ from .base_serializers import (
     TemplateApprovalRequestSerializer,
     TemplatePreviewSerializer,
     
+    # Notifications
+    NotificationSerializer,
+    
     # Automation Rules
     AutomationRuleSerializer,
     

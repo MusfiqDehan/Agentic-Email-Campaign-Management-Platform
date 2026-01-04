@@ -10,7 +10,7 @@ from ..models import (
     EmailTemplate, AutomationRule, SMSConfigurationModel, 
     SMSTemplate, OrganizationEmailConfiguration, EmailProvider, EmailDeliveryLog,
     TemplateUsageLog, TemplateUpdateNotification, OrganizationTemplateNotification,
-    TemplateApprovalRequest
+    TemplateApprovalRequest, Notification
 )
 from ..utils import encrypt_data
 import logging
@@ -565,3 +565,16 @@ class TemplatePreviewSerializer(serializers.Serializer):
         if not isinstance(value, dict):
             raise serializers.ValidationError("Variables must be a dictionary.")
         return value
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    """Serializer for campaign and system notifications."""
+    
+    class Meta:
+        model = Notification
+        fields = [
+            'id', 'organization', 'user', 'notification_type', 'title', 'message',
+            'related_object_type', 'related_object_id', 'metadata',
+            'is_read', 'read_at', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'organization', 'created_at', 'updated_at', 'read_at']
