@@ -1,5 +1,11 @@
 # Email models
-from .email_config_models import EmailTemplate
+from .email_config_models import (
+    EmailTemplate,
+    TemplateUsageLog,
+    TemplateUpdateNotification,
+    OrganizationTemplateNotification,
+    TemplateApprovalRequest,
+)
 from .email_tracking_models import (
     EmailValidation,
     EmailQueue,
@@ -38,6 +44,10 @@ from .push_notification_config_models import *
 __all__ = [
     # Core models
     'EmailTemplate',
+    'TemplateUsageLog',
+    'TemplateUpdateNotification',
+    'OrganizationTemplateNotification',
+    'TemplateApprovalRequest',
     'EmailValidation',
     'EmailQueue',
     'EmailDeliveryLog',
