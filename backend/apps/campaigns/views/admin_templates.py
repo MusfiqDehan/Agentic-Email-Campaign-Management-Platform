@@ -25,7 +25,7 @@ from ..serializers import (
 class AdminGlobalTemplateListCreateView(CustomResponseMixin, generics.ListCreateAPIView):
     """
     List all templates (global + org-specific) or create global templates.
-    GET/POST /api/campaigns/admin/templates/
+    GET/POST /campaigns/admin/templates/
     """
     permission_classes = [IsPlatformAdmin]
     serializer_class = EmailTemplateSerializer
@@ -71,7 +71,7 @@ class AdminGlobalTemplateListCreateView(CustomResponseMixin, generics.ListCreate
 class AdminGlobalTemplateDetailView(CustomResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update, or delete any template (admin only).
-    GET/PUT/PATCH/DELETE /api/campaigns/admin/templates/<uuid>/
+    GET/PUT/PATCH/DELETE /campaigns/admin/templates/<uuid>/
     """
     permission_classes = [IsPlatformAdmin]
     serializer_class = EmailTemplateSerializer
@@ -86,7 +86,7 @@ class AdminGlobalTemplateDetailView(CustomResponseMixin, generics.RetrieveUpdate
 class AdminTemplateAnalyticsView(CustomResponseMixin, APIView):
     """
     Get analytics for a specific template.
-    GET /api/campaigns/admin/templates/<uuid>/analytics/
+    GET /campaigns/admin/templates/<uuid>/analytics/
     """
     permission_classes = [IsPlatformAdmin]
     
@@ -145,7 +145,7 @@ class AdminTemplateAnalyticsView(CustomResponseMixin, APIView):
 class AdminTemplateAnalyticsSummaryView(CustomResponseMixin, APIView):
     """
     Get overall template analytics for admin dashboard.
-    GET /api/campaigns/admin/templates/analytics/summary/
+    GET /campaigns/admin/templates/analytics/summary/
     """
     permission_classes = [IsPlatformAdmin]
     
@@ -203,7 +203,7 @@ class AdminTemplateAnalyticsSummaryView(CustomResponseMixin, APIView):
 class AdminPendingApprovalsView(CustomResponseMixin, generics.ListAPIView):
     """
     List all pending approval requests.
-    GET /api/campaigns/admin/approvals/pending/
+    GET /campaigns/admin/approvals/pending/
     """
     permission_classes = [IsPlatformAdmin]
     serializer_class = TemplateApprovalRequestSerializer

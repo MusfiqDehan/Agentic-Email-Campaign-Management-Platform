@@ -25,7 +25,7 @@ from ..services.template_notification_service import (
 class OrganizationTemplateUsageView(CustomResponseMixin, generics.ListAPIView):
     """
     View template usage within the organization (for org admins).
-    GET /api/campaigns/organization/template-usage/
+    GET /campaigns/organization/template-usage/
     """
     permission_classes = [IsAuthenticated]
     serializer_class = TemplateUsageLogSerializer
@@ -77,7 +77,7 @@ class OrganizationTemplateUsageView(CustomResponseMixin, generics.ListAPIView):
 class OrganizationTemplateNotificationsView(CustomResponseMixin, generics.ListAPIView):
     """
     Get template update notifications for the organization.
-    GET /api/campaigns/organization/template-notifications/
+    GET /campaigns/organization/template-notifications/
     """
     permission_classes = [IsAuthenticated]
     serializer_class = OrganizationTemplateNotificationSerializer
@@ -110,7 +110,7 @@ class OrganizationTemplateNotificationsView(CustomResponseMixin, generics.ListAP
 class OrganizationTemplateNotificationMarkReadView(CustomResponseMixin, APIView):
     """
     Mark a notification as read.
-    POST /api/campaigns/organization/template-notifications/<uuid>/mark-read/
+    POST /campaigns/organization/template-notifications/<uuid>/mark-read/
     """
     permission_classes = [IsAuthenticated]
     
@@ -135,7 +135,7 @@ class OrganizationTemplateNotificationMarkReadView(CustomResponseMixin, APIView)
 class OrganizationTemplateUpdateStatusView(CustomResponseMixin, APIView):
     """
     Get summary of templates needing updates in the organization.
-    GET /api/campaigns/organization/template-update-status/
+    GET /campaigns/organization/template-update-status/
     """
     permission_classes = [IsAuthenticated]
     
@@ -197,7 +197,7 @@ class OrganizationTemplateUpdateStatusView(CustomResponseMixin, APIView):
 class OrganizationTeamTemplateStatsView(CustomResponseMixin, APIView):
     """
     Get team-level statistics about template usage.
-    GET /api/campaigns/organization/team-stats/
+    GET /campaigns/organization/team-stats/
     """
     permission_classes = [IsAuthenticated]
     

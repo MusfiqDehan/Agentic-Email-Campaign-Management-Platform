@@ -34,7 +34,7 @@ from ..services.template_notification_service import (
 class EmailTemplateUseView(CustomResponseMixin, APIView):
     """
     Duplicate a global template to user's organization.
-    POST /api/campaigns/templates/<uuid>/use/
+    POST /campaigns/templates/<uuid>/use/
     """
     permission_classes = [IsAuthenticated]
     
@@ -108,7 +108,7 @@ class EmailTemplateUseView(CustomResponseMixin, APIView):
 class EmailTemplateBulkUseView(CustomResponseMixin, APIView):
     """
     Duplicate multiple global templates at once.
-    POST /api/campaigns/templates/bulk-use/
+    POST /campaigns/templates/bulk-use/
     Body: {"template_ids": ["uuid1", "uuid2"]}
     """
     permission_classes = [IsAuthenticated]
@@ -197,7 +197,7 @@ class EmailTemplateBulkUseView(CustomResponseMixin, APIView):
 class EmailTemplateVersionHistoryView(CustomResponseMixin, generics.ListAPIView):
     """
     Get version history for a template.
-    GET /api/campaigns/templates/<uuid>/versions/
+    GET /campaigns/templates/<uuid>/versions/
     """
     permission_classes = [IsAuthenticated]
     serializer_class = EmailTemplateSerializer
@@ -228,7 +228,7 @@ class EmailTemplateVersionHistoryView(CustomResponseMixin, generics.ListAPIView)
 class EmailTemplateCreateVersionView(CustomResponseMixin, APIView):
     """
     Create a new version of a global template (draft).
-    POST /api/campaigns/templates/<uuid>/create-version/
+    POST /campaigns/templates/<uuid>/create-version/
     Body: {"version_notes": "What changed"}
     """
     permission_classes = [IsPlatformAdmin]
@@ -279,7 +279,7 @@ class EmailTemplateCreateVersionView(CustomResponseMixin, APIView):
 class EmailTemplateSubmitForApprovalView(CustomResponseMixin, APIView):
     """
     Submit a template for approval.
-    POST /api/campaigns/templates/<uuid>/submit-approval/
+    POST /campaigns/templates/<uuid>/submit-approval/
     Body: {"approval_notes": "Notes for reviewers"}
     """
     permission_classes = [IsPlatformAdmin]
@@ -333,7 +333,7 @@ class EmailTemplateSubmitForApprovalView(CustomResponseMixin, APIView):
 class TemplateApprovalReviewView(CustomResponseMixin, APIView):
     """
     Approve or reject a template approval request.
-    POST /api/campaigns/approvals/<uuid>/review/
+    POST /campaigns/approvals/<uuid>/review/
     Body: {"action": "approve|reject", "notes": "Reviewer notes"}
     """
     permission_classes = [IsPlatformAdmin]
@@ -381,7 +381,7 @@ class TemplateApprovalReviewView(CustomResponseMixin, APIView):
 class TemplatePreviewTestView(CustomResponseMixin, APIView):
     """
     Preview and test a template by sending a test email.
-    POST /api/campaigns/templates/preview-test/
+    POST /campaigns/templates/preview-test/
     Body: {"template_id": "uuid", "test_email": "email@example.com", "variables": {}}
     """
     permission_classes = [IsAuthenticated]
@@ -437,7 +437,7 @@ class TemplatePreviewTestView(CustomResponseMixin, APIView):
 class EmailTemplateUpdateFromGlobalView(CustomResponseMixin, APIView):
     """
     Update an organization template to match the latest global template version.
-    POST /api/campaigns/templates/<uuid>/update-from-global/
+    POST /campaigns/templates/<uuid>/update-from-global/
     """
     permission_classes = [IsAuthenticated]
     

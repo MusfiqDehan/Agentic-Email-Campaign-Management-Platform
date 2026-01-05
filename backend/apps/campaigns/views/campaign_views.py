@@ -956,7 +956,7 @@ class UnsubscribeView(APIView):
         return Response({
             'email': contact.email,
             'status': contact.status,
-            'confirm_url': f'/api/campaigns/unsubscribe/?token={token}'
+            'confirm_url': f'/campaigns/unsubscribe/?token={token}'
         })
     
     def post(self, request):
