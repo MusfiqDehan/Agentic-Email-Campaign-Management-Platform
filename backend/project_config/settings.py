@@ -295,3 +295,10 @@ ORG_PROVIDER_MAX_RATE_PER_SECOND = config('ORG_PROVIDER_MAX_RATE_PER_SECOND', de
 ORG_PROVIDER_MAX_RATE_PER_MINUTE = config('ORG_PROVIDER_MAX_RATE_PER_MINUTE', default=100, cast=int)
 ORG_PROVIDER_MAX_RATE_PER_HOUR = config('ORG_PROVIDER_MAX_RATE_PER_HOUR', default=1000, cast=int)
 ORG_PROVIDER_MAX_DAILY_QUOTA = config('ORG_PROVIDER_MAX_DAILY_QUOTA', default=10000, cast=int)
+
+# VAPID keys for Web Push Notifications
+VAPID_PUBLIC_KEY = config('VAPID_PUBLIC_KEY', default='')
+VAPID_PRIVATE_KEY = config('VAPID_PRIVATE_KEY', default='')
+VAPID_CLAIM_EMAIL = {
+    "sub": config('VAPID_CLAIM_EMAIL', default='mailto:admin@yourdomain.com')
+}
