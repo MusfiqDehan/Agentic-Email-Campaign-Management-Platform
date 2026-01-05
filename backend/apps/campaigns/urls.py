@@ -102,6 +102,9 @@ from .views.notification_views import (
     DeleteNotificationView,
 )
 
+# Import push notification views
+from .views.push_views import PushSubscriptionViewSet
+
 # Import template operation views
 from .views.template_operations import (
     EmailTemplateUseView,
@@ -411,4 +414,13 @@ urlpatterns = [
     path('notifications/<uuid:pk>/mark-read/', MarkNotificationReadView.as_view(), name='notification-mark-read'),
     path('notifications/mark-all-read/', MarkAllNotificationsReadView.as_view(), name='notification-mark-all-read'),
     path('notifications/<uuid:pk>/', DeleteNotificationView.as_view(), name='notification-delete'),
+    
+    # ========================================================================
+    # SECTION 15: PUSH NOTIFICATIONS
+    # Browser push notification subscriptions
+    # ========================================================================
+    path('push/subscribe/', PushSubscriptionViewSet.as_view({'post': 'create'}), name='push-subscribe'),
+    path('push/subscriptions/', PushSubscriptionViewSet.as_view({'get': 'list'}), name='push-subscriptions'),
+    path('push/unsubscribe/', PushSubscriptionViewSet.as_view({'delete': 'destroy'}), name='push-unsubscribe'),
+    path('push/test/', PushSubscriptionViewSet.as_view({'post': 'test'}), name='push-test'),
 ]

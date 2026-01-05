@@ -42,6 +42,7 @@ from .sms_config_models import SMSConfigurationModel, SMSTemplate
 
 # Push notification models
 from .push_notification_config_models import *
+from .push_models import PushSubscription
 
 # All exportable models
 __all__ = [
@@ -80,4 +81,7 @@ __all__ = [
     # SMS
     'SMSConfigurationModel',
     'SMSTemplate',
+    
+    # Push Notifications
+    'PushSubscription',
 ]

@@ -8,12 +8,20 @@ import threading
 from django.db.models.signals import pre_save, post_save, post_delete, m2m_changed
 from django.dispatch import receiver
 from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
+from channels.layers import get_channel_layer  # type: ignore[import-untyped]
 
 from .models.provider_models import EmailProvider, ProviderAuditLog
 from .models.contact_models import Contact, ContactList
 from .models.campaign_models import Campaign
 from .models.notification_models import Notification
+
+# Try to import crum for request context (optional dependency)
+try:
+    from crum import get_current_request  # type: ignore[import-untyped]
+    HAS_CRUM = True
+except ImportError:
+    HAS_CRUM = False
+    get_current_request = None
 
 logger = logging.getLogger(__name__)
 
@@ -29,15 +37,8 @@ def get_request_from_context():
     Returns None if no request is available.
     """
     try:
-        from django.contrib.auth.models import AnonymousUser
-        # Try to get request from crum if available
-        try:
-            from crum import get_current_request
+        if HAS_CRUM and get_current_request is not None:
             return get_current_request()
-        except ImportError:
-            pass
-        
-        # Fallback: return None if no request available
         return None
     except Exception:
         return None
@@ -442,6 +443,14 @@ def broadcast_campaign_status_update(sender, instance, created, **kwargs):
         )
         
         logger.info(f"Broadcast campaign status update: {instance.id} changed from {old_status} to {instance.status}")
+        
+        # Send push notification only when status changes from SENDING to SENT
+        if old_status == 'SENDING' and instance.status == 'SENT':
+            try:
+                from .utils.push_utils import send_campaign_status_notification
+                send_campaign_status_notification(instance, old_status, instance.status)
+            except Exception as e:
+                logger.error(f"Failed to send push notification for campaign status update: {e}", exc_info=True)
         
     except Exception as e:
         logger.error(f"Failed to broadcast campaign status update: {e}", exc_info=True)
