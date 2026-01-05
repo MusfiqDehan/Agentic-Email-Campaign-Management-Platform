@@ -492,13 +492,13 @@ Once the backend is running, access the API documentation at:
 | `/api/auth/register/` | POST | User registration |
 | `/api/auth/login/` | POST | User login (JWT) |
 | `/api/auth/token/refresh/` | POST | Refresh JWT token |
-| `/api/campaigns/` | GET, POST | List/Create campaigns |
-| `/api/campaigns/{id}/` | GET, PUT, DELETE | Campaign CRUD |
-| `/api/campaigns/{id}/launch/` | POST | Launch campaign |
-| `/api/campaigns/templates/` | GET, POST | Email templates |
-| `/api/campaigns/contact-lists/` | GET, POST | Contact lists |
-| `/api/campaigns/contacts/` | GET, POST | Contacts |
-| `/api/campaigns/org/providers/` | GET, POST | Email providers |
+| `/campaigns/` | GET, POST | List/Create campaigns |
+| `/campaigns/{id}/` | GET, PUT, DELETE | Campaign CRUD |
+| `/campaigns/{id}/launch/` | POST | Launch campaign |
+| `/campaigns/templates/` | GET, POST | Email templates |
+| `/campaigns/contact-lists/` | GET, POST | Contact lists |
+| `/campaigns/contacts/` | GET, POST | Contacts |
+| `/campaigns/org/providers/` | GET, POST | Email providers |
 
 ---
 
