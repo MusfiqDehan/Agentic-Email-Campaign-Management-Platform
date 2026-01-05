@@ -3,8 +3,8 @@ WebSocket consumers for real-time notifications.
 """
 import json
 import logging
-from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer #type: ignore
+from channels.db import database_sync_to_async #type: ignore
 from urllib.parse import parse_qs
 from rest_framework_simplejwt.tokens import AccessToken
 from django.contrib.auth import get_user_model
