@@ -26,19 +26,19 @@ export const fetchCampaigns = async (page?: number, search?: string): Promise<Ca
   if (page) params.page = page;
   if (search) params.search = search;
 
-  const response = await axios.get('/api/campaigns/campaigns/', { params });
+  const response = await axios.get('/campaigns/campaigns/', { params });
   return response.data;
 };
 
 // Fetch a single campaign by ID
 export const fetchCampaignById = async (campaignId: string): Promise<Campaign> => {
-  const response = await axios.get(`/api/campaigns/campaigns/${campaignId}/`);
+  const response = await axios.get(`/campaigns/campaigns/${campaignId}/`);
   return response.data;
 };
 
 // Update campaign status
 export const updateCampaignStatus = async (campaignId: string, status: string): Promise<Campaign> => {
-  const response = await axios.patch(`/api/campaigns/campaigns/${campaignId}/`, {
+  const response = await axios.patch(`/campaigns/campaigns/${campaignId}/`, {
     status
   });
   return response.data;
@@ -46,18 +46,18 @@ export const updateCampaignStatus = async (campaignId: string, status: string): 
 
 // Send campaign
 export const sendCampaign = async (campaignId: string): Promise<Campaign> => {
-  const response = await axios.post(`/api/campaigns/campaigns/${campaignId}/send/`);
+  const response = await axios.post(`/campaigns/campaigns/${campaignId}/send/`);
   return response.data;
 };
 
 // Pause campaign
 export const pauseCampaign = async (campaignId: string): Promise<Campaign> => {
-  const response = await axios.post(`/api/campaigns/campaigns/${campaignId}/pause/`);
+  const response = await axios.post(`/campaigns/campaigns/${campaignId}/pause/`);
   return response.data;
 };
 
 // Resume campaign
 export const resumeCampaign = async (campaignId: string): Promise<Campaign> => {
-  const response = await axios.post(`/api/campaigns/campaigns/${campaignId}/resume/`);
+  const response = await axios.post(`/campaigns/campaigns/${campaignId}/resume/`);
   return response.data;
 };
