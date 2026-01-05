@@ -18,7 +18,7 @@ import {
   getApprovalStatusInfo,
   formatVersion,
   formatDate
-} from '@/lib/template-utils';
+} from '@/config/template-utils';
 import { TEMPLATE_CATEGORIES } from '@/config/constants';
 
 interface Template {

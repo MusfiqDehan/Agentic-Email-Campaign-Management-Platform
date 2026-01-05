@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Building2, Search, Users, Mail, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatDate } from '@/lib/template-utils';
+import { formatDate } from '@/config/template-utils';
 
 interface Organization {
   id: string;

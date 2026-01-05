@@ -5,15 +5,17 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, UserPlus, AlertCircle, CheckCheck, Trash2, Loader2 } from 'lucide-react';
+import { Mail, UserPlus, AlertCircle, CheckCheck, Trash2, Loader2, Settings } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { deleteNotification } from '@/services/notifications';
 import { toast } from 'sonner';
+import NotificationSettings from '@/components/dashboard/NotificationSettings';
 
 export default function NotificationsPage() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, refresh } = useNotifications();
   const [activeTab, setActiveTab] = useState('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Get notification icon based on type
   const getNotificationIcon = (type: string) => {
@@ -92,13 +94,30 @@ export default function NotificationsPage() {
             Stay updated with your campaign activities
           </p>
         </div>
-        {unreadCount > 0 && (
-          <Button onClick={handleMarkAllAsRead} variant="outline" size="sm">
-            <CheckCheck className="h-4 w-4 mr-2" />
-            Mark all as read
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setShowSettings(!showSettings)} 
+            variant="outline" 
+            size="sm"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            {showSettings ? 'Hide Settings' : 'Push Settings'}
           </Button>
-        )}
+          {unreadCount > 0 && (
+            <Button onClick={handleMarkAllAsRead} variant="outline" size="sm">
+              <CheckCheck className="h-4 w-4 mr-2" />
+              Mark all as read
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Push Notification Settings */}
+      {showSettings && (
+        <div className="mb-6">
+          <NotificationSettings />
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { CheckSquare, Clock, X, Check, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatRelativeTime } from '@/lib/template-utils';
+import { formatRelativeTime } from '@/config/template-utils';
 
 interface ApprovalRequest {
   id: string;

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UsersRound, FileText, Bell, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatRelativeTime, getCategoryInfo } from '@/lib/template-utils';
+import { formatRelativeTime, getCategoryInfo } from '@/config/template-utils';
 
 interface TemplateUsage {
   id: string;
