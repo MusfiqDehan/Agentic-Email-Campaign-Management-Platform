@@ -19,7 +19,7 @@ class EmailService:
         subject = 'Verify Your Email Address'
         
         # Construct verification URL (update domain as needed)
-        verification_url = f"http://localhost:3000/verify-email?token={token}"
+        verification_url = f"http://localhost:3001/verify-email?token={token}"
         
         message = f"""
         Welcome to Email Campaign Management Platform!
@@ -83,7 +83,7 @@ class EmailService:
         subject = 'Reset Your Password'
         
         # Construct reset URL (update domain as needed)
-        reset_url = f"http://localhost:3000/reset-password?token={token}"
+        reset_url = f"http://localhost:3001/reset-password?token={token}"
         
         message = f"""
         Password Reset Request

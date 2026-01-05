@@ -357,7 +357,7 @@ docker-compose -f frontend/docker-compose.yml up -d
 
 # Access applications
 # Backend API: http://localhost:8000
-# Frontend:    http://localhost:3000
+# Frontend:    http://localhost:3001
 ```
 
 ### Option 2: Run Backend Only

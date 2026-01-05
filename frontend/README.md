@@ -35,14 +35,14 @@ A comprehensive platform for managing email marketing campaigns, featuring a Dja
    ```
 
    This will start:
-   - **Frontend**: http://localhost:3000
-   - **Backend API**: http://localhost:8002
+   - **Frontend**: http://localhost:3001
+   - **Backend API**: http://localhost:8001
    - **PostgreSQL**: Port 5441
    - **Redis**: Port 6391
    - **Celery Worker & Beat**: Background tasks
 
 3. **Access the Application**
-   - Open http://localhost:3000 in your browser.
+   - Open http://localhost:3001 in your browser.
    - Sign up for a new organization account.
    - Configure your email provider (SMTP or SES) in Settings.
    - Create templates and contact lists.
@@ -68,7 +68,7 @@ A comprehensive platform for managing email marketing campaigns, featuring a Dja
    ```
 4. Start the server:
    ```bash
-   python manage.py runserver 8002
+   python manage.py runserver 8001
    ```
    *Note: You need a running Redis and PostgreSQL instance.*
 
@@ -86,7 +86,7 @@ A comprehensive platform for managing email marketing campaigns, featuring a Dja
    ```bash
    npm run dev
    ```
-   The app will be available at http://localhost:3000.
+   The app will be available at http://localhost:3001.
 
 ## 🌟 Features
 

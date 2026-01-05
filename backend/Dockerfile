@@ -28,7 +28,7 @@ COPY . /usr/src/app/
 ENTRYPOINT ["bash", "docker_entrypoint.sh"]
 
 # Expose the application port
-EXPOSE 8002
+EXPOSE 8001
 
 # Command to run the Django development server
-CMD ["daphne", "-p", "8002", "-b", "0.0.0.0", "config.asgi:application"]
+CMD ["daphne", "-p", "8001", "-b", "0.0.0.0", "config.asgi:application"]

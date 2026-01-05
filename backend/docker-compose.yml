@@ -31,9 +31,9 @@ services:
     build: .
     image: musfiqdehan/products/ecmp/backend-service:1.0.0
     container_name: backend-ecmp
-    command: daphne -p 8002 -b 0.0.0.0 config.asgi:application
+    command: daphne -p 8001 -b 0.0.0.0 config.asgi:application
     ports:
-      - "8002:8002"
+      - "8001:8001"
     volumes:
       - .:/usr/src/app
       - static_data_volume:/usr/src/app/static
@@ -53,7 +53,7 @@ services:
       - microservices_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/api/v1/healthz/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/v1/healthz/"]
       interval: 30s
       timeout: 10s
       retries: 3

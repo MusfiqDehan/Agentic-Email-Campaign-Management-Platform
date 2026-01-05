@@ -56,7 +56,7 @@ export default function CampaignDetailExample({ campaignId }: CampaignDetailExam
             // Show toast notification on status change
             toast.info(
               `Campaign status changed: ${prev.status} → ${update.status}`,
-              { duration: 3000 }
+              { duration: 3001 }
             );
           }
 

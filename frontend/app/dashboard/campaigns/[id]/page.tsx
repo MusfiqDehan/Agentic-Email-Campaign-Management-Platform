@@ -97,7 +97,7 @@ export default function CampaignDetailPage() {
                 
                 if (hasStatusChange) {
                     toast.info(`Campaign status changed: ${prev.status} → ${update.status}`, {
-                        duration: 3000
+                        duration: 3001
                     });
                 }
                 
