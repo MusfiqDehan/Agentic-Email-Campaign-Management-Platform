@@ -356,7 +356,7 @@ docker-compose -f backend/docker-compose.yml up -d
 docker-compose -f frontend/docker-compose.yml up -d
 
 # Access applications
-# Backend API: http://localhost:8000
+# Backend API: http://localhost:8001
 # Frontend:    http://localhost:3001
 ```
 
@@ -481,9 +481,9 @@ npm start
 
 Once the backend is running, access the API documentation at:
 
-- **Swagger UI**: http://localhost:8000/api/docs/
-- **ReDoc**: http://localhost:8000/api/redoc/
-- **OpenAPI Schema**: http://localhost:8000/api/schema/
+- **Swagger UI**: http://localhost:8001/api/docs/
+- **ReDoc**: http://localhost:8001/api/redoc/
+- **OpenAPI Schema**: http://localhost:8001/api/schema/
 
 ### Main API Endpoints
 

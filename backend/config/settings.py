@@ -194,7 +194,7 @@ CORS and security-related settings
 
 # Dynamic configuration for origins
 CSRF_TRUSTED_ORIGINS = [
-    "http://127.0.0.1:8000",
+    "http://127.0.0.1:8001",
     "http://127.0.0.1:8001",
     "http://127.0.0.1:8001",
     "http://127.0.0.1:8005",
@@ -203,7 +203,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 CORS_ORIGIN_WHITELIST = [
-    "http://127.0.0.1:8000",
+    "http://127.0.0.1:8001",
     "http://127.0.0.1:8001",
     "http://127.0.0.1:8005",
     "http://localhost:3001",
@@ -212,7 +212,7 @@ CORS_ORIGIN_WHITELIST = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:8000",
+    "http://127.0.0.1:8001",
     "http://127.0.0.1:8001",
     "http://127.0.0.1:8005",
     "http://localhost:3001",

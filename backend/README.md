@@ -38,8 +38,8 @@ bash docker-quickstart.sh dev
 - Displays credentials and next steps
 
 **Access:**
-- API: `http://localhost:8000/api/v1/`
-- Admin: `http://localhost:8000/admin/`
+- API: `http://localhost:8001/api/v1/`
+- Admin: `http://localhost:8001/admin/`
 - Credentials printed after setup
 
 ### Production Deployment
@@ -264,7 +264,7 @@ docker-compose logs -f app
 
 ```bash
 # Check if port is in use
-sudo lsof -i :8000
+sudo lsof -i :8001
 
 # View service health
 docker-compose ps
@@ -419,7 +419,7 @@ RUN useradd -m -u 1000 appuser
 
 # Health checks
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:8000/api/v1/campaigns/health/ || exit 1
+    CMD curl -f http://localhost:8001/api/v1/campaigns/health/ || exit 1
 
 # Proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
@@ -437,7 +437,7 @@ All services have health checks:
 docker-compose ps
 
 # Manual health check
-curl http://localhost:8000/api/v1/campaigns/health/
+curl http://localhost:8001/api/v1/campaigns/health/
 ```
 
 ### Logs
@@ -492,15 +492,15 @@ docker-compose exec postgres psql -U postgres -c "VACUUM ANALYZE;"
 ### Port Already in Use
 
 ```bash
-# Find what's using port 8000
-sudo lsof -i :8000
+# Find what's using port 8001
+sudo lsof -i :8001
 
 # Stop conflicting service
 sudo kill -9 <PID>
 
 # Or change port in docker-compose.yml
 ports:
-  - "8001:8000"  # Use 8001 instead
+  - "8001:8001"  # Use 8001 instead
 ```
 
 ### Database Connection Failed
@@ -605,7 +605,7 @@ Django (REST API)
 ```
 Development:
 - All services in single docker network
-- Port 8000 exposed locally
+- Port 8001 exposed locally
 
 Production:
 - Behind Nginx reverse proxy

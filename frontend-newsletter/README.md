@@ -17,7 +17,7 @@ Each contact list in your backend has a unique `subscription_token`. You can fin
 ```bash
 # Get all contact lists (requires authentication)
 curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:8000/api/v1/campaigns/contact-lists/
+  http://localhost:8001/api/v1/campaigns/contact-lists/
 ```
 
 **Option C: Database**
@@ -34,7 +34,7 @@ Edit `config.js` with your settings:
 ```javascript
 const NEWSLETTER_CONFIG = {
     // Your backend API URL
-    API_URL: 'http://localhost:8000/api/v1/campaigns/public/subscribe/',
+    API_URL: 'http://localhost:8001/api/v1/campaigns/public/subscribe/',
     
     // Your contact list's subscription token
     LIST_TOKEN: 'your-64-character-subscription-token-here',
