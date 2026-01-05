@@ -190,7 +190,6 @@ export function FloatingAgentInput() {
                 title="Open AI Agent"
             >
                 <Sparkles className="h-6 w-6 group-hover:rotate-12 transition-transform" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-background animate-pulse"></span>
             </button>
         );
     }

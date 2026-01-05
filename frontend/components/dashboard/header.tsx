@@ -116,13 +116,6 @@ export function Header({ onMenuClick }: HeaderProps) {
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
-              {/* Connection status indicator */}
-              {isConnected && (
-                <span className="absolute bottom-0 right-0 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-80 p-0" align="end" forceMount>
