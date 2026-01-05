@@ -6,14 +6,33 @@ import api from '@/config/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Check, Send } from 'lucide-react';
+import type { AxiosError } from 'axios';
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import Link from 'next/link';
-import Editor from '@/components/editor';
+
+interface Template {
+  id: string;
+  template_name: string;
+  email_subject?: string;
+  preview_text?: string;
+  email_body: string;
+}
+
+interface ContactList {
+  id: string;
+  name: string;
+  total_contacts: number;
+}
+
+interface Provider {
+  id: string;
+  name: string;
+  provider_type?: string;
+}
 
 export default function NewCampaignPage() {
   const router = useRouter();
@@ -43,9 +62,9 @@ export default function NewCampaignPage() {
   });
 
   // Data State
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [contactLists, setContactLists] = useState<any[]>([]);
-  const [providers, setProviders] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [contactLists, setContactLists] = useState<ContactList[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -120,12 +139,13 @@ export default function NewCampaignPage() {
     setIsLoading(true);
     try {
       const payload = buildPayload();
-      const response = await api.post('/campaigns/', payload);
+      await api.post('/campaigns/', payload);
       toast.success('Campaign created successfully!');
       router.push('/dashboard/campaigns');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error(error.response?.data?.detail || error.response?.data?.error || 'Failed to create campaign');
+      const axiosError = error as AxiosError<{ detail?: string; error?: string }>;
+      toast.error(axiosError.response?.data?.detail || axiosError.response?.data?.error || 'Failed to create campaign');
     } finally {
       setIsLoading(false);
     }

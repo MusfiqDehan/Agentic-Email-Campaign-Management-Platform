@@ -31,4 +31,4 @@ ENTRYPOINT ["bash", "docker_entrypoint.sh"]
 EXPOSE 8002
 
 # Command to run the Django development server
-CMD ["daphne", "-p", "8002", "-b", "0.0.0.0", "project_config.asgi:application"]
+CMD ["daphne", "-p", "8002", "-b", "0.0.0.0", "config.asgi:application"]

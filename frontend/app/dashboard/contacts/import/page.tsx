@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from "lucide-react";
+import type { AxiosError } from "axios";
 import api from "@/config/axios";
 
 import { Button } from "@/components/ui/button";
@@ -28,21 +29,38 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 
 const importSchema = z.object({
   list_id: z.string().optional(),
-  file: z.any().refine((files) => files?.length > 0, "File is required"),
+  file: z
+    .custom<FileList>((value) => value instanceof FileList, "File is required")
+    .refine((files) => files.length > 0, "File is required"),
   update_existing: z.boolean().default(false),
   tags: z.string().optional(),
 });
 
-type ImportFormValues = z.infer<typeof importSchema>;
+type ImportFormValues = z.input<typeof importSchema>;
+type ParsedImportFormValues = z.output<typeof importSchema>;
 
 interface ContactList {
   id: string;
   name: string;
+}
+
+interface ImportErrorRow {
+  row: number;
+  error: string;
+  email?: string;
+}
+
+interface ImportResult {
+  total?: number;
+  total_processed?: number;
+  created?: number;
+  updated?: number;
+  skipped?: number;
+  errors?: ImportErrorRow[];
 }
 
 export default function ImportContactsPage() {
@@ -50,9 +68,9 @@ export default function ImportContactsPage() {
   const { toast } = useToast();
   const [lists, setLists] = useState<ContactList[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [importResult, setImportResult] = useState<any>(null);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
-  const form = useForm({
+  const form = useForm<ImportFormValues>({
     resolver: zodResolver(importSchema),
     defaultValues: {
       update_existing: false,
@@ -82,19 +100,21 @@ export default function ImportContactsPage() {
     setIsLoading(true);
     setImportResult(null);
 
+    const parsed: ParsedImportFormValues = importSchema.parse(data);
+
     try {
       const formData = new FormData();
 
-      if (data.list_id && data.list_id !== "none") {
-        formData.append("list_id", data.list_id);
+      if (parsed.list_id && parsed.list_id !== "none") {
+        formData.append("list_id", parsed.list_id);
       }
 
-      formData.append("file", data.file[0]);
-      formData.append("update_existing", data.update_existing.toString());
+      formData.append("file", parsed.file[0]);
+      formData.append("update_existing", parsed.update_existing.toString());
 
-      if (data.tags) {
+      if (parsed.tags) {
         // Split tags by comma and append each
-        const tagsList = data.tags.split(",").map(t => t.trim()).filter(t => t);
+        const tagsList = parsed.tags.split(",").map(t => t.trim()).filter(t => t);
         tagsList.forEach(tag => formData.append("tags", tag));
       }
 
@@ -111,13 +131,14 @@ export default function ImportContactsPage() {
       });
 
       // Reset file input
-      form.reset({ ...data, file: undefined as any });
+      form.reset({ ...data, file: new DataTransfer().files });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Import failed", error);
+      const axiosError = error as AxiosError<{ detail?: string }>;
       toast({
         title: "Import Failed",
-        description: error.response?.data?.detail || "An error occurred during import.",
+        description: axiosError.response?.data?.detail || "An error occurred during import.",
         variant: "destructive",
       });
     } finally {
@@ -139,7 +160,7 @@ export default function ImportContactsPage() {
           <CardHeader>
             <CardTitle>Upload File</CardTitle>
             <CardDescription>
-              Your file must contain an "email" column. Optional columns: first_name, last_name, phone.
+              Your file must contain an &quot;email&quot; column. Optional columns: first_name, last_name, phone.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -205,7 +226,7 @@ export default function ImportContactsPage() {
                               accept=".csv, .xlsx, .xls"
                               className="hidden"
                               onChange={(e) => {
-                                onChange(e.target.files);
+                                onChange(e.target.files ?? new DataTransfer().files);
                               }}
                               {...field}
                             />
@@ -320,7 +341,7 @@ export default function ImportContactsPage() {
                   </h4>
                   <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-md max-h-60 overflow-y-auto text-sm">
                     <ul className="space-y-1">
-                      {importResult.errors.map((err: any, idx: number) => (
+                      {importResult.errors.map((err, idx) => (
                         <li key={idx} className="text-red-600 dark:text-red-400">
                           Row {err.row}: {err.error} ({err.email})
                         </li>

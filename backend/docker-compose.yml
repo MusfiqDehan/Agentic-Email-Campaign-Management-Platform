@@ -31,7 +31,7 @@ services:
     build: .
     image: musfiqdehan/products/ecmp/backend-service:1.0.0
     container_name: backend-ecmp
-    command: daphne -p 8002 -b 0.0.0.0 project_config.asgi:application
+    command: daphne -p 8002 -b 0.0.0.0 config.asgi:application
     ports:
       - "8002:8002"
     volumes:
@@ -87,8 +87,10 @@ services:
     build: .
     image: musfiqdehan/products/ecmp/celery-service:1.0.0
     container_name: celery-ecmp
-    command: celery -A project_config.celery worker --loglevel=info
+    command: celery -A config.celery worker --loglevel=info
     entrypoint: []
+    volumes:
+      - .:/usr/src/app
     depends_on:
       - redis
       - backend
@@ -102,8 +104,10 @@ services:
     build: .
     image: musfiqdehan/products/ecmp/celery-beat-service:1.0.0
     container_name: celery-beat-ecmp
-    command: celery -A project_config.celery beat --loglevel=info
+    command: celery -A config.celery beat --loglevel=info
     entrypoint: []
+    volumes:
+      - .:/usr/src/app
     depends_on:
       - redis
       - backend

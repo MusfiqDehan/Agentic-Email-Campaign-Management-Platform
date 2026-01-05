@@ -6,6 +6,8 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8002/api/v1}
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:8002}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-BFAesdG-Xwcbxs04efksnvINtI8ynedOBp7fKSDyBAH-HW_OjWmAR7oMC5ey6G5yJtAPFo7gP0Mm0o-kdSqjkaE}
     ports:
       - "3000:3000"
     environment:

@@ -381,7 +381,7 @@ class VariableRegistry:
             "phone": getattr(contact, 'phone', '') or "",
             
             # System variables
-            "unsubscribe_url": f"/api/campaigns/unsubscribe/?token={contact.unsubscribe_token}",
+            "unsubscribe_url": f"/campaigns/unsubscribe/?token={contact.unsubscribe_token}",
             "current_date": timezone.now().strftime("%B %d, %Y"),
             "current_year": str(timezone.now().year),
         }

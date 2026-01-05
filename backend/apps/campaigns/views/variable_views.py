@@ -21,7 +21,7 @@ from apps.campaigns.utils.variable_registry import (
 
 class VariableListView(APIView):
     """
-    GET /api/campaigns/variables/
+    GET /campaigns/variables/
     
     Returns all available variables for template personalization.
     Used by frontend for autocomplete when user types {{ in the template editor.
@@ -101,7 +101,7 @@ class VariableListView(APIView):
 
 class VariableExtractView(APIView):
     """
-    POST /api/campaigns/variables/extract/
+    POST /campaigns/variables/extract/
     
     Extract all variables used in a template.
     
@@ -138,7 +138,7 @@ class VariableExtractView(APIView):
 
 class VariableValidateView(APIView):
     """
-    POST /api/campaigns/variables/validate/
+    POST /campaigns/variables/validate/
     
     Validate a template and check for unknown or missing required variables.
     
@@ -184,7 +184,7 @@ class VariableValidateView(APIView):
 
 class CustomFieldSchemaView(APIView):
     """
-    GET/PUT /api/campaigns/variables/schema/
+    GET/PUT /campaigns/variables/schema/
     
     Manage the organization's custom field schema.
     This defines what custom variables are available for contacts.
@@ -286,7 +286,7 @@ class CustomFieldSchemaView(APIView):
 
 class VariablePreviewView(APIView):
     """
-    POST /api/campaigns/variables/preview/
+    POST /campaigns/variables/preview/
     
     Preview how a template will look with sample data.
     

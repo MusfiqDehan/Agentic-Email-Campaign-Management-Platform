@@ -12,9 +12,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { Bell, Search, Menu, Settings, User, LogOut, HelpCircle } from 'lucide-react';
+import { Bell, Search, Menu, Settings, User, LogOut, HelpCircle, KeyRound, Mail, UserPlus, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { useNotifications } from '@/hooks/useNotifications';
+import { formatDistanceToNow } from 'date-fns';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -22,6 +24,38 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuth();
+  const { notifications, unreadCount, markAsRead, isConnected } = useNotifications();
+
+  // Get notification icon based on type
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'CAMPAIGN_SENT':
+        return <Mail className="h-4 w-4 text-blue-500" />;
+      case 'CONTACT_ADDED':
+        return <UserPlus className="h-4 w-4 text-green-500" />;
+      default:
+        return <AlertCircle className="h-4 w-4 text-orange-500" />;
+    }
+  };
+
+  // Get notification icon background based on type
+  const getNotificationIconBg = (type: string) => {
+    switch (type) {
+      case 'CAMPAIGN_SENT':
+        return 'bg-blue-500/10';
+      case 'CONTACT_ADDED':
+        return 'bg-green-500/10';
+      default:
+        return 'bg-orange-500/10';
+    }
+  };
+
+  // Handle notification click
+  const handleNotificationClick = async (notificationId: string, isRead: boolean) => {
+    if (!isRead) {
+      await markAsRead(notificationId);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/80 px-4 backdrop-blur-xl sm:px-6">
@@ -73,12 +107,64 @@ export function Header({ onMenuClick }: HeaderProps) {
         </Button>
         
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative h-9 w-9">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-            3
-          </span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative h-9 w-9">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-80 p-0" align="end" forceMount>
+            <div className="flex items-center justify-between border-b p-4">
+              <h4 className="text-sm font-semibold">Notifications</h4>
+              {unreadCount > 0 && (
+                <span className="text-xs text-muted-foreground">{unreadCount} new</span>
+              )}
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  No notifications yet
+                </div>
+              ) : (
+                <div className="space-y-1 p-2">
+                  {notifications.slice(0, 5).map((notification) => (
+                    <div 
+                      key={notification.id}
+                      onClick={() => handleNotificationClick(notification.id, notification.is_read)}
+                      className={`flex gap-3 rounded-lg p-3 hover:bg-accent cursor-pointer transition-colors ${
+                        !notification.is_read ? 'bg-accent/50' : ''
+                      }`}
+                    >
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${getNotificationIconBg(notification.notification_type)}`}>
+                        {getNotificationIcon(notification.notification_type)}
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium leading-none">{notification.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                        </p>
+                      </div>
+                      {!notification.is_read && (
+                        <div className="flex h-2 w-2 shrink-0 items-center justify-center rounded-full bg-primary mt-2" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="border-t p-2">
+              <Link href="/dashboard/notifications" className="flex w-full items-center justify-center gap-2 rounded-lg p-2 text-sm font-medium hover:bg-accent transition-colors">
+                View all notifications
+              </Link>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
         
         {/* Theme toggle */}
         <ThemeToggle />
@@ -131,6 +217,12 @@ export function Header({ onMenuClick }: HeaderProps) {
               <Link href="/dashboard/settings/providers">
                 <Settings className="h-4 w-4" />
                 <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="cursor-pointer gap-2 p-2 rounded-lg">
+              <Link href="/dashboard/settings">
+                <KeyRound className="h-4 w-4" />
+                <span>Change Password</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer gap-2 p-2 rounded-lg">

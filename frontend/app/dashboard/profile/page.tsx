@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/config/axios';
 import { toast } from 'sonner';
@@ -11,13 +12,33 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, Upload, Building, User as UserIcon, Camera } from 'lucide-react';
+import { Loader2, Building, User as UserIcon, Camera } from 'lucide-react';
+
+interface OrganizationDetails {
+    name?: string;
+    description?: string;
+    logo?: string;
+    slug?: string;
+}
+
+interface ProfileData {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone_number?: string;
+    occupation?: string;
+    country?: string;
+    city?: string;
+    address?: string;
+    profile_picture?: string;
+    organization_details?: OrganizationDetails;
+}
 
 export default function ProfilePage() {
     const { user, refreshUser } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [profileData, setProfileData] = useState<any>(null);
+    const [profileData, setProfileData] = useState<ProfileData | null>(null);
 
     const profileInputRef = useRef<HTMLInputElement>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
@@ -26,12 +47,18 @@ export default function ProfilePage() {
         fetchProfile();
     }, []);
 
+    const [orgLogoSrc, setOrgLogoSrc] = useState('/placeholder-logo.png');
+
+    useEffect(() => {
+        setOrgLogoSrc(profileData?.organization_details?.logo || '/placeholder-logo.png');
+    }, [profileData?.organization_details?.logo]);
+
     const fetchProfile = async () => {
         setIsLoading(true);
         try {
             const response = await api.get('/auth/profile/details/');
             setProfileData(response.data.data);
-        } catch (error) {
+        } catch {
             toast.error('Failed to load profile details');
         } finally {
             setIsLoading(false);
@@ -40,6 +67,7 @@ export default function ProfilePage() {
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!profileData) return;
         setIsSaving(true);
 
         // We use FormData for image uploads
@@ -59,7 +87,7 @@ export default function ProfilePage() {
             toast.success('Profile updated successfully');
             refreshUser();
             fetchProfile();
-        } catch (error) {
+        } catch {
             toast.error('Failed to update profile');
         } finally {
             setIsSaving(false);
@@ -68,6 +96,7 @@ export default function ProfilePage() {
 
     const handleUpdateOrganization = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!profileData) return;
         setIsSaving(true);
 
         const formData = new FormData();
@@ -80,7 +109,7 @@ export default function ProfilePage() {
             });
             toast.success('Organization updated successfully');
             fetchProfile();
-        } catch (error) {
+        } catch {
             toast.error('Failed to update organization');
         } finally {
             setIsSaving(false);
@@ -102,7 +131,7 @@ export default function ProfilePage() {
             toast.success(`${type === 'profile' ? 'Profile picture' : 'Logo'} updated`);
             fetchProfile();
             if (type === 'profile') refreshUser();
-        } catch (error) {
+        } catch {
             toast.error('Failed to upload image');
         }
     };
@@ -116,6 +145,19 @@ export default function ProfilePage() {
                         <div className="absolute inset-0 h-16 w-16 animate-spin rounded-full border-4 border-transparent border-t-primary" />
                     </div>
                     <p className="text-sm text-muted-foreground animate-pulse">Loading profile...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!profileData) {
+        return (
+            <div className="flex h-[80vh] items-center justify-center">
+                <div className="flex flex-col items-center gap-4 text-center">
+                    <p className="text-sm text-muted-foreground">Failed to load profile.</p>
+                    <Button variant="outline" onClick={fetchProfile}>
+                        Retry
+                    </Button>
                 </div>
             </div>
         );
@@ -161,7 +203,7 @@ export default function ProfilePage() {
                                         <Avatar className="h-24 w-24 border-4 border-background shadow-lg transition-transform group-hover:scale-105">
                                             <AvatarImage
                                                 src={profileData.profile_picture}
-                                                onError={(e) => {
+                                                onError={() => {
                                                     console.error('Profile image fail', profileData.profile_picture);
                                                 }}
                                             />
@@ -278,19 +320,21 @@ export default function ProfilePage() {
                                 Organization Details
                             </CardTitle>
                             <CardDescription>
-                                Manage your organization's public profile and branding.
+                                Manage your organization&apos;s public profile and branding.
                             </CardDescription>
                         </CardHeader>
                         <form onSubmit={handleUpdateOrganization}>
                             <CardContent className="space-y-6">
                                 <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 rounded-xl bg-muted/30 p-4">
                                     <div className="relative group rounded-xl border-2 border-dashed border-border p-3 bg-background transition-all hover:border-primary/50">
-                                        <img
-                                            src={profileData.organization_details?.logo || '/placeholder-logo.png'}
+                                        <Image
+                                            src={orgLogoSrc}
                                             alt="Org Logo"
+                                            width={96}
+                                            height={96}
                                             className="h-24 w-24 object-contain"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=Logo'
+                                            onError={() => {
+                                                setOrgLogoSrc('https://placehold.co/100x100?text=Logo');
                                             }}
                                         />
                                         <button

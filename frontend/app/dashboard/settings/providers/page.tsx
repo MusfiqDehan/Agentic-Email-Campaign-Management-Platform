@@ -5,7 +5,7 @@ import Link from 'next/link';
 import api from '@/config/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, CheckCircle, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, XCircle, RefreshCw, AlertTriangle, Edit2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -17,6 +17,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Provider {
   id: string;
@@ -26,6 +33,10 @@ interface Provider {
   health_status: string;
   health_details: string;
   emails_sent_today: number;
+  is_active: boolean;
+  priority: number;
+  max_emails_per_day: number;
+  created_at: string;
 }
 
 export default function ProvidersPage() {
@@ -33,6 +44,8 @@ export default function ProvidersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [providerToDelete, setProviderToDelete] = useState<string | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const fetchProviders = async () => {
     setIsLoading(true);
@@ -73,13 +86,18 @@ export default function ProvidersPage() {
 
   const handleHealthCheck = async (id: string) => {
     try {
-      await api.post(`/campaigns/org/providers/${id}/health_check/`);
+      await api.post(`/campaigns/org/providers/${id}/health-check/`);
       toast.success('Health check initiated');
       fetchProviders();
     } catch (error) {
       console.error(error);
       toast.error('Health check failed');
     }
+  };
+
+  const handleViewDetails = (provider: Provider) => {
+    setSelectedProvider(provider);
+    setDetailsOpen(true);
   };
 
   return (
@@ -114,8 +132,16 @@ export default function ProvidersPage() {
                   </CardTitle>
                   <CardDescription>{provider.provider_type}</CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => handleHealthCheck(provider.id)} title="Check Health">
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" onClick={() => handleViewDetails(provider)} title="View Details">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Link href={`/dashboard/settings/providers/${provider.id}/edit`}>
+                    <Button variant="ghost" size="icon" title="Edit Provider">
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Button variant="ghost" size="icon" onClick={() => handleHealthCheck(provider.id)} title="Refresh Health">
                     <RefreshCw className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteClick(provider.id)}>
@@ -141,7 +167,7 @@ export default function ProvidersPage() {
                     <span>{provider.emails_sent_today}</span>
                   </div>
                   {provider.health_details && (
-                    <div className="mt-2 rounded bg-muted p-2 text-xs text-muted-foreground">
+                    <div className="mt-2 rounded bg-muted p-2 text-xs text-muted-foreground line-clamp-2">
                       {provider.health_details}
                     </div>
                   )}
@@ -156,6 +182,58 @@ export default function ProvidersPage() {
           )}
         </div>
       )}
+
+      {/* Details Dialog */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Provider Details</DialogTitle>
+            <DialogDescription>
+              Full configuration and status for {selectedProvider?.name}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedProvider && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Type</p>
+                  <p className="font-medium">{selectedProvider.provider_type}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Status</p>
+                  <p className={`font-medium ${selectedProvider.health_status === 'HEALTHY' ? 'text-green-600' : 'text-red-600'}`}>
+                    {selectedProvider.health_status}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Priority</p>
+                  <p className="font-medium">{selectedProvider.priority}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Daily Limit</p>
+                  <p className="font-medium">{selectedProvider.max_emails_per_day}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Active</p>
+                  <p className="font-medium">{selectedProvider.is_active ? 'Yes' : 'No'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Created At</p>
+                  <p className="font-medium">{new Date(selectedProvider.created_at).toLocaleDateString()}</p>
+                </div>
+              </div>
+              {selectedProvider.health_details && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Health Details</p>
+                  <div className="rounded-md bg-muted p-3 text-xs font-mono">
+                    {selectedProvider.health_details}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

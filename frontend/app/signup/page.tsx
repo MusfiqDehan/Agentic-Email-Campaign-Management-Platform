@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { Checkbox } from '@/components/ui/checkbox';
+import type { AxiosError } from 'axios';
 import { Mail, Eye, EyeOff, ArrowRight, Loader2, Building2, User } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 
@@ -69,15 +70,17 @@ export default function SignupPage() {
          window.location.href = '/login';
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error(error.response?.data?.detail || 'Failed to create account');
-      if (error.response?.data) {
-          Object.keys(error.response.data).forEach((key) => {
-              if (key !== 'detail') {
-                  toast.error(`${key}: ${error.response.data[key]}`);
-              }
-          });
+      const axiosError = error as AxiosError<Record<string, unknown> & { detail?: string }>;
+      toast.error(axiosError.response?.data?.detail || 'Failed to create account');
+      const data = axiosError.response?.data;
+      if (data) {
+        Object.keys(data).forEach((key) => {
+          if (key !== 'detail') {
+            toast.error(`${key}: ${String(data[key])}`);
+          }
+        });
       }
     } finally {
       setIsLoading(false);
@@ -109,7 +112,7 @@ export default function SignupPage() {
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">Create your account</CardTitle>
           <CardDescription>
-            Get started with your organization's email campaigns
+            Get started with your organization&apos;s email campaigns
           </CardDescription>
         </CardHeader>
         <CardContent>

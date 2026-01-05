@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -35,9 +36,10 @@ export default function NewContactListPage() {
       await api.post('/campaigns/contact-lists/', data);
       toast.success('Contact list created successfully');
       router.push('/dashboard/contacts');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error(error.response?.data?.detail || 'Failed to create list');
+      const axiosError = error as AxiosError<{ detail?: string }>;
+      toast.error(axiosError.response?.data?.detail || 'Failed to create list');
     } finally {
       setIsLoading(false);
     }

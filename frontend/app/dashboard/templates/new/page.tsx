@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import type { AxiosError } from 'axios';
 import {
   Select,
   SelectContent,
@@ -95,9 +96,10 @@ export default function NewTemplatePage() {
       if (tags && Array.isArray(tags)) setValue('tags', tags.join(', '));
 
       toast.success('AI content generated successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error(error.response?.data?.error || 'Failed to generate AI content');
+      const axiosError = error as AxiosError<{ error?: string }>;
+      toast.error(axiosError.response?.data?.error || 'Failed to generate AI content');
     } finally {
       setIsGenerating(false);
     }
@@ -120,9 +122,10 @@ export default function NewTemplatePage() {
       });
       toast.success('Template created successfully');
       router.push('/dashboard/templates');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error(error.response?.data?.detail || 'Failed to create template');
+      const axiosError = error as AxiosError<{ detail?: string }>;
+      toast.error(axiosError.response?.data?.detail || 'Failed to create template');
     } finally {
       setIsLoading(false);
     }

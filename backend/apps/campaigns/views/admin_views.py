@@ -14,6 +14,9 @@ from django.utils import timezone
 
 from ..models import EmailProvider, OrganizationEmailConfiguration
 from ..serializers import EmailProviderSerializer
+from apps.utils.responses import success, error
+from apps.authentication.models import Organization
+from ..serializers.admin_serializers import AdminOrganizationSerializer
 
 
 class IsPlatformAdmin(IsAdminUser):
@@ -364,42 +367,36 @@ Sent at: {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
 
 class AdminOrganizationConfigListView(APIView):
     """
-    List all organization configurations.
+    List all organizations for platform administration.
     
     GET /admin/organizations/
     """
     permission_classes = [IsPlatformAdmin]
     
     def get(self, request):
-        """List all organization configurations."""
-        configs = OrganizationEmailConfiguration.objects.filter(
-            is_deleted=False
-        ).select_related('organization')
-        
-        from ..serializers import OrganizationEmailConfigurationSerializer
-        serializer = OrganizationEmailConfigurationSerializer(configs, many=True)
-        return Response(serializer.data)
+        """List all organizations."""
+        organizations = Organization.objects.all().order_by('-created_at')
+        serializer = AdminOrganizationSerializer(organizations, many=True)
+        return success(data=serializer.data)
 
 
 class AdminOrganizationConfigDetailView(APIView):
     """
-    Retrieve organization configuration details.
+    Retrieve organization details for platform administration.
     
     GET /admin/organizations/{id}/
     """
     permission_classes = [IsPlatformAdmin]
     
     def get(self, request, pk):
-        """Retrieve organization configuration."""
-        config = get_object_or_404(
-            OrganizationEmailConfiguration,
-            pk=pk,
-            is_deleted=False
+        """Retrieve organization details."""
+        organization = get_object_or_404(
+            Organization,
+            pk=pk
         )
         
-        from ..serializers import OrganizationEmailConfigurationSerializer
-        serializer = OrganizationEmailConfigurationSerializer(config)
-        return Response(serializer.data)
+        serializer = AdminOrganizationSerializer(organization)
+        return success(data=serializer.data)
 
 
 class AdminOrganizationSuspendView(APIView):
@@ -412,10 +409,9 @@ class AdminOrganizationSuspendView(APIView):
     
     def post(self, request, pk):
         """Suspend an organization's email service."""
-        config = get_object_or_404(
-            OrganizationEmailConfiguration,
-            pk=pk,
-            is_deleted=False
+        config, created = OrganizationEmailConfiguration.objects.get_or_create(
+            organization_id=pk,
+            defaults={'is_deleted': False}
         )
         
         reason = request.data.get('reason', 'Suspended by platform admin')
@@ -425,10 +421,10 @@ class AdminOrganizationSuspendView(APIView):
         config.suspended_at = timezone.now()
         config.save()
         
-        return Response({
-            'message': f'Organization {config.organization.name} has been suspended',
-            'reason': reason
-        })
+        return success(
+            message=f'Organization {config.organization.name} has been suspended',
+            data={'reason': reason}
+        )
 
 
 class AdminOrganizationUnsuspendView(APIView):
@@ -443,7 +439,7 @@ class AdminOrganizationUnsuspendView(APIView):
         """Unsuspend an organization's email service."""
         config = get_object_or_404(
             OrganizationEmailConfiguration,
-            pk=pk,
+            organization_id=pk,
             is_deleted=False
         )
         
@@ -452,9 +448,7 @@ class AdminOrganizationUnsuspendView(APIView):
         config.suspended_at = None
         config.save()
         
-        return Response({
-            'message': f'Organization {config.organization.name} has been unsuspended'
-        })
+        return success(message=f'Organization {config.organization.name} has been unsuspended')
 
 
 class AdminOrganizationUpgradePlanView(APIView):
@@ -467,34 +461,27 @@ class AdminOrganizationUpgradePlanView(APIView):
     
     def post(self, request, pk):
         """Upgrade an organization's plan."""
-        config = get_object_or_404(
-            OrganizationEmailConfiguration,
-            pk=pk,
-            is_deleted=False
+        config, created = OrganizationEmailConfiguration.objects.get_or_create(
+            organization_id=pk,
+            defaults={'is_deleted': False}
         )
         
         new_plan = request.data.get('plan_type')
         if not new_plan:
-            return Response(
-                {'error': 'plan_type is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return error(message='plan_type is required')
         
         valid_plans = ['FREE', 'BASIC', 'PROFESSIONAL', 'ENTERPRISE']
         if new_plan.upper() not in valid_plans:
-            return Response(
-                {'error': f'Invalid plan. Must be one of: {valid_plans}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return error(message=f'Invalid plan. Must be one of: {valid_plans}')
         
         old_plan = config.plan_type
         config.plan_type = new_plan.upper()
         config.save()  # This will auto-sync plan limits
         
-        return Response({
-            'message': f'Organization {config.organization.name} upgraded from {old_plan} to {config.plan_type}',
-            'new_limits': config.plan_limits
-        })
+        return success(
+            message=f'Organization {config.organization.name} upgraded from {old_plan} to {config.plan_type}',
+            data={'new_limits': config.plan_limits}
+        )
 
 
 class AdminPlatformStatsView(APIView):
@@ -510,7 +497,6 @@ class AdminPlatformStatsView(APIView):
         configs = OrganizationEmailConfiguration.objects.filter(is_deleted=False)
         
         stats = configs.aggregate(
-            total_orgs=Count('id'),
             total_emails_today=Sum('emails_sent_today'),
             total_emails_month=Sum('emails_sent_this_month'),
             avg_bounce_rate=Avg('bounce_rate'),
@@ -522,9 +508,10 @@ class AdminPlatformStatsView(APIView):
         ).order_by('plan_type')
         
         suspended_count = configs.filter(is_suspended=True).count()
+        total_organizations = Organization.objects.count()
         
-        return Response({
-            'total_organizations': stats['total_orgs'],
+        return success(data={
+            'total_organizations': total_organizations,
             'total_emails_today': stats['total_emails_today'] or 0,
             'total_emails_this_month': stats['total_emails_month'] or 0,
             'average_bounce_rate': round(stats['avg_bounce_rate'] or 0, 2),

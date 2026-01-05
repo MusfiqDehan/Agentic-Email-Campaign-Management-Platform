@@ -7,9 +7,21 @@ import logging
 import threading
 from django.db.models.signals import pre_save, post_save, post_delete, m2m_changed
 from django.dispatch import receiver
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer  # type: ignore[import-untyped]
 
 from .models.provider_models import EmailProvider, ProviderAuditLog
 from .models.contact_models import Contact, ContactList
+from .models.campaign_models import Campaign
+from .models.notification_models import Notification
+
+# Try to import crum for request context (optional dependency)
+try:
+    from crum import get_current_request  # type: ignore[import-untyped]
+    HAS_CRUM = True
+except ImportError:
+    HAS_CRUM = False
+    get_current_request = None
 
 logger = logging.getLogger(__name__)
 
@@ -25,15 +37,8 @@ def get_request_from_context():
     Returns None if no request is available.
     """
     try:
-        from django.contrib.auth.models import AnonymousUser
-        # Try to get request from crum if available
-        try:
-            from crum import get_current_request
+        if HAS_CRUM and get_current_request is not None:
             return get_current_request()
-        except ImportError:
-            pass
-        
-        # Fallback: return None if no request available
         return None
     except Exception:
         return None
@@ -282,3 +287,170 @@ def update_contact_list_stats_on_delete(sender, instance, **kwargs):
     """Update ContactList stats when a contact is hard-deleted."""
     for cl in instance.lists.all():
         cl.update_stats()
+
+
+# Campaign notification signals
+@receiver(post_save, sender=Campaign)
+def create_campaign_status_notification(sender, instance, created, update_fields, **kwargs):
+    """Create notification when campaign status changes to SENT."""
+    if created:
+        return  # Skip for new campaigns
+    
+    # Only proceed if status field was updated
+    if update_fields is not None and 'status' not in update_fields:
+        return  # Status didn't change, skip
+    
+    # Check if status changed to SENT
+    if instance.status == 'SENT':
+        try:
+            # Check if notification already exists for this campaign
+            existing_notification = Notification.objects.filter(
+                organization=instance.organization,
+                notification_type='CAMPAIGN_SENT',
+                related_object_type='campaign',
+                related_object_id=instance.id
+            ).exists()
+            
+            if existing_notification:
+                logger.debug(f"Notification already exists for campaign {instance.id}, skipping")
+                return
+            
+            # Create notification for organization
+            notification = Notification.objects.create(
+                organization=instance.organization,
+                notification_type='CAMPAIGN_SENT',
+                title=f'Campaign "{instance.name}" sent successfully',
+                message=f'Your campaign "{instance.name}" has been sent to {instance.stats_total_recipients} recipients.',
+                related_object_type='campaign',
+                related_object_id=instance.id,
+                metadata={
+                    'campaign_name': instance.name,
+                    'total_recipients': instance.stats_total_recipients,
+                    'completed_at': instance.completed_at.isoformat() if instance.completed_at else None,
+                }
+            )
+            logger.info(f"Created notification for campaign {instance.id} sent")
+            
+            # Broadcast via WebSocket
+            channel_layer = get_channel_layer()
+            group_name = f"notifications_{instance.organization.id}"
+            
+            # Import serializer here to avoid circular imports
+            from .serializers import NotificationSerializer
+            import json
+            
+            # Get serialized data and convert UUIDs to strings
+            serialized_data = NotificationSerializer(notification).data
+            # Convert all UUID fields to strings for msgpack serialization
+            notification_data = json.loads(json.dumps(serialized_data, default=str))
+            
+            # Send notification to WebSocket group
+            async_to_sync(channel_layer.group_send)(
+                group_name,
+                {
+                    'type': 'notification_message',
+                    'data': notification_data
+                }
+            )
+            
+            # Send updated unread count
+            unread_count = Notification.objects.filter(
+                organization=instance.organization,
+                is_read=False,
+                is_deleted=False
+            ).count()
+            
+            async_to_sync(channel_layer.group_send)(
+                group_name,
+                {
+                    'type': 'unread_count_update',
+                    'count': unread_count
+                }
+            )
+            
+            logger.info(f"Broadcast notification via WebSocket to {group_name}")
+            
+        except Exception as e:
+            logger.error(f"Failed to create campaign notification: {e}", exc_info=True)
+
+
+# Campaign status update signal
+_campaign_pre_save_state = threading.local()
+
+
+@receiver(pre_save, sender=Campaign)
+def capture_campaign_pre_save_state(sender, instance, **kwargs):
+    """Capture campaign's state before saving to detect status changes."""
+    if not instance.pk:
+        return
+    
+    try:
+        old_instance = Campaign.objects.get(pk=instance.pk)
+        if not hasattr(_campaign_pre_save_state, 'instances'):
+            _campaign_pre_save_state.instances = {}
+        
+        _campaign_pre_save_state.instances[str(instance.pk)] = {
+            'status': old_instance.status,
+        }
+    except Campaign.DoesNotExist:
+        pass
+
+
+@receiver(post_save, sender=Campaign)
+def broadcast_campaign_status_update(sender, instance, created, **kwargs):
+    """Broadcast campaign status changes via WebSocket."""
+    if created:
+        return  # Don't broadcast new campaigns
+    
+    # Check if status actually changed
+    old_status = None
+    if hasattr(_campaign_pre_save_state, 'instances'):
+        old_state = _campaign_pre_save_state.instances.get(str(instance.pk))
+        if old_state:
+            old_status = old_state.get('status')
+    
+    # Only broadcast if status changed
+    if old_status is None or old_status == instance.status:
+        return
+    
+    try:
+        channel_layer = get_channel_layer()
+        group_name = f"notifications_{instance.organization.id}"
+        
+        import json
+        
+        # Prepare campaign update data
+        campaign_data = {
+            'id': str(instance.id),
+            'name': instance.name,
+            'status': instance.status,
+            'old_status': old_status,
+            'stats_sent': instance.stats_sent,
+            'stats_delivered': instance.stats_delivered,
+            'stats_opened': instance.stats_opened,
+            'stats_clicked': instance.stats_clicked,
+            'stats_total_recipients': instance.stats_total_recipients,
+            'updated_at': instance.updated_at.isoformat() if instance.updated_at else None,
+        }
+        
+        # Send campaign status update to WebSocket group
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                'type': 'campaign_status_update',
+                'data': campaign_data
+            }
+        )
+        
+        logger.info(f"Broadcast campaign status update: {instance.id} changed from {old_status} to {instance.status}")
+        
+        # Send push notification only when status changes from SENDING to SENT
+        if old_status == 'SENDING' and instance.status == 'SENT':
+            try:
+                from .utils.push_utils import send_campaign_status_notification
+                send_campaign_status_notification(instance, old_status, instance.status)
+            except Exception as e:
+                logger.error(f"Failed to send push notification for campaign status update: {e}", exc_info=True)
+        
+    except Exception as e:
+        logger.error(f"Failed to broadcast campaign status update: {e}", exc_info=True)

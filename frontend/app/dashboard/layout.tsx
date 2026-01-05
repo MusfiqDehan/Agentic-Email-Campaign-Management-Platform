@@ -6,7 +6,6 @@ import { FloatingAgentInput } from '@/components/dashboard/FloatingAgentInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -23,11 +22,6 @@ export default function DashboardLayout({
       router.push('/login');
     }
   }, [isLoading, isAuthenticated, router]);
-
-  // Close sidebar on route change (mobile)
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, []);
 
   if (isLoading) {
     return (

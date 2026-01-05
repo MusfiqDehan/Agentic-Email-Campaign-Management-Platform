@@ -11,6 +11,14 @@ Exports all serializers organized by purpose:
 from .base_serializers import (
     # Email Templates
     EmailTemplateSerializer,
+    TemplateUsageLogSerializer,
+    TemplateUpdateNotificationSerializer,
+    OrganizationTemplateNotificationSerializer,
+    TemplateApprovalRequestSerializer,
+    TemplatePreviewSerializer,
+    
+    # Notifications
+    NotificationSerializer,
     
     # Automation Rules
     AutomationRuleSerializer,
@@ -32,6 +40,11 @@ from .base_serializers import (
     
     # Delivery Logs
     EnhancedEmailDeliveryLogSerializer,
+)
+
+# Import from admin_serializers.py
+from .admin_serializers import (
+    AdminOrganizationSerializer,
 )
 
 # Import from enhanced_serializers.py

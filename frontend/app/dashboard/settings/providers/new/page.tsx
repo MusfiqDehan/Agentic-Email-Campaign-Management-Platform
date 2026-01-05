@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -33,19 +34,21 @@ const providerSchema = z.object({
 
   aws_access_key_id: z.string().optional(),
   aws_secret_access_key: z.string().optional(),
+  aws_session_token: z.string().optional(),
   region_name: z.string().optional(),
 
   api_key: z.string().optional(), // For SendGrid/Brevo
 });
 
 type ProviderFormValues = z.infer<typeof providerSchema>;
+type ProviderType = ProviderFormValues['provider_type'];
 
 export default function NewProviderPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [providerType, setProviderType] = useState<string>('SMTP');
+  const [providerType, setProviderType] = useState<ProviderType>('SMTP');
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProviderFormValues>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<ProviderFormValues>({
     resolver: zodResolver(providerSchema),
     defaultValues: {
       provider_type: 'SMTP',
@@ -62,6 +65,7 @@ export default function NewProviderPage() {
       smtp_password: '',
       aws_access_key_id: '',
       aws_secret_access_key: '',
+      aws_session_token: '',
       region_name: '',
       api_key: '',
     }
@@ -70,7 +74,7 @@ export default function NewProviderPage() {
   const onSubmit = async (data: ProviderFormValues) => {
     setIsLoading(true);
     try {
-      let config: any = {};
+      let config: Record<string, unknown> = {};
 
       if (data.provider_type === 'SMTP') {
         if (!data.smtp_server || !data.smtp_port || !data.smtp_username || !data.smtp_password) {
@@ -96,6 +100,7 @@ export default function NewProviderPage() {
         config = {
           aws_access_key_id: data.aws_access_key_id,
           aws_secret_access_key: data.aws_secret_access_key,
+          aws_session_token: data.aws_session_token || undefined,
           region_name: data.region_name,
           from_email: data.from_email,
         };
@@ -123,15 +128,16 @@ export default function NewProviderPage() {
       await api.post('/campaigns/org/providers/', payload);
       toast.success('Provider created successfully');
       router.push('/dashboard/settings/providers');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('API Error:', error);
-      toast.error(error.response?.data?.detail || error.response?.data?.error || 'Failed to create provider');
+      const axiosError = error as AxiosError<{ detail?: string; error?: string }>;
+      toast.error(axiosError.response?.data?.detail || axiosError.response?.data?.error || 'Failed to create provider');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const onInvalid = (errors: any) => {
+  const onInvalid = (errors: FieldErrors<ProviderFormValues>) => {
     console.error('Validation Errors:', errors);
     toast.error('Please check the form for errors');
   };
@@ -167,8 +173,9 @@ export default function NewProviderPage() {
               <Label htmlFor="provider_type">Provider Type</Label>
               <Select
                 onValueChange={(val) => {
-                  setValue('provider_type', val as any);
-                  setProviderType(val);
+                  const typed = val as ProviderType;
+                  setValue('provider_type', typed);
+                  setProviderType(typed);
                 }}
                 defaultValue="SMTP"
               >
@@ -249,6 +256,11 @@ export default function NewProviderPage() {
                   <Label htmlFor="aws_secret_access_key">Secret Access Key</Label>
                   <Input id="aws_secret_access_key" type="password" {...register('aws_secret_access_key')} />
                   {errors.aws_secret_access_key && <p className="text-sm text-red-500">{errors.aws_secret_access_key.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="aws_session_token">Session Token (Optional)</Label>
+                  <Input id="aws_session_token" type="password" {...register('aws_session_token')} />
+                  {errors.aws_session_token && <p className="text-sm text-red-500">{errors.aws_session_token.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="region_name">Region</Label>

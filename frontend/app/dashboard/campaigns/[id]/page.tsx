@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import type { AxiosError } from 'axios';
 import api from '@/config/axios';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ArrowLeft, Play, Copy, Eye, Send, AlertCircle, CheckCircle2, Clock, PauseCircle, XCircle, Rocket } from 'lucide-react';
+import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -43,15 +45,15 @@ interface Campaign {
     stats_total_recipients: number;
     created_at: string;
     updated_at: string;
-    email_template: any;
+    email_template: unknown;
     email_template_name: string;
-    email_provider: any;
+    email_provider: unknown;
     email_provider_name: string;
-    settings: any;
+    settings: Record<string, unknown>;
 }
 
 export default function CampaignDetailPage() {
-    const { id } = useParams();
+    const { id } = useParams<{ id: string }>();
     const router = useRouter();
     const [campaign, setCampaign] = useState<Campaign | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -60,8 +62,11 @@ export default function CampaignDetailPage() {
     const [launchDialogOpen, setLaunchDialogOpen] = useState(false);
     const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
     const [duplicateName, setDuplicateName] = useState('');
+    
+    // Real-time updates
+    const { onCampaignStatusUpdate } = useRealtimeUpdates();
 
-    const fetchCampaign = async () => {
+    const fetchCampaign = useCallback(async () => {
         setIsLoading(true);
         try {
             const response = await api.get(`/campaigns/${id}/`);
@@ -72,13 +77,45 @@ export default function CampaignDetailPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [id]);
 
     useEffect(() => {
         if (id) {
             fetchCampaign();
         }
-    }, [id]);
+    }, [id, fetchCampaign]);
+
+    // Subscribe to real-time campaign status updates
+    useEffect(() => {
+        if (!id) return;
+        
+        const unsubscribe = onCampaignStatusUpdate(id, (update) => {
+            setCampaign(prev => {
+                if (!prev) return null;
+                
+                const hasStatusChange = prev.status !== update.status;
+                
+                if (hasStatusChange) {
+                    toast.info(`Campaign status changed: ${prev.status} → ${update.status}`, {
+                        duration: 3000
+                    });
+                }
+                
+                return {
+                    ...prev,
+                    status: update.status,
+                    stats_sent: update.stats_sent,
+                    stats_delivered: update.stats_delivered,
+                    stats_opened: update.stats_opened,
+                    stats_clicked: update.stats_clicked,
+                    stats_total_recipients: update.stats_total_recipients,
+                    updated_at: update.updated_at
+                };
+            });
+        });
+        
+        return unsubscribe;
+    }, [id, onCampaignStatusUpdate]);
 
     const handlePreview = async () => {
         setIsPreviewLoading(true);
@@ -86,9 +123,10 @@ export default function CampaignDetailPage() {
             const response = await api.post(`/campaigns/${id}/preview/`);
             setPreviewContent(response.data.html_content || response.data.preview_url);
             toast.success('Preview generated');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            toast.error(error.response?.data?.error || 'Failed to generate preview');
+            const axiosError = error as AxiosError<{ error?: string }>;
+            toast.error(axiosError.response?.data?.error || 'Failed to generate preview');
         } finally {
             setIsPreviewLoading(false);
         }
@@ -104,9 +142,10 @@ export default function CampaignDetailPage() {
             await api.post(`/campaigns/${id}/launch/`);
             toast.success('Campaign launched successfully!');
             fetchCampaign();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            toast.error(error.response?.data?.error || 'Failed to launch campaign');
+            const axiosError = error as AxiosError<{ error?: string }>;
+            toast.error(axiosError.response?.data?.error || 'Failed to launch campaign');
         }
     };
 
@@ -123,9 +162,10 @@ export default function CampaignDetailPage() {
             const response = await api.post(`/campaigns/${id}/duplicate/`, { new_name: duplicateName });
             toast.success('Campaign duplicated!');
             router.push(`/dashboard/campaigns/${response.data.id}`);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            toast.error(error.response?.data?.error || 'Failed to duplicate campaign');
+            const axiosError = error as AxiosError<{ error?: string }>;
+            toast.error(axiosError.response?.data?.error || 'Failed to duplicate campaign');
         }
     };
 
@@ -212,7 +252,7 @@ export default function CampaignDetailPage() {
                                     ) : (
                                         <div className="flex flex-col items-center justify-center min-h-[400px] bg-muted/50 border border-dashed rounded-xl text-muted-foreground">
                                             <Eye className="h-12 w-12 mb-4 opacity-20" />
-                                            <p>Click "Preview Content" to see the generated email.</p>
+                                            <p>Click &quot;Preview Content&quot; to see the generated email.</p>
                                             <Button variant="link" onClick={handlePreview} disabled={isPreviewLoading}>
                                                 Generate Preview Now
                                             </Button>

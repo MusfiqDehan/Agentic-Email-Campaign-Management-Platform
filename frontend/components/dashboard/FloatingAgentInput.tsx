@@ -1,17 +1,53 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import type { AxiosError } from 'axios';
 import { Send, Loader2, Sparkles, X, Mic, MicOff } from 'lucide-react';
 import api from '@/config/axios';
 import { toast } from 'sonner';
 import { cn } from '@/config/utils';
+
+type SpeechRecognitionErrorEventLike = {
+    error: string;
+};
+
+type SpeechRecognitionAlternativeLike = {
+    transcript: string;
+};
+
+type SpeechRecognitionResultLike = ArrayLike<SpeechRecognitionAlternativeLike>;
+
+type SpeechRecognitionEventLike = {
+    results: ArrayLike<SpeechRecognitionResultLike>;
+};
+
+type SpeechRecognitionLike = {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onstart: (() => void) | null;
+    onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+    onend: (() => void) | null;
+    onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+    start: () => void;
+    stop: () => void;
+};
+
+type SpeechRecognitionConstructorLike = new () => SpeechRecognitionLike;
+
+declare global {
+    interface Window {
+        SpeechRecognition?: SpeechRecognitionConstructorLike;
+        webkitSpeechRecognition?: SpeechRecognitionConstructorLike;
+    }
+}
 
 export function FloatingAgentInput() {
     const [prompt, setPrompt] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(true);
     const [isListening, setIsListening] = useState(false);
-    const recognitionRef = useRef<any>(null);
+    const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleSubmit = async (e?: React.FormEvent, overridePrompt?: string) => {
@@ -38,9 +74,10 @@ export function FloatingAgentInput() {
             setPrompt('');
             // Dispatch custom event for dynamic updates
             window.dispatchEvent(new CustomEvent('agent-action-completed'));
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Agent error:', error);
-            toast.error(error.response?.data?.error || 'Something went wrong with the agent');
+            const axiosError = error as AxiosError<{ error?: string }>;
+            toast.error(axiosError.response?.data?.error || 'Something went wrong with the agent');
         } finally {
             setIsLoading(false);
         }
@@ -55,12 +92,17 @@ export function FloatingAgentInput() {
     };
 
     const startListening = () => {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        if (!window.webkitSpeechRecognition && !window.SpeechRecognition) {
             toast.error('Speech recognition is not supported in this browser.');
             return;
         }
 
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const SpeechRecognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            toast.error('Speech recognition is not supported in this browser.');
+            return;
+        }
+
         const recognition = new SpeechRecognition();
 
         recognition.continuous = true;
@@ -73,7 +115,7 @@ export function FloatingAgentInput() {
             toast.info('Listening...');
         };
 
-        recognition.onerror = (event: any) => {
+        recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
             console.error('Speech recognition error:', event.error);
             setIsListening(false);
             if (event.error !== 'no-speech') {
@@ -86,7 +128,7 @@ export function FloatingAgentInput() {
             setIsListening(false);
         };
 
-        recognition.onresult = (event: any) => {
+        recognition.onresult = (event: SpeechRecognitionEventLike) => {
             let fullTranscript = '';
             for (let i = 0; i < event.results.length; i++) {
                 fullTranscript += event.results[i][0].transcript;
@@ -148,7 +190,6 @@ export function FloatingAgentInput() {
                 title="Open AI Agent"
             >
                 <Sparkles className="h-6 w-6 group-hover:rotate-12 transition-transform" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-background animate-pulse"></span>
             </button>
         );
     }

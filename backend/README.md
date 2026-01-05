@@ -151,7 +151,7 @@ bash deploy.sh --tag v1.2.0
 
 ### ♻ Maintenance Tasks
 
-- `apps.campaigns.tasks.cleanup_old_logs` runs nightly to purge aged delivery logs and terminal queue records so the database does not grow unbounded. Celery Beat already schedules it via `project_config/celery.py`.
+- `apps.campaigns.tasks.cleanup_old_logs` runs nightly to purge aged delivery logs and terminal queue records so the database does not grow unbounded. Celery Beat already schedules it via `config/celery.py`.
 - Control retention windows with `EMAIL_LOG_RETENTION_DAYS` (default `90`) and `EMAIL_QUEUE_RETENTION_DAYS` (default `30`). Tune these per environment to match compliance requirements before deploying.
 
 ### Environment Variables
@@ -225,8 +225,8 @@ docker-compose exec postgres pg_dump -U postgres email_campaign_db > backup.sql
 docker-compose exec app python manage.py test
 
 # View Celery tasks
-docker-compose exec app celery -A project_config inspect active
-docker-compose exec app celery -A project_config events
+docker-compose exec app celery -A config inspect active
+docker-compose exec app celery -A config events
 
 # Stop all services
 docker-compose down
@@ -554,13 +554,13 @@ sudo cp /etc/letsencrypt/live/yourdomain.com/*.pem ./ssl/
 docker-compose logs celery
 
 # Inspect active tasks
-docker-compose exec app celery -A project_config inspect active
+docker-compose exec app celery -A config inspect active
 
 # Check Redis connection
 docker-compose exec redis redis-cli ping
 
 # Purge stuck tasks
-docker-compose exec app celery -A project_config purge
+docker-compose exec app celery -A config purge
 ```
 
 ---

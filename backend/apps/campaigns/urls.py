@@ -93,6 +93,48 @@ from .views import (
     ContactAgentView
 )
 
+# Import notification views
+from .views.notification_views import (
+    NotificationListView,
+    UnreadNotificationCountView,
+    MarkNotificationReadView,
+    MarkAllNotificationsReadView,
+    DeleteNotificationView,
+)
+
+# Import push notification views
+from .views.push_views import PushSubscriptionViewSet
+
+# Import template operation views
+from .views.template_operations import (
+    EmailTemplateUseView,
+    EmailTemplateBulkUseView,
+    EmailTemplateVersionHistoryView,
+    EmailTemplateCreateVersionView,
+    EmailTemplateSubmitForApprovalView,
+    TemplateApprovalReviewView,
+    TemplatePreviewTestView,
+    EmailTemplateUpdateFromGlobalView,
+)
+
+# Import admin template views
+from .views.admin_templates import (
+    AdminGlobalTemplateListCreateView,
+    AdminGlobalTemplateDetailView,
+    AdminTemplateAnalyticsView,
+    AdminTemplateAnalyticsSummaryView,
+    AdminPendingApprovalsView,
+)
+
+# Import organization admin views
+from .views.organization_admin import (
+    OrganizationTemplateUsageView,
+    OrganizationTemplateNotificationsView,
+    OrganizationTemplateNotificationMarkReadView,
+    OrganizationTemplateUpdateStatusView,
+    OrganizationTeamTemplateStatsView,
+)
+
 # Import enhanced views
 from .views.enhanced_views import (
     # Organization Email Configuration Views
@@ -313,4 +355,72 @@ urlpatterns = [
     # ========================================================================
     path('ai/generate/email/content/', GenerateEmailContentAIView.as_view(), name='generate-email-content-ai'),
     path('ai/agent/contacts/', ContactAgentView.as_view(), name='contact-agent'),
+    
+    # ========================================================================
+    # SECTION 11: TEMPLATE OPERATIONS
+    # ========================================================================
+    # Template duplication and usage
+    path('templates/<uuid:pk>/use/', EmailTemplateUseView.as_view(), name='template-use'),
+    path('templates/bulk-use/', EmailTemplateBulkUseView.as_view(), name='template-bulk-use'),
+    
+    # Template versioning
+    path('templates/<uuid:pk>/versions/', EmailTemplateVersionHistoryView.as_view(), name='template-versions'),
+    path('templates/<uuid:pk>/create-version/', EmailTemplateCreateVersionView.as_view(), name='template-create-version'),
+    
+    # Approval workflow
+    path('templates/<uuid:pk>/submit-approval/', EmailTemplateSubmitForApprovalView.as_view(), name='template-submit-approval'),
+    path('approvals/<uuid:pk>/review/', TemplateApprovalReviewView.as_view(), name='template-approval-review'),
+    
+    # Preview and testing
+    path('templates/preview-test/', TemplatePreviewTestView.as_view(), name='template-preview-test'),
+    
+    # Template updates
+    path('templates/<uuid:pk>/update-from-global/', EmailTemplateUpdateFromGlobalView.as_view(), name='template-update-from-global'),
+    
+    # ========================================================================
+    # SECTION 12: ADMIN TEMPLATE MANAGEMENT
+    # ========================================================================
+    # Global template management
+    path('admin/templates/', AdminGlobalTemplateListCreateView.as_view(), name='admin-templates-list'),
+    path('admin/templates/<uuid:pk>/', AdminGlobalTemplateDetailView.as_view(), name='admin-template-detail'),
+    
+    # Template analytics
+    path('admin/templates/<uuid:pk>/analytics/', AdminTemplateAnalyticsView.as_view(), name='admin-template-analytics'),
+    path('admin/templates/analytics/summary/', AdminTemplateAnalyticsSummaryView.as_view(), name='admin-template-analytics-summary'),
+    
+    # Approval management
+    path('admin/approvals/pending/', AdminPendingApprovalsView.as_view(), name='admin-pending-approvals'),
+    
+    # ========================================================================
+    # SECTION 13: ORGANIZATION ADMIN INSIGHTS
+    # ========================================================================
+    # Template usage tracking
+    path('organization/template-usage/', OrganizationTemplateUsageView.as_view(), name='organization-template-usage'),
+    
+    # Template notifications
+    path('organization/template-notifications/', OrganizationTemplateNotificationsView.as_view(), name='organization-template-notifications'),
+    path('organization/template-notifications/<uuid:pk>/mark-read/', OrganizationTemplateNotificationMarkReadView.as_view(), name='organization-notification-mark-read'),
+    
+    # Update status and stats
+    path('organization/template-updates/', OrganizationTemplateUpdateStatusView.as_view(), name='organization-template-updates'),
+    path('organization/team-template-stats/', OrganizationTeamTemplateStatsView.as_view(), name='organization-team-stats'),
+    
+    # ========================================================================
+    # SECTION 14: NOTIFICATIONS
+    # Real-time notifications for campaigns and system events
+    # ========================================================================
+    path('notifications/', NotificationListView.as_view(), name='notification-list'),
+    path('notifications/unread-count/', UnreadNotificationCountView.as_view(), name='notification-unread-count'),
+    path('notifications/<uuid:pk>/mark-read/', MarkNotificationReadView.as_view(), name='notification-mark-read'),
+    path('notifications/mark-all-read/', MarkAllNotificationsReadView.as_view(), name='notification-mark-all-read'),
+    path('notifications/<uuid:pk>/', DeleteNotificationView.as_view(), name='notification-delete'),
+    
+    # ========================================================================
+    # SECTION 15: PUSH NOTIFICATIONS
+    # Browser push notification subscriptions
+    # ========================================================================
+    path('push/subscribe/', PushSubscriptionViewSet.as_view({'post': 'create'}), name='push-subscribe'),
+    path('push/subscriptions/', PushSubscriptionViewSet.as_view({'get': 'list'}), name='push-subscriptions'),
+    path('push/unsubscribe/', PushSubscriptionViewSet.as_view({'delete': 'destroy'}), name='push-unsubscribe'),
+    path('push/test/', PushSubscriptionViewSet.as_view({'post': 'test'}), name='push-test'),
 ]

@@ -26,14 +26,43 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
-    // Handle 401 errors (unauthorized)
+    // Handle 401 errors (unauthorized) with token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Here you could implement token refresh logic if the backend supports it
-      // For now, we'll just redirect to login if it's not a login request itself
-      if (!window.location.pathname.includes('/login')) {
-        Cookies.remove('access_token');
-        Cookies.remove('refresh_token');
-        window.location.href = '/login';
+      originalRequest._retry = true;
+      
+      try {
+        const refreshToken = Cookies.get('refresh_token');
+        
+        if (!refreshToken) {
+          // No refresh token available, redirect to login
+          throw new Error('No refresh token');
+        }
+        
+        // Try to refresh the access token
+        const response = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002/api/v1'}/auth/refresh/`,
+          { refresh: refreshToken }
+        );
+        
+        const newAccessToken = response.data.access;
+        
+        // Update the access token cookie
+        Cookies.set('access_token', newAccessToken, { expires: 1 });
+        
+        // Update the authorization header for the original request
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        
+        // Retry the original request
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed, clear tokens and redirect to login
+        if (!window.location.pathname.includes('/login')) {
+          Cookies.remove('access_token');
+          Cookies.remove('refresh_token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
       }
     }
     return Promise.reject(error);

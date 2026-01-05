@@ -1,5 +1,11 @@
 # Email models
-from .email_config_models import EmailTemplate
+from .email_config_models import (
+    EmailTemplate,
+    TemplateUsageLog,
+    TemplateUpdateNotification,
+    OrganizationTemplateNotification,
+    TemplateApprovalRequest,
+)
 from .email_tracking_models import (
     EmailValidation,
     EmailQueue,
@@ -28,16 +34,24 @@ from .automation_rule_model import AutomationRule
 from .campaign_models import Campaign
 from .contact_models import ContactList, Contact
 
+# Notification models
+from .notification_models import Notification
+
 # SMS models
 from .sms_config_models import SMSConfigurationModel, SMSTemplate
 
 # Push notification models
 from .push_notification_config_models import *
+from .push_models import PushSubscription
 
 # All exportable models
 __all__ = [
     # Core models
     'EmailTemplate',
+    'TemplateUsageLog',
+    'TemplateUpdateNotification',
+    'OrganizationTemplateNotification',
+    'TemplateApprovalRequest',
     'EmailValidation',
     'EmailQueue',
     'EmailDeliveryLog',
@@ -61,7 +75,13 @@ __all__ = [
     'ContactList',
     'Contact',
     
+    # Notifications
+    'Notification',
+    
     # SMS
     'SMSConfigurationModel',
     'SMSTemplate',
+    
+    # Push Notifications
+    'PushSubscription',
 ]
