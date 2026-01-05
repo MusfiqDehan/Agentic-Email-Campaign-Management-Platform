@@ -187,7 +187,7 @@ backend/
 ├── 📄 docker_entrypoint.sh     # Container startup script
 ├── 📄 core.py                  # Core utilities
 │
-├── 📁 project_config/          # Django Project Configuration
+├── 📁 config/          # Django Project Configuration
 │   ├── __init__.py
 │   ├── settings.py             # Django settings
 │   ├── urls.py                 # Root URL configuration
@@ -451,10 +451,10 @@ python manage.py createsuperuser
 python manage.py runserver
 
 # Start Celery worker (in another terminal)
-celery -A project_config worker -l info
+celery -A config worker -l info
 
 # Start Celery beat (in another terminal)
-celery -A project_config beat -l info
+celery -A config beat -l info
 ```
 
 ### Frontend Setup

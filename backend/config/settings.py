@@ -91,7 +91,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'project_config.urls'
+ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
@@ -109,8 +109,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'project_config.wsgi.application'
-ASGI_APPLICATION = 'project_config.asgi.application'
+WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
 # Channel Layers Configuration for WebSocket
 CHANNEL_LAYERS = {
