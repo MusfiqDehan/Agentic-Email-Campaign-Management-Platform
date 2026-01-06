@@ -1,0 +1,60 @@
+name: Deploy (Docker Compose)
+
+on:
+  push:
+    branches: ["main"]
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -euo pipefail
+
+            DEPLOY_PATH="${{ secrets.VPS_DEPLOY_PATH }}"
+            if [ -z "$DEPLOY_PATH" ]; then
+              echo "VPS_DEPLOY_PATH secret is missing" >&2
+              exit 1
+            fi
+
+            cd "$DEPLOY_PATH"
+
+            # Ensure repo is on main and up-to-date
+            git fetch --all
+            git checkout main
+            git reset --hard origin/main
+
+            # External network used by backend compose
+            docker network create ecmp_network >/dev/null 2>&1 || true
+
+            # Backend stack (db, redis, api, celery)
+            docker compose \
+              --env-file backend/.env \
+              -f backend/docker-compose.yml \
+              -f backend/docker-compose.prod.yml \
+              up -d --build
+
+            # Frontend stack
+            docker compose \
+              --env-file frontend/.env \
+              -f frontend/docker-compose.yml \
+              -f frontend/docker-compose.prod.yml \
+              up -d --build
+
+            # Optional: cleanup dangling images
+            docker image prune -f
