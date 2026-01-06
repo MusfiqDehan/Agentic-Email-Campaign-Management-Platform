@@ -13,7 +13,7 @@ services:
     volumes:
       - postgres_data_volume:/var/lib/postgresql/data
     networks:
-      - microservices_network
+      - ecmp_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -50,7 +50,7 @@ services:
       database:
         condition: service_healthy
     networks:
-      - microservices_network
+      - ecmp_network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/api/v1/healthz/"]
@@ -74,7 +74,7 @@ services:
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     networks:
-      - microservices_network
+      - ecmp_network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
@@ -98,7 +98,7 @@ services:
     env_file:
       - .env
     networks:
-      - microservices_network
+      - ecmp_network
 
   celery-beat:
     build: .
@@ -115,7 +115,7 @@ services:
     env_file:
       - .env
     networks:
-      - microservices_network
+      - ecmp_network
 
 # Volumes for persistent storage
 volumes:
@@ -124,8 +124,8 @@ volumes:
   media_data_volume:
   redis_data_volume:
 
-# Define the external network for microservices
+# Define the external network for same product
 networks:
-  microservices_network:
-    name: musfiqdehan_microservices_network
+  ecmp_network:
+    name: ecmp_network
     external: true

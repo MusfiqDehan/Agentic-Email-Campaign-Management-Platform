@@ -1,0 +1,20 @@
+services:
+  database:
+    # Don't expose DB publicly in production
+    ports: []
+
+  redis:
+    # Don't expose Redis publicly in production
+    ports: []
+
+  backend:
+    # In production don't bind-mount source code
+    volumes:
+      - static_data_volume:/usr/src/app/static
+      - media_data_volume:/usr/src/app/media
+
+  celery:
+    volumes: []
+
+  celery-beat:
+    volumes: []
