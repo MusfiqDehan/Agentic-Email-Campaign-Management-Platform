@@ -15,3 +15,11 @@ services:
       - PORT=3001
       - HOSTNAME=0.0.0.0
     restart: unless-stopped
+    networks:
+      - ecmp_network
+
+# Define the external network for same product
+networks:
+  ecmp_network:
+    name: ecmp_network
+    external: true
