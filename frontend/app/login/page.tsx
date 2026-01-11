@@ -35,6 +35,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [orgDeactivatedError, setOrgDeactivatedError] = useState<OrganizationDeactivatedError | null>(null);
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -43,6 +44,7 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     setOrgDeactivatedError(null);
+    setEmailNotVerified(false);
     try {
       const response = await api.post('/auth/login/', data);
       const { access, refresh, user } = response.data.data;
@@ -62,6 +64,12 @@ export default function LoginPage() {
       }>;
       
       const responseErrors = axiosError.response?.data?.errors;
+      
+      // Check if email is not verified
+      if (responseErrors?.non_field_errors?.includes('Email not verified')) {
+        setEmailNotVerified(true);
+        return;
+      }
       
       // Check if this is an organization deactivation error
       if (responseErrors?.organization_deactivated) {
@@ -117,6 +125,20 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Email Not Verified Alert */}
+          {emailNotVerified && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Email Not Verified</AlertTitle>
+              <AlertDescription className="mt-2 space-y-2">
+                <p>Your email address has not been verified yet. Please check your inbox for a verification link.</p>
+                <p className="text-sm">
+                  Didn't receive the email? Please check your spam folder.
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Organization Deactivated Alert */}
           {orgDeactivatedError && (
             <Alert variant="destructive" className="mb-6">

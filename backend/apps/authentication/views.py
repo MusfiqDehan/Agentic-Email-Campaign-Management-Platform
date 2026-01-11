@@ -86,6 +86,7 @@ class LoginView(ResponseMixin, GenericAPIView):
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "is_platform_admin": user.is_platform_admin,
+                "is_org_admin": user.is_org_admin,
             }
             
             # Include organization info if user belongs to one
