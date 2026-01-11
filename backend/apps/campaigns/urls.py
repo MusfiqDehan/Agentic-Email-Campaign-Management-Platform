@@ -25,6 +25,7 @@ from .views import (
     ContactListView as ContactsListView,  # Renamed to avoid confusion
     ContactDetailView,
     ContactBulkImportView,
+    ContactToggleStatusView,
     
     # Campaign Views
     CampaignListCreateView,
@@ -55,6 +56,8 @@ from .views import (
     AdminEmailProviderTestSendView,
     AdminOrganizationConfigListView,
     AdminOrganizationConfigDetailView,
+    AdminOrganizationActivateView,
+    AdminOrganizationDeactivateView,
     AdminOrganizationSuspendView,
     AdminOrganizationUnsuspendView,
     AdminOrganizationUpgradePlanView,
@@ -109,6 +112,7 @@ from .views.push_views import PushSubscriptionViewSet
 from .views.template_operations import (
     EmailTemplateUseView,
     EmailTemplateBulkUseView,
+    EmailTemplateDuplicateView,
     EmailTemplateVersionHistoryView,
     EmailTemplateCreateVersionView,
     EmailTemplateSubmitForApprovalView,
@@ -209,6 +213,7 @@ urlpatterns = [
     path('contacts/', ContactsListView.as_view(), name='contact-list-create'),
     path('contacts/bulk/', ContactBulkImportView.as_view(), name='contact-bulk-import'),
     path('contacts/<uuid:pk>/', ContactDetailView.as_view(), name='contact-detail'),
+    path('contacts/<uuid:pk>/toggle-status/', ContactToggleStatusView.as_view(), name='contact-toggle-status'),
     
     # Contact Lists
     path('contact-lists/', ContactListListCreateView.as_view(), name='contact-list-list-create'),
@@ -315,6 +320,8 @@ urlpatterns = [
     # Admin Organization Configs
     path('admin/organizations/', AdminOrganizationConfigListView.as_view(), name='admin-org-config-list'),
     path('admin/organizations/<uuid:pk>/', AdminOrganizationConfigDetailView.as_view(), name='admin-org-config-detail'),
+    path('admin/organizations/<uuid:pk>/activate/', AdminOrganizationActivateView.as_view(), name='admin-org-activate'),
+    path('admin/organizations/<uuid:pk>/deactivate/', AdminOrganizationDeactivateView.as_view(), name='admin-org-deactivate'),
     path('admin/organizations/<uuid:pk>/suspend/', AdminOrganizationSuspendView.as_view(), name='admin-org-suspend'),
     path('admin/organizations/<uuid:pk>/unsuspend/', AdminOrganizationUnsuspendView.as_view(), name='admin-org-unsuspend'),
     path('admin/organizations/<uuid:pk>/upgrade-plan/', AdminOrganizationUpgradePlanView.as_view(), name='admin-org-upgrade-plan'),
@@ -361,6 +368,7 @@ urlpatterns = [
     # ========================================================================
     # Template duplication and usage
     path('templates/<uuid:pk>/use/', EmailTemplateUseView.as_view(), name='template-use'),
+    path('templates/<uuid:pk>/duplicate/', EmailTemplateDuplicateView.as_view(), name='template-duplicate'),
     path('templates/bulk-use/', EmailTemplateBulkUseView.as_view(), name='template-bulk-use'),
     
     # Template versioning

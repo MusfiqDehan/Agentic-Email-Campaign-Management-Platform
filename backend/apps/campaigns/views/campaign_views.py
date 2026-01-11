@@ -265,6 +265,48 @@ class ContactDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class ContactToggleStatusView(APIView):
+    """
+    Toggle a contact's active status.
+    
+    POST /contacts/{id}/toggle-status/
+    
+    Toggles between ACTIVE and UNSUBSCRIBED status.
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OrganizationRateThrottle]
+    
+    def post(self, request, pk):
+        contact = get_object_or_404(
+            Contact,
+            pk=pk,
+            organization=request.user.organization,
+            is_deleted=False
+        )
+        
+        # Toggle status
+        if contact.status == 'ACTIVE':
+            contact.status = 'UNSUBSCRIBED'
+            contact.is_active = False
+            message = 'Contact deactivated'
+        else:
+            contact.status = 'ACTIVE'
+            contact.is_active = True
+            message = 'Contact activated'
+        
+        contact.save(update_fields=['status', 'is_active', 'updated_at'])
+        
+        # Update list statistics
+        for contact_list in contact.lists.all():
+            contact_list.update_stats()
+        
+        serializer = ContactSerializer(contact, context={'request': request})
+        return Response({
+            'message': message,
+            'contact': serializer.data
+        })
+
+
 class OrganizationStatsView(APIView):
     """
     Get organization-wide dashboard statistics.

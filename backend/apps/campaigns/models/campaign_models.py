@@ -92,7 +92,7 @@ class Campaign(BaseModel):
     scheduled_at = models.DateTimeField(
         null=True, 
         blank=True,
-        help_text="When to send the campaign (stored in UTC)"
+        help_text="When to send the campaign"
     )
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)

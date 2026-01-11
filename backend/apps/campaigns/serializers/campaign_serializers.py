@@ -102,7 +102,7 @@ class ContactListSummarySerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ContactList
-        fields = ['id', 'name', 'total_contacts', 'active_contacts']
+        fields = ['id', 'name', 'total_contacts', 'active_contacts', 'created_at']
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -203,7 +203,7 @@ class ContactMinimalSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Contact
-        fields = ['id', 'email', 'first_name', 'last_name', 'full_name', 'status']
+        fields = ['id', 'email', 'first_name', 'last_name', 'full_name', 'phone', 'status', 'is_active', 'created_at']
 
 
 class BulkContactCreateSerializer(serializers.Serializer):
@@ -1037,7 +1037,7 @@ class CampaignScheduleSerializer(serializers.Serializer):
     """Serializer for scheduling a campaign."""
     
     scheduled_at = serializers.DateTimeField(
-        help_text="When to send the campaign (UTC)"
+        help_text="When to send the campaign (Local Time)"
     )
     
     def validate_scheduled_at(self, value):

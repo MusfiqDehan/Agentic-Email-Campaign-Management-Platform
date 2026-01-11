@@ -498,3 +498,57 @@ class EmailTemplateUpdateFromGlobalView(CustomResponseMixin, APIView):
             'template': EmailTemplateSerializer(org_template).data,
             'updated_to_version': latest_global.version
         })
+
+
+class EmailTemplateDuplicateView(CustomResponseMixin, APIView):
+    """
+    Duplicate an organization's own template.
+    POST /campaigns/templates/<uuid>/duplicate/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, pk):
+        try:
+            # Get the source template (must belong to user's organization)
+            source_template = EmailTemplate.objects.get(
+                id=pk,
+                organization_id=request.user.organization_id,
+                is_global=False,
+                is_deleted=False
+            )
+        except EmailTemplate.DoesNotExist:
+            raise NotFound("Template not found or you don't have permission to duplicate it")
+        
+        # Generate unique name for the duplicate
+        unique_name = generate_unique_template_name(
+            request.user.organization_id,
+            source_template.template_name
+        )
+        
+        # Create the duplicate
+        with transaction.atomic():
+            new_template = EmailTemplate.objects.create(
+                organization_id=request.user.organization_id,
+                template_name=unique_name,
+                category=source_template.category,
+                email_subject=source_template.email_subject,
+                preview_text=source_template.preview_text,
+                email_body=source_template.email_body,
+                text_body=source_template.text_body,
+                description=source_template.description,
+                tags=source_template.tags.copy() if source_template.tags else [],
+                is_global=False,
+                source_template=source_template.source_template,  # Keep link to original global template if exists
+                duplicated_by=request.user,
+                version=1,  # Start fresh version for duplicates
+                approval_status=EmailTemplate.ApprovalStatus.APPROVED,
+                is_draft=False,
+            )
+        
+        serializer = EmailTemplateSerializer(new_template)
+        return Response({
+            'message': 'Template duplicated successfully',
+            'template': serializer.data,
+            'redirect_url': f'/dashboard/templates/{new_template.id}/edit'
+        }, status=status.HTTP_201_CREATED)
+
