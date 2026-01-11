@@ -8,7 +8,7 @@ import api from '@/config/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ArrowLeft, Play, Copy, Eye, Send, AlertCircle, CheckCircle2, Clock, PauseCircle, XCircle, Rocket } from 'lucide-react';
+import { ArrowLeft, Play, Copy, Eye, Send, AlertCircle, CheckCircle2, Clock, PauseCircle, XCircle, Rocket, Calendar, RotateCcw } from 'lucide-react';
 import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -43,6 +43,7 @@ interface Campaign {
     tags: string[];
     total_recipients: number; // For backward compat if needed
     stats_total_recipients: number;
+    scheduled_at: string | null;
     created_at: string;
     updated_at: string;
     email_template: unknown;
@@ -61,7 +62,12 @@ export default function CampaignDetailPage() {
     const [isPreviewLoading, setIsPreviewLoading] = useState(false);
     const [launchDialogOpen, setLaunchDialogOpen] = useState(false);
     const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+    const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
     const [duplicateName, setDuplicateName] = useState('');
+    const [scheduledDateTime, setScheduledDateTime] = useState('');
+    const [isScheduling, setIsScheduling] = useState(false);
+    const [resetDialogOpen, setResetDialogOpen] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
     
     // Real-time updates
     const { onCampaignStatusUpdate } = useRealtimeUpdates();
@@ -154,6 +160,49 @@ export default function CampaignDetailPage() {
         setDuplicateDialogOpen(true);
     };
 
+    const handleScheduleClick = () => {
+        // Set default to tomorrow at 9 AM local time
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(9, 0, 0, 0);
+        
+        // Get local ISO string for datetime-local input (YYYY-MM-DDTHH:mm)
+        const tzOffset = tomorrow.getTimezoneOffset() * 60000;
+        const localISOTime = new Date(tomorrow.getTime() - tzOffset).toISOString().slice(0, 16);
+        
+        setScheduledDateTime(localISOTime);
+        setScheduleDialogOpen(true);
+    };
+
+    const handleScheduleConfirm = async () => {
+        if (!scheduledDateTime) {
+            toast.error('Please select a date and time');
+            return;
+        }
+
+        const scheduledDate = new Date(scheduledDateTime);
+        if (scheduledDate <= new Date()) {
+            toast.error('Scheduled time must be in the future');
+            return;
+        }
+
+        setIsScheduling(true);
+        try {
+            await api.post(`/campaigns/${id}/schedule/`, {
+                scheduled_at: scheduledDateTime
+            });
+            toast.success('Campaign scheduled successfully!');
+            setScheduleDialogOpen(false);
+            fetchCampaign();
+        } catch (error: unknown) {
+            console.error(error);
+            const axiosError = error as AxiosError<{ error?: string }>;
+            toast.error(axiosError.response?.data?.error || 'Failed to schedule campaign');
+        } finally {
+            setIsScheduling(false);
+        }
+    };
+
     const handleDuplicateConfirm = async () => {
         if (!duplicateName.trim()) return;
         setDuplicateDialogOpen(false);
@@ -166,6 +215,26 @@ export default function CampaignDetailPage() {
             console.error(error);
             const axiosError = error as AxiosError<{ error?: string }>;
             toast.error(axiosError.response?.data?.error || 'Failed to duplicate campaign');
+        }
+    };
+
+    const handleResetClick = () => {
+        setResetDialogOpen(true);
+    };
+
+    const handleResetConfirm = async () => {
+        setIsResetting(true);
+        try {
+            const response = await api.post(`/campaigns/${id}/reset/`);
+            toast.success(response.data.message || 'Campaign reset to DRAFT');
+            setResetDialogOpen(false);
+            fetchCampaign();
+        } catch (error: unknown) {
+            console.error(error);
+            const axiosError = error as AxiosError<{ error?: string }>;
+            toast.error(axiosError.response?.data?.error || 'Failed to reset campaign');
+        } finally {
+            setIsResetting(false);
         }
     };
 
@@ -209,8 +278,26 @@ export default function CampaignDetailPage() {
                         <Eye className="mr-2 h-4 w-4" /> {isPreviewLoading ? 'Generating...' : 'Preview Content'}
                     </Button>
                     {campaign.status === 'DRAFT' && (
-                        <Button onClick={handleLaunchClick} className="bg-gradient-to-r from-primary to-blue-600 hover:opacity-90">
-                            <Play className="mr-2 h-4 w-4" /> Launch Campaign
+                        <>
+                            <Button variant="outline" onClick={handleScheduleClick}>
+                                <Calendar className="mr-2 h-4 w-4" /> Schedule
+                            </Button>
+                            <Button onClick={handleLaunchClick} className="bg-gradient-to-r from-primary to-blue-600 hover:opacity-90">
+                                <Play className="mr-2 h-4 w-4" /> Launch Campaign
+                            </Button>
+                        </>
+                    )}
+                    {campaign.status === 'SCHEDULED' && (
+                        <div className="flex items-center gap-2 px-3 py-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                            <Clock className="h-4 w-4 text-orange-600" />
+                            <span className="text-sm font-medium text-orange-700 dark:text-orange-400">
+                                Scheduled: {campaign.scheduled_at ? new Date(campaign.scheduled_at).toLocaleString() : 'N/A'}
+                            </span>
+                        </div>
+                    )}
+                    {['SCHEDULED', 'SENDING', 'PAUSED', 'CANCELLED'].includes(campaign.status) && (
+                        <Button variant="outline" onClick={handleResetClick} className="border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950">
+                            <RotateCcw className="mr-2 h-4 w-4" /> Reset to Draft
                         </Button>
                     )}
                 </div>
@@ -402,6 +489,111 @@ export default function CampaignDetailPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Schedule Dialog */}
+            <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
+                                <Calendar className="h-6 w-6 text-orange-600" />
+                            </div>
+                            <div>
+                                <DialogTitle>Schedule Campaign</DialogTitle>
+                                <DialogDescription>
+                                    Choose when you want this campaign to be sent.
+                                </DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <div>
+                            <Label htmlFor="scheduledAt" className="text-sm font-medium">
+                                Send Date & Time
+                            </Label>
+                            <Input
+                                id="scheduledAt"
+                                type="datetime-local"
+                                value={scheduledDateTime}
+                                onChange={(e) => setScheduledDateTime(e.target.value)}
+                                min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                                className="mt-2"
+                            />
+                            <p className="text-xs text-muted-foreground mt-2">
+                                Select a future date and time for the campaign to be sent.
+                            </p>
+                        </div>
+                        {scheduledDateTime && (
+                            <div className="p-3 rounded-lg bg-muted/50 border">
+                                <p className="text-sm">
+                                    <span className="text-muted-foreground">Campaign will be sent on:</span>
+                                    <br />
+                                    <span className="font-semibold">
+                                        {new Date(scheduledDateTime).toLocaleString(undefined, {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </span>
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={handleScheduleConfirm}
+                            disabled={!scheduledDateTime || isScheduling}
+                            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:opacity-90"
+                        >
+                            {isScheduling ? 'Scheduling...' : 'Schedule Campaign'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Reset Campaign Dialog */}
+            <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                                <RotateCcw className="h-6 w-6 text-amber-600" />
+                            </div>
+                            <div>
+                                <AlertDialogTitle>Reset Campaign to Draft</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will reset the campaign status back to DRAFT. Any scheduled time will be cleared. 
+                                    Use this if the campaign is stuck or you want to make changes.
+                                </AlertDialogDescription>
+                            </div>
+                        </div>
+                    </AlertDialogHeader>
+                    <div className="my-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800">
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                            <strong>Current Status:</strong> {campaign?.status}
+                        </p>
+                        <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                            After reset, you can edit and re-launch or re-schedule the campaign.
+                        </p>
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleResetConfirm}
+                            disabled={isResetting}
+                            className="bg-amber-600 hover:bg-amber-700"
+                        >
+                            {isResetting ? 'Resetting...' : 'Reset to Draft'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
