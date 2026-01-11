@@ -20,7 +20,8 @@ import {
   Building2,
   Bell,
   UsersRound,
-  CheckSquare
+  CheckSquare,
+  ScrollText
 } from 'lucide-react';
 import { useAuth, usePlatformAdmin, useOrgAdmin } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,12 @@ const sidebarItems = [
     href: '/dashboard/templates',
     icon: FileText,
     color: 'text-orange-500'
+  },
+  {
+    title: 'Delivery Logs',
+    href: '/dashboard/logs',
+    icon: ScrollText,
+    color: 'text-cyan-500'
   },
 ];
 
