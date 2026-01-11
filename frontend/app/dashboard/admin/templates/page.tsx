@@ -1,15 +1,43 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/config/axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   FileText, Plus, Search, Edit, BarChart3, 
-  TrendingUp, Users, Eye 
+  TrendingUp, Users, Eye, Trash2, AlertTriangle, X,
+  CheckCircle2, XCircle, Clock, MoreVertical, FileEdit
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -23,8 +51,8 @@ import { TEMPLATE_CATEGORIES } from '@/config/constants';
 
 interface Template {
   id: string;
-  name: string;
-  subject: string;
+  template_name: string;
+  email_subject: string;
   category: string;
   is_global: boolean;
   is_published: boolean;
@@ -33,13 +61,37 @@ interface Template {
   usage_count: number;
   created_at: string;
   updated_at: string;
+  email_body?: string;
+  text_body?: string;
+  preview_text?: string;
+  description?: string;
+  organization?: {
+    id: string;
+    name: string;
+  };
 }
 
+const normalizeToLower = (value?: string | null) =>
+  typeof value === 'string' ? value.toLowerCase() : '';
+
 export default function AdminTemplatesPage() {
+  const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  
+  // View dialog state
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Approval status update state
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
 
   const fetchTemplates = useCallback(async () => {
     setIsLoading(true);
@@ -49,7 +101,32 @@ export default function AdminTemplatesPage() {
         params.category = selectedCategory;
       }
       const response = await api.get('/campaigns/admin/templates/', { params });
-      setTemplates(response.data.data || []);
+      const rawTemplates = Array.isArray(response?.data?.data)
+        ? response.data.data
+        : [];
+
+      const sanitizedTemplates: Template[] = rawTemplates
+        .filter(
+          (template: any) =>
+            typeof template === 'object' &&
+            template !== null &&
+            typeof template.id === 'string'
+        )
+        .map((template: any) => ({
+          ...template,
+          template_name: template?.template_name ?? 'Untitled template',
+          email_subject: template?.email_subject ?? 'No subject provided',
+          category: template?.category ?? 'OTHER',
+          approval_status: template?.approval_status ?? 'PENDING_APPROVAL',
+          version: template?.version ?? 1,
+          usage_count: template?.usage_count ?? 0,
+          created_at: template?.created_at ?? template?.updated_at ?? '',
+          updated_at: template?.updated_at ?? template?.created_at ?? '',
+          is_global: Boolean(template?.is_global),
+          is_published: Boolean(template?.is_published),
+        }));
+
+      setTemplates(sanitizedTemplates);
     } catch (error) {
       console.error(error);
       toast.error('Failed to fetch templates');
@@ -62,13 +139,90 @@ export default function AdminTemplatesPage() {
     fetchTemplates();
   }, [fetchTemplates]);
 
-  const filteredTemplates = templates.filter(template =>
-    template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    template.subject.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  const globalTemplates = filteredTemplates.filter(t => t.is_global);
+  const filteredTemplates = templates.filter((template) => {
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    return (
+      normalizeToLower(template?.template_name).includes(normalizedQuery) ||
+      normalizeToLower(template?.email_subject).includes(normalizedQuery)
+    );
+  });
+
+  // Global templates page only shows APPROVED templates
+  // Draft/Pending/Rejected are shown in the Approvals page
+  const globalTemplates = filteredTemplates.filter(t => t.is_global && t.approval_status === 'APPROVED');
   const orgTemplates = filteredTemplates.filter(t => !t.is_global);
+
+  // View template handler
+  const handleViewTemplate = (template: Template) => {
+    setSelectedTemplate(template);
+    setViewDialogOpen(true);
+  };
+
+  // Edit template handler  
+  const handleEditTemplate = (template: Template) => {
+    router.push(`/dashboard/admin/templates/${template.id}/edit`);
+  };
+
+  // Delete template handlers
+  const handleDeleteClick = (template: Template) => {
+    setTemplateToDelete(template);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!templateToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await api.delete(`/campaigns/admin/templates/${templateToDelete.id}/`);
+      toast.success('Template deleted successfully');
+      fetchTemplates();
+    } catch (error: any) {
+      console.error(error);
+      const message = error?.response?.data?.detail || 'Failed to delete template';
+      toast.error(message);
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setTemplateToDelete(null);
+    }
+  };
+
+  // View analytics handler
+  const handleViewAnalytics = (template: Template) => {
+    router.push(`/dashboard/admin/templates/${template.id}/analytics`);
+  };
+
+  // Update approval status handler
+  const handleUpdateApprovalStatus = async (template: Template, newStatus: string) => {
+    setIsUpdatingStatus(template.id);
+    try {
+      await api.patch(`/campaigns/admin/templates/${template.id}/`, {
+        approval_status: newStatus
+      });
+      toast.success(`Template status updated to ${newStatus.replace('_', ' ').toLowerCase()}`);
+      fetchTemplates();
+    } catch (error: any) {
+      console.error(error);
+      const message = error?.response?.data?.detail || 'Failed to update approval status';
+      toast.error(message);
+    } finally {
+      setIsUpdatingStatus(null);
+    }
+  };
+
+  // Approval status options
+  const approvalStatusOptions = [
+    { value: 'DRAFT', label: 'Draft', icon: FileEdit, color: 'text-gray-500' },
+    { value: 'PENDING_APPROVAL', label: 'Pending Approval', icon: Clock, color: 'text-yellow-500' },
+    { value: 'APPROVED', label: 'Approved', icon: CheckCircle2, color: 'text-green-500' },
+    { value: 'REJECTED', label: 'Rejected', icon: XCircle, color: 'text-red-500' },
+  ];
 
   return (
     <div className="p-6 space-y-6">
@@ -190,7 +344,7 @@ export default function AdminTemplatesPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {globalTemplates.map((template) => {
-                const categoryInfo = getCategoryInfo(template.category);
+                const categoryInfo = getCategoryInfo(template.category.toLowerCase());
                 const statusInfo = getApprovalStatusInfo(template.approval_status);
                 return (
                   <Card key={template.id} className="hover:shadow-lg transition-shadow">
@@ -203,9 +357,9 @@ export default function AdminTemplatesPage() {
                               {categoryInfo.label}
                             </Badge>
                           </div>
-                          <CardTitle className="text-lg">{template.name}</CardTitle>
+                          <CardTitle className="text-lg">{template.template_name}</CardTitle>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {template.subject}
+                            {template.email_subject}
                           </p>
                         </div>
                       </div>
@@ -217,9 +371,40 @@ export default function AdminTemplatesPage() {
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Status</span>
-                        <Badge className={statusInfo.color}>
-                          {statusInfo.label}
-                        </Badge>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-auto p-0 hover:bg-transparent"
+                              disabled={isUpdatingStatus === template.id}
+                            >
+                              <Badge className={`${statusInfo.color} cursor-pointer hover:opacity-80`}>
+                                {isUpdatingStatus === template.id ? 'Updating...' : statusInfo.label}
+                              </Badge>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {approvalStatusOptions.map((option) => {
+                              const Icon = option.icon;
+                              const isActive = template.approval_status === option.value;
+                              return (
+                                <DropdownMenuItem
+                                  key={option.value}
+                                  onClick={() => handleUpdateApprovalStatus(template, option.value)}
+                                  disabled={isActive}
+                                  className={isActive ? 'bg-muted' : ''}
+                                >
+                                  <Icon className={`h-4 w-4 mr-2 ${option.color}`} />
+                                  {option.label}
+                                  {isActive && <span className="ml-auto text-xs text-muted-foreground">(current)</span>}
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Usage</span>
@@ -230,16 +415,38 @@ export default function AdminTemplatesPage() {
                         <span className="text-xs">{formatDate(template.updated_at)}</span>
                       </div>
                       <div className="flex items-center gap-2 pt-2">
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleViewTemplate(template)}
+                        >
                           <Eye className="h-3 w-3 mr-1" />
                           View
                         </Button>
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleEditTemplate(template)}
+                        >
                           <Edit className="h-3 w-3 mr-1" />
                           Edit
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewAnalytics(template)}
+                        >
                           <BarChart3 className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteClick(template)}
+                        >
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </CardContent>
@@ -269,7 +476,7 @@ export default function AdminTemplatesPage() {
           ) : (
             <div className="space-y-3">
               {orgTemplates.map((template) => {
-                const categoryInfo = getCategoryInfo(template.category);
+                const categoryInfo = getCategoryInfo(template.category.toLowerCase());
                 return (
                   <Card key={template.id}>
                     <CardContent className="p-4">
@@ -277,10 +484,15 @@ export default function AdminTemplatesPage() {
                         <div className="flex items-center gap-4">
                           <span className="text-2xl">{categoryInfo.icon}</span>
                           <div>
-                            <h3 className="font-semibold">{template.name}</h3>
+                            <h3 className="font-semibold">{template.template_name}</h3>
                             <p className="text-sm text-muted-foreground">
-                              {template.subject}
+                              {template.email_subject}
                             </p>
+                            {template.organization && (
+                              <p className="text-xs text-blue-600 mt-1">
+                                {template.organization.name}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
@@ -290,8 +502,27 @@ export default function AdminTemplatesPage() {
                           <Badge variant="outline">
                             {template.usage_count} uses
                           </Badge>
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewTemplate(template)}
+                          >
                             <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditTemplate(template)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteClick(template)}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -303,6 +534,172 @@ export default function AdminTemplatesPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* View Template Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-xl">
+                {selectedTemplate?.template_name}
+              </DialogTitle>
+            </div>
+            <DialogDescription>
+              {selectedTemplate?.email_subject}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedTemplate && (
+            <div className="space-y-6">
+              {/* Template Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Category</label>
+                  <p className="mt-1">{getCategoryInfo(selectedTemplate.category.toLowerCase()).label}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Status</label>
+                  <div className="mt-1">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-auto p-0 hover:bg-transparent"
+                          disabled={isUpdatingStatus === selectedTemplate.id}
+                        >
+                          <Badge className={`${getApprovalStatusInfo(selectedTemplate.approval_status).color} cursor-pointer hover:opacity-80`}>
+                            {isUpdatingStatus === selectedTemplate.id ? 'Updating...' : getApprovalStatusInfo(selectedTemplate.approval_status).label}
+                          </Badge>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {approvalStatusOptions.map((option) => {
+                          const Icon = option.icon;
+                          const isActive = selectedTemplate.approval_status === option.value;
+                          return (
+                            <DropdownMenuItem
+                              key={option.value}
+                              onClick={() => {
+                                handleUpdateApprovalStatus(selectedTemplate, option.value);
+                                // Update local state for immediate UI feedback
+                                setSelectedTemplate({ ...selectedTemplate, approval_status: option.value });
+                              }}
+                              disabled={isActive}
+                              className={isActive ? 'bg-muted' : ''}
+                            >
+                              <Icon className={`h-4 w-4 mr-2 ${option.color}`} />
+                              {option.label}
+                              {isActive && <span className="ml-auto text-xs text-muted-foreground">(current)</span>}
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Version</label>
+                  <p className="mt-1">{formatVersion(selectedTemplate.version)}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Usage Count</label>
+                  <p className="mt-1">{selectedTemplate.usage_count} times</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Type</label>
+                  <p className="mt-1">
+                    <Badge variant={selectedTemplate.is_global ? "default" : "secondary"}>
+                      {selectedTemplate.is_global ? "Global" : "Organization"}
+                    </Badge>
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Last Updated</label>
+                  <p className="mt-1">{formatDate(selectedTemplate.updated_at)}</p>
+                </div>
+              </div>
+
+              {/* Preview Text */}
+              {selectedTemplate.preview_text && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Preview Text</label>
+                  <p className="mt-1 text-sm">{selectedTemplate.preview_text}</p>
+                </div>
+              )}
+
+              {/* Description */}
+              {selectedTemplate.description && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Description</label>
+                  <p className="mt-1 text-sm">{selectedTemplate.description}</p>
+                </div>
+              )}
+
+              {/* Email Body Preview */}
+              {selectedTemplate.email_body && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Email Content Preview</label>
+                  <div 
+                    className="mt-2 border rounded-lg p-4 bg-muted/30 max-h-[300px] overflow-auto prose prose-sm max-w-none dark:prose-invert"
+                    dangerouslySetInnerHTML={{ __html: selectedTemplate.email_body }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+              Close
+            </Button>
+            <Button onClick={() => {
+              setViewDialogOpen(false);
+              if (selectedTemplate) handleEditTemplate(selectedTemplate);
+            }}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+              </div>
+              <div>
+                <AlertDialogTitle>Delete Template</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete &quot;{templateToDelete?.template_name}&quot;? 
+                  {templateToDelete?.usage_count && templateToDelete.usage_count > 0 && (
+                    <span className="block mt-1 text-amber-600">
+                      Warning: This template has been used {templateToDelete.usage_count} times.
+                    </span>
+                  )}
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
