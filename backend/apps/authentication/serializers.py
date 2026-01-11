@@ -86,6 +86,15 @@ class LoginSerializer(serializers.Serializer):
             raise ValidationError("Invalid credentials")
         if not user.is_active:
             raise ValidationError("Email not verified")
+        
+        # Check if user's organization is deactivated (skip for platform admins)
+        if not user.is_platform_admin and user.organization and not user.organization.is_active:
+            raise ValidationError({
+                "organization_deactivated": True,
+                "message": "Your organization has been deactivated. Please contact the platform administrator for assistance.",
+                "reason": user.organization.deactivation_reason or "No reason provided"
+            })
+        
         user = authenticate(username=user.username, password=password)
         if not user:
             raise ValidationError("Invalid credentials")
