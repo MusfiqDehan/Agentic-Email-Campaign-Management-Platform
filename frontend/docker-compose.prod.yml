@@ -1,0 +1,6 @@
+services:
+  app:
+    # In production we typically only serve via Nginx
+    # Keep ports mapping if you want to access directly (Nginx will proxy to 3001)
+    ports:
+      - "127.0.0.1:3001:3001"

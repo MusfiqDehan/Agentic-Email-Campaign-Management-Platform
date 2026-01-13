@@ -445,7 +445,7 @@ def broadcast_campaign_status_update(sender, instance, created, **kwargs):
         logger.info(f"Broadcast campaign status update: {instance.id} changed from {old_status} to {instance.status}")
         
         # Send push notification only when status changes from SENDING to SENT
-        if old_status == 'SENDING' and instance.status == 'SENT':
+        if old_status in ['SENDING', 'SCHEDULED', 'PAUSED', 'CANCELLED', 'DRAFT'] and instance.status == 'SENT':
             try:
                 from .utils.push_utils import send_campaign_status_notification
                 send_campaign_status_notification(instance, old_status, instance.status)

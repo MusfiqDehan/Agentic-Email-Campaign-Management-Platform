@@ -326,15 +326,18 @@ export default function ProfilePage() {
                         <form onSubmit={handleUpdateOrganization}>
                             <CardContent className="space-y-6">
                                 <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 rounded-xl bg-muted/30 p-4">
-                                    <div className="relative group rounded-xl border-2 border-dashed border-border p-3 bg-background transition-all hover:border-primary/50">
+                                    <div className="relative group rounded-xl border-2 border-dashed border-border p-3 bg-background transition-all hover:border-primary/50 overflow-hidden">
                                         <Image
                                             src={orgLogoSrc}
                                             alt="Org Logo"
                                             width={96}
                                             height={96}
                                             className="h-24 w-24 object-contain"
+                                            unoptimized
                                             onError={() => {
-                                                setOrgLogoSrc('https://placehold.co/100x100?text=Logo');
+                                                if (orgLogoSrc !== '/placeholder-logo.png') {
+                                                    setOrgLogoSrc('/placeholder-logo.png');
+                                                }
                                             }}
                                         />
                                         <button

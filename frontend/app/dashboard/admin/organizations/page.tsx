@@ -1,12 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import api from '@/config/axios';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Building2, Search, Users, Mail, TrendingUp } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Building2, Search, Users, Mail, TrendingUp, Power, PowerOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '@/config/template-utils';
 
@@ -22,32 +32,77 @@ interface Organization {
   campaign_count: number;
   created_at: string;
   is_active: boolean;
+  deactivation_reason?: string;
+  deactivated_at?: string;
 }
 
 export default function OrganizationsPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
+  const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+  const [deactivationReason, setDeactivationReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchOrganizations = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get('/campaigns/admin/organizations/');
+      setOrganizations(response.data.data || []);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to fetch organizations');
+      setOrganizations([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchOrganizations = async () => {
-      setIsLoading(true);
-      try {
-        // This endpoint would need to be created in the backend
-        const response = await api.get('/campaigns/admin/organizations/');
-        setOrganizations(response.data.data || []);
-      } catch (error) {
-        console.error(error);
-        toast.error('Failed to fetch organizations');
-        // For now, show empty state
-        setOrganizations([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchOrganizations();
-  }, []);
+  }, [fetchOrganizations]);
+
+  const handleActivate = async (org: Organization) => {
+    setIsSubmitting(true);
+    try {
+      await api.post(`/campaigns/admin/organizations/${org.id}/activate/`);
+      toast.success(`${org.name} has been activated`);
+      fetchOrganizations();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to activate organization');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openDeactivateDialog = (org: Organization) => {
+    setSelectedOrg(org);
+    setDeactivationReason('');
+    setIsDeactivateDialogOpen(true);
+  };
+
+  const handleDeactivate = async () => {
+    if (!selectedOrg) return;
+    
+    setIsSubmitting(true);
+    try {
+      await api.post(`/campaigns/admin/organizations/${selectedOrg.id}/deactivate/`, {
+        reason: deactivationReason || 'Deactivated by platform admin',
+      });
+      toast.success(`${selectedOrg.name} has been deactivated`);
+      setIsDeactivateDialogOpen(false);
+      setSelectedOrg(null);
+      setDeactivationReason('');
+      fetchOrganizations();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to deactivate organization');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const filteredOrganizations = organizations.filter(org =>
     org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -168,10 +223,15 @@ export default function OrganizationsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-lg font-semibold">{org.name}</h3>
-                        <Badge variant={org.is_active ? 'default' : 'secondary'}>
-                          {org.is_active ? 'Active' : 'Inactive'}
+                        <Badge variant={org.is_active ? 'default' : 'destructive'}>
+                          {org.is_active ? 'Active' : 'Deactivated'}
                         </Badge>
                       </div>
+                      {!org.is_active && org.deactivation_reason && (
+                        <p className="text-sm text-destructive mb-2">
+                          Reason: {org.deactivation_reason}
+                        </p>
+                      )}
                       <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                         <div>
                           <p className="font-medium text-foreground mb-1">Owner</p>
@@ -199,15 +259,94 @@ export default function OrganizationsPage() {
                       </div>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">
-                    View Details
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {org.is_active ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openDeactivateDialog(org)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <PowerOff className="h-4 w-4 mr-1" />
+                        Deactivate
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleActivate(org)}
+                        disabled={isSubmitting}
+                        className="text-green-600 hover:text-green-600"
+                      >
+                        {isSubmitting ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Power className="h-4 w-4 mr-1" />
+                        )}
+                        Activate
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm">
+                      View Details
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))
         )}
       </div>
+
+      {/* Deactivate Organization Dialog */}
+      <Dialog open={isDeactivateDialogOpen} onOpenChange={setIsDeactivateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Deactivate Organization</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to deactivate <strong>{selectedOrg?.name}</strong>?
+              Users from this organization will not be able to login until it is reactivated.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="reason">Reason for deactivation</Label>
+              <Textarea
+                id="reason"
+                placeholder="Enter a reason for deactivating this organization..."
+                value={deactivationReason}
+                onChange={(e) => setDeactivationReason(e.target.value)}
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                This reason will be shown to users when they try to login.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeactivateDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeactivate}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deactivating...
+                </>
+              ) : (
+                'Deactivate Organization'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

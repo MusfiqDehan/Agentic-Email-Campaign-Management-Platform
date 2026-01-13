@@ -5,7 +5,7 @@
  */
 const NEWSLETTER_CONFIG = {
     // API endpoint for the public subscribe endpoint
-    API_URL: 'http://localhost:8002/api/v1/campaigns/public/subscribe/',
+    API_URL: 'http://localhost:8001/api/v1/campaigns/public/subscribe/',
     
     // The subscription token for your contact list
     // Each ContactList has a unique subscription_token

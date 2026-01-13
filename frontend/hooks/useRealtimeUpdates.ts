@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Cookies from 'js-cookie';
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8002';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8001';
 
 export interface CampaignStatusUpdate {
   id: string;
@@ -33,7 +33,7 @@ export const useRealtimeUpdates = () => {
   const callbacksRef = useRef<Map<string, CampaignStatusUpdateCallback>>(new Map());
   
   const MAX_RECONNECT_ATTEMPTS = 5;
-  const RECONNECT_DELAY = 3000; // 3 seconds
+  const RECONNECT_DELAY = 3001; // 3 seconds
 
   // Register a callback for campaign status updates
   const onCampaignStatusUpdate = useCallback((id: string, callback: CampaignStatusUpdateCallback) => {

@@ -399,6 +399,66 @@ class AdminOrganizationConfigDetailView(APIView):
         return success(data=serializer.data)
 
 
+class AdminOrganizationActivateView(APIView):
+    """
+    Activate an organization.
+    
+    POST /admin/organizations/{id}/activate/
+    """
+    permission_classes = [IsPlatformAdmin]
+    
+    def post(self, request, pk):
+        """Activate an organization, allowing users to login again."""
+        organization = get_object_or_404(Organization, pk=pk)
+        
+        if organization.is_active:
+            return error(message=f'Organization {organization.name} is already active')
+        
+        organization.is_active = True
+        organization.deactivation_reason = ''
+        organization.deactivated_at = None
+        organization.save(update_fields=['is_active', 'deactivation_reason', 'deactivated_at', 'updated_at'])
+        
+        return success(
+            message=f'Organization {organization.name} has been activated',
+            data={'organization_id': str(pk), 'is_active': True}
+        )
+
+
+class AdminOrganizationDeactivateView(APIView):
+    """
+    Deactivate an organization.
+    
+    POST /admin/organizations/{id}/deactivate/
+    
+    When deactivated, users of this organization will not be able to login.
+    """
+    permission_classes = [IsPlatformAdmin]
+    
+    def post(self, request, pk):
+        """Deactivate an organization, preventing users from logging in."""
+        organization = get_object_or_404(Organization, pk=pk)
+        
+        if not organization.is_active:
+            return error(message=f'Organization {organization.name} is already deactivated')
+        
+        reason = request.data.get('reason', 'Deactivated by platform admin')
+        
+        organization.is_active = False
+        organization.deactivation_reason = reason
+        organization.deactivated_at = timezone.now()
+        organization.save(update_fields=['is_active', 'deactivation_reason', 'deactivated_at', 'updated_at'])
+        
+        return success(
+            message=f'Organization {organization.name} has been deactivated',
+            data={
+                'organization_id': str(pk),
+                'is_active': False,
+                'reason': reason
+            }
+        )
+
+
 class AdminOrganizationSuspendView(APIView):
     """
     Suspend an organization's email service.

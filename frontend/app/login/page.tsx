@@ -10,10 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import type { AxiosError } from 'axios';
-import { Mail, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Eye, EyeOff, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 const loginSchema = z.object({
@@ -23,10 +24,18 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+interface OrganizationDeactivatedError {
+  organization_deactivated?: boolean;
+  message?: string;
+  reason?: string;
+}
+
 export default function LoginPage() {
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [orgDeactivatedError, setOrgDeactivatedError] = useState<OrganizationDeactivatedError | null>(null);
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -34,6 +43,8 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
+    setOrgDeactivatedError(null);
+    setEmailNotVerified(false);
     try {
       const response = await api.post('/auth/login/', data);
       const { access, refresh, user } = response.data.data;
@@ -41,8 +52,45 @@ export default function LoginPage() {
       toast.success('Logged in successfully');
     } catch (error: unknown) {
       console.error(error);
-      const axiosError = error as AxiosError<{ detail?: string }>;
-      toast.error(axiosError.response?.data?.detail || 'Failed to login');
+      const axiosError = error as AxiosError<{
+        detail?: string;
+        message?: string;
+        errors?: {
+          organization_deactivated?: string[];
+          message?: string[];
+          reason?: string[];
+          non_field_errors?: string[];
+        };
+      }>;
+      
+      const responseErrors = axiosError.response?.data?.errors;
+      
+      // Check if email is not verified
+      if (responseErrors?.non_field_errors?.includes('Email not verified')) {
+        setEmailNotVerified(true);
+        return;
+      }
+      
+      // Check if this is an organization deactivation error
+      if (responseErrors?.organization_deactivated) {
+        const isDeactivated = responseErrors.organization_deactivated[0]?.toLowerCase() === 'true';
+        if (isDeactivated) {
+          setOrgDeactivatedError({
+            organization_deactivated: true,
+            message: responseErrors.message?.[0] || 'Your organization has been deactivated.',
+            reason: responseErrors.reason?.[0] || 'No reason provided',
+          });
+          return;
+        }
+      }
+      
+      // Show generic error message
+      const errorMessage = 
+        axiosError.response?.data?.message ||
+        axiosError.response?.data?.detail ||
+        responseErrors?.non_field_errors?.[0] ||
+        'Failed to login';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -77,6 +125,43 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Email Not Verified Alert */}
+          {emailNotVerified && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Email Not Verified</AlertTitle>
+              <AlertDescription className="mt-2 space-y-2">
+                <p>Your email address has not been verified yet. Please check your inbox for a verification link.</p>
+                <p className="text-sm">
+                  Didn't receive the email? Please check your spam folder.
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Organization Deactivated Alert */}
+          {orgDeactivatedError && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Organization Deactivated</AlertTitle>
+              <AlertDescription className="mt-2 space-y-2">
+                <p>{orgDeactivatedError.message || 'Your organization has been deactivated.'}</p>
+                {orgDeactivatedError.reason && (
+                  <p className="text-sm opacity-90">
+                    <strong>Reason:</strong> {orgDeactivatedError.reason}
+                  </p>
+                )}
+                <p className="text-sm">
+                  Please contact the platform administrator at{' '}
+                  <a href="mailto:support@example.com" className="underline font-medium">
+                    support@example.com
+                  </a>{' '}
+                  for assistance.
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">

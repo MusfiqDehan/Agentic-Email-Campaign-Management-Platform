@@ -3,6 +3,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+import json
 from .serializers import (
     SignupSerializer,
     LoginSerializer,
@@ -86,6 +87,7 @@ class LoginView(ResponseMixin, GenericAPIView):
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "is_platform_admin": user.is_platform_admin,
+                "is_org_admin": user.is_org_admin,
             }
             
             # Include organization info if user belongs to one
@@ -186,7 +188,7 @@ class ProfileDetailView(ResponseMixin, GenericAPIView):
         return UserProfileSerializer
 
     def get(self, request):
-        serializer = self.get_serializer(request.user)
+        serializer = self.get_serializer(request.user, context={'request': request})
         return self.success(serializer.data)
 
     def patch(self, request):
@@ -194,21 +196,46 @@ class ProfileDetailView(ResponseMixin, GenericAPIView):
         organization = user.organization
 
         # Separate user and organization data from request
-        user_data = request.data.copy()
+        # Convert QueryDict to a regular dict to avoid list-wrapping issues
+        if hasattr(request.data, 'dict'):
+            raw_data = request.data.dict()
+        else:
+            raw_data = request.data.copy()
+
+        user_data = {}
         org_data = {}
         
-        # If 'organization_details' is in request, it might be nested
-        if 'organization_details' in user_data:
-            org_data = user_data.pop('organization_details')
-        
-        # Also check for top-level org fields if they aren't nested (common in multipart)
-        org_fields = ['name', 'description', 'logo']
-        for field in org_fields:
-            if field in user_data and field not in org_data:
-                org_data[field] = user_data.pop(field)
+        # Define fields belonging to each model
+        user_field_names = [
+            'first_name', 'last_name', 'phone_number', 'occupation',
+            'country', 'city', 'address', 'profile_picture', 'gender', 'date_of_birth'
+        ]
+        org_field_names = ['name', 'description', 'logo']
+
+        # Handle nested organization_details if present (JSON or dict)
+        if 'organization_details' in raw_data:
+            nested_org = raw_data.pop('organization_details')
+            if isinstance(nested_org, str):
+                try:
+                    org_data.update(json.loads(nested_org))
+                except json.JSONDecodeError:
+                    pass
+            elif isinstance(nested_org, dict):
+                org_data.update(nested_org)
+
+        # Distribute remaining top-level fields
+        for key, value in raw_data.items():
+            if key in org_field_names:
+                org_data[key] = value
+            elif key in user_field_names:
+                user_data[key] = value
+            else:
+                # If it's not explicitly in our known lists, keep it in user_data
+                # so the UserProfileSerializer can decide whether to use it.
+                user_data[key] = value
 
         # Update User
-        user_serializer = UserProfileSerializer(user, data=user_data, partial=True)
+        user_serializer = UserProfileSerializer(user, data=user_data, partial=True, context={'request': request})
         if user_serializer.is_valid():
             user_serializer.save()
         else:
@@ -216,10 +243,21 @@ class ProfileDetailView(ResponseMixin, GenericAPIView):
 
         # Update Organization if user is admin/owner
         if organization and org_data and user.is_org_admin:
-            org_serializer = OrganizationProfileSerializer(organization, data=org_data, partial=True)
+            org_serializer = OrganizationProfileSerializer(
+                organization, 
+                data=org_data, 
+                partial=True,
+                context={'request': request}
+            )
             if org_serializer.is_valid():
                 org_serializer.save()
             else:
                 return self.error("Failed to update organization profile", errors=org_serializer.errors)
 
-        return self.success(UserProfileSerializer(user).data, message="Profile updated successfully")
+        # Refresh objects from DB to ensure next serializer gets latest data
+        user.refresh_from_db()
+
+        return self.success(
+            UserProfileSerializer(user, context={'request': request}).data, 
+            message="Profile updated successfully"
+        )

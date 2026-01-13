@@ -45,6 +45,7 @@ from .base_serializers import (
 # Import from admin_serializers.py
 from .admin_serializers import (
     AdminOrganizationSerializer,
+    AdminEmailTemplateSerializer,
 )
 
 # Import from enhanced_serializers.py

@@ -647,35 +647,12 @@ class EmailDeliveryLogListView(UniversalAutoFilterMixin, CustomResponseMixin, ge
         return queryset.select_related('automation_rule', 'email_provider', 'email_validation', 'email_template')
 
     def list(self, request, *args, **kwargs):
-        scope = request.query_params.get('scope', '').lower()
-        include_global_flag = str(request.query_params.get('include_global', '')).lower()
-        include_global = include_global_flag in TRUTHY_QUERY_VALUES
-
-        # Remove scope and include_global from query params to prevent them from being treated as filters
-        # These are special parameters for log_scope filtering, not model fields
-        filtered_params = request.query_params.copy()
-        filtered_params.pop('scope', None)
-        filtered_params.pop('include_global', None)
-        
-        # Temporarily replace query_params to exclude scope parameters during filtering
-        original_query_params = request.query_params
-        request._request.GET = filtered_params
-        
         queryset = self.filter_queryset(self.get_queryset())
         
-        # Restore original query_params
-        request._request.GET = original_query_params
-
-        if scope == 'global':
-            queryset = queryset.filter(log_scope='GLOBAL')
-        elif scope == 'tenant':
-            queryset = queryset.filter(log_scope='TENANT')
-        elif scope == 'all':
-            pass  # include both scopes
-        elif include_global:
-            pass  # include both scopes when explicitly requested
-        else:
-            queryset = queryset.filter(log_scope='TENANT')
+        # Filter by organization if user is authenticated and has an organization
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            if hasattr(request.user, 'organization') and request.user.organization:
+                queryset = queryset.filter(organization=request.user.organization)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -684,26 +661,12 @@ class EmailDeliveryLogListView(UniversalAutoFilterMixin, CustomResponseMixin, ge
 
         serializer = self.get_serializer(queryset, many=True)
 
-        if scope == 'global':
-            message = "Global email logs retrieved successfully"
-            response_scope = 'GLOBAL'
-        elif scope == 'tenant' and not include_global:
-            message = "Tenant email logs retrieved successfully"
-            response_scope = 'TENANT'
-        elif include_global or scope == 'all':
-            message = "Combined tenant and global email logs retrieved successfully"
-            response_scope = 'COMBINED'
-        else:
-            message = "Tenant email logs retrieved successfully"
-            response_scope = 'TENANT'
-
         return self.success_response(
             data={
                 'count': len(serializer.data),
-                'scope': response_scope,
                 'results': serializer.data
             },
-            message=message
+            message="Email logs retrieved successfully"
         )
 
 
@@ -880,21 +843,10 @@ class EmailDeliveryLogAnalyticsView(CustomResponseMixin, APIView):
         # Use the same filtering logic as the list view
         queryset = EmailDeliveryLog.objects.all()
         
-        # Apply same filters as list view
-        tenant_id = request.query_params.get('tenant_id')
-        if tenant_id:
-            queryset = queryset.filter(tenant_id=tenant_id)
-        
-        product_id = request.query_params.get('product_id')
-        if product_id:
-            queryset = queryset.filter(
-                Q(product_id=product_id) | Q(automation_rule__product_id=product_id)
-            )
-        scope = request.query_params.get('scope')
-        if scope:
-            scope = scope.upper()
-            if scope in {'GLOBAL', 'TENANT'}:
-                queryset = queryset.filter(log_scope=scope)
+        # Filter by organization if user is authenticated
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            if hasattr(request.user, 'organization') and request.user.organization:
+                queryset = queryset.filter(organization=request.user.organization)
         
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')

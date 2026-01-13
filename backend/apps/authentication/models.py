@@ -72,6 +72,21 @@ class Organization(models.Model):
     description = models.TextField(blank=True)
     logo = models.ImageField(upload_to="logos/", null=True, blank=True)
     
+    # Organization activation status
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this organization is active. Inactive organizations cannot login."
+    )
+    deactivation_reason = models.TextField(
+        blank=True,
+        help_text="Reason for deactivating the organization"
+    )
+    deactivated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the organization was deactivated"
+    )
+    
     # Custom field schema for contact variables
     # Defines what custom variables are available for template personalization
     # Example: [{"name": "company", "type": "string", "description": "Company name"}]

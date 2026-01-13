@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchNotifications, fetchUnreadCount, markNotificationAsRead, markAllNotificationsAsRead, Notification } from '@/services/notifications';
 import Cookies from 'js-cookie';
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8002';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8001';
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -14,7 +14,7 @@ export const useNotifications = () => {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef<number>(0);
   const MAX_RECONNECT_ATTEMPTS = 5;
-  const RECONNECT_DELAY = 3000; // 3 seconds
+  const RECONNECT_DELAY = 3001; // 3 seconds
 
   // Fetch notifications
   const loadNotifications = useCallback(async () => {

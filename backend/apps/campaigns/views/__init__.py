@@ -50,6 +50,7 @@ from .campaign_views import (
     ContactListView,
     ContactDetailView,
     ContactBulkImportView,
+    ContactToggleStatusView,
 )
 
 from .contact_agent_views import ContactAgentView
@@ -93,6 +94,8 @@ from .admin_views import (
 from .admin_views import (
     AdminOrganizationConfigListView,
     AdminOrganizationConfigDetailView,
+    AdminOrganizationActivateView,
+    AdminOrganizationDeactivateView,
     AdminOrganizationSuspendView,
     AdminOrganizationUnsuspendView,
     AdminOrganizationUpgradePlanView,

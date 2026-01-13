@@ -25,7 +25,7 @@ CELERY_RESULT_BACKEND = f'redis://:{config("REDIS_PASSWORD")}@redis-ecmp:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC'
+CELERY_TIMEZONE = 'Asia/Dhaka'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -194,29 +194,29 @@ CORS and security-related settings
 
 # Dynamic configuration for origins
 CSRF_TRUSTED_ORIGINS = [
-    "http://127.0.0.1:8000",
     "http://127.0.0.1:8001",
-    "http://127.0.0.1:8002",
+    "http://127.0.0.1:8001",
+    "http://127.0.0.1:8001",
     "http://127.0.0.1:8005",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
 ]
 
 CORS_ORIGIN_WHITELIST = [
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:8002",
+    "http://127.0.0.1:8001",
+    "http://127.0.0.1:8001",
     "http://127.0.0.1:8005",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
 
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:8002",
+    "http://127.0.0.1:8001",
+    "http://127.0.0.1:8001",
     "http://127.0.0.1:8005",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
     "http://localhost:5500",
     "http://127.0.0.1:5500",
     "http://localhost:8080",
@@ -253,11 +253,11 @@ AUTH_USER_MODEL = 'authentication.User'
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Dhaka'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)

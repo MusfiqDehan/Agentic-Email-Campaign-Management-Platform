@@ -20,6 +20,7 @@ interface Template {
   email_subject?: string;
   preview_text?: string;
   email_body: string;
+  is_global?: boolean;
 }
 
 interface ContactList {
@@ -79,7 +80,9 @@ export default function NewCampaignPage() {
         const listsData = Array.isArray(listsRes.data) ? listsRes.data : (listsRes.data.data || []);
         const providersData = Array.isArray(providersRes.data) ? providersRes.data : (providersRes.data.data || []);
 
-        setTemplates(templatesData);
+        // Filter out global templates - only show organization-owned templates
+        const orgTemplates = templatesData.filter((t: Template) => !t.is_global);
+        setTemplates(orgTemplates);
         setContactLists(listsData);
         setProviders(providersData);
       } catch (error) {

@@ -18,7 +18,7 @@ from ..models import (
 )
 from ..serializers import (
     EmailTemplateSerializer, TemplateUsageLogSerializer,
-    TemplateApprovalRequestSerializer
+    TemplateApprovalRequestSerializer, AdminEmailTemplateSerializer
 )
 
 
@@ -74,7 +74,7 @@ class AdminGlobalTemplateDetailView(CustomResponseMixin, generics.RetrieveUpdate
     GET/PUT/PATCH/DELETE /campaigns/admin/templates/<uuid>/
     """
     permission_classes = [IsPlatformAdmin]
-    serializer_class = EmailTemplateSerializer
+    serializer_class = AdminEmailTemplateSerializer
     queryset = EmailTemplate.objects.filter(is_deleted=False)
     
     def perform_destroy(self, instance):
@@ -202,20 +202,28 @@ class AdminTemplateAnalyticsSummaryView(CustomResponseMixin, APIView):
 
 class AdminPendingApprovalsView(CustomResponseMixin, generics.ListAPIView):
     """
-    List all pending approval requests.
+    List all templates that need review (DRAFT, PENDING_APPROVAL, REJECTED).
     GET /campaigns/admin/approvals/pending/
     """
     permission_classes = [IsPlatformAdmin]
-    serializer_class = TemplateApprovalRequestSerializer
+    serializer_class = AdminEmailTemplateSerializer
     
     def get_queryset(self):
-        status_filter = self.request.query_params.get('status', 'PENDING')
+        status_filter = self.request.query_params.get('status')
         
-        qs = TemplateApprovalRequest.objects.select_related(
-            'template', 'requested_by', 'reviewed_by'
-        )
+        # Get global templates that are not approved
+        qs = EmailTemplate.objects.filter(
+            is_global=True,
+            is_deleted=False,
+            approval_status__in=[
+                EmailTemplate.ApprovalStatus.DRAFT,
+                EmailTemplate.ApprovalStatus.PENDING_APPROVAL,
+                EmailTemplate.ApprovalStatus.REJECTED,
+            ]
+        ).select_related('organization', 'source_template', 'approved_by')
         
+        # Allow filtering by specific status
         if status_filter:
-            qs = qs.filter(status=status_filter)
+            qs = qs.filter(approval_status=status_filter)
         
-        return qs.order_by('-requested_at')
+        return qs.order_by('-created_at')
