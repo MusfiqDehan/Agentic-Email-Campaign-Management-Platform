@@ -13,13 +13,13 @@ COPY requirements.txt /usr/src/app/
 
 # Install curl + build deps, then uv
 RUN apt-get update \
- && apt-get install -y --no-install-recommends curl build-essential \
- && curl -LsSf https://astral.sh/uv/install.sh | sh \
- && export PATH="/root/.local/bin:$PATH" \
- && uv pip install --system --no-cache -r requirements.txt \
- && apt-get purge -y curl build-essential \
- && apt-get autoremove -y \
- && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y --no-install-recommends curl build-essential \
+    && curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && export PATH="/root/.local/bin:$PATH" \
+    && uv pip install --system --no-cache -r requirements.txt \
+    && apt-get purge -y build-essential \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the entire Django project into the container
 COPY . /usr/src/app/

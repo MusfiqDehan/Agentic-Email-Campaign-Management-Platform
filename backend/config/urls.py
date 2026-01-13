@@ -14,10 +14,13 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from django.shortcuts import redirect
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/auth/', include('apps.authentication.urls')),
     path('api/v1/campaigns/', include('apps.campaigns.urls')),
+    path('api/v1/healthz/', include('health_check.urls')),
 
     # DRF Spectacular URLs for API documentation
     path(f"api/v1/schemas/swagger.json", SpectacularAPIView.as_view(), name="schema-json"),
