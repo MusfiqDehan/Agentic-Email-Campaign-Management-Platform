@@ -40,7 +40,6 @@ EMAIL_CONFIG_ENCRYPTION_KEY = config("EMAIL_CONFIG_ENCRYPTION_KEY", default=None
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
@@ -75,6 +74,10 @@ INSTALLED_APPS = [
     'apps.authentication',
     'apps.campaigns',
     'apps.utils',
+    'apps.template_managers',
+    'apps.notifications',
+    'apps.platform_admins',
+
 ]
 
 API_VERSION = "v1"
@@ -191,38 +194,16 @@ DATABASES = {
 CORS and security-related settings
 """
 
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*").split(",")
 
 # Dynamic configuration for origins
-CSRF_TRUSTED_ORIGINS = [
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8005",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-]
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="").split(",")
 
-CORS_ORIGIN_WHITELIST = [
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8005",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
+CORS_ORIGIN_WHITELIST = config("CORS_ORIGIN_WHITELIST", default="").split(",")
 
-]
+CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="").split(",")
 
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8005",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-    "http://localhost:5500",
-    "http://127.0.0.1:5500",
-    "http://localhost:8080",
-]
-
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = config("CORS_ALLOW_CREDENTIALS", default="True") == "True"
 
 
 
