@@ -7,7 +7,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '8001',
+        port: '8002',
+        pathname: '/media/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'emailcampaign-api.musfiqdehan.com',
         pathname: '/media/**',
       },
     ],
