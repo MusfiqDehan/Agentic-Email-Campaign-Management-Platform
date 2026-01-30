@@ -1,0 +1,36 @@
+# Backend build context ignores
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.log
+
+# local env/secrets
+.env
+.env.*
+
+# git
+.git/
+.github/
+
+# venv
+.venv/
+venv/
+
+# media/static generated
+static/
+staticfiles/
+media/
+media_files/
+
+# python tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# docker
+Dockerfile
+
+dist/
+build/
