@@ -1,0 +1,19 @@
+# Frontend build context ignores
+node_modules/
+.next/
+out/
+coverage/
+
+# local env/secrets
+.env
+.env.*
+
+# git
+.git/
+.github/
+
+# OS
+.DS_Store
+
+# docker
+Dockerfile
