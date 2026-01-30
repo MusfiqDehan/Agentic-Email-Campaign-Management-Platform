@@ -36,12 +36,9 @@ services:
   api:
     container_name: backend-ecmp
     image: ghcr.io/musfiqdehan/emailcampaign-backend:latest
-    build:
-      context: ..
-      dockerfile: deployments/Dockerfile
     command: ["daphne", "-p", "8002", "-b", "0.0.0.0", "config.asgi:application"]
-    ports:
-      - "127.0.0.1:8002:8002"
+    expose:
+      - "8002"
     env_file:
       - ../.env
     volumes:
@@ -61,6 +58,22 @@ services:
       timeout: 10s
       retries: 5
       start_period: 40s
+
+  nginx:
+    container_name: backend-nginx-ecmp
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - static_data_volume:/app/static:ro
+      - media_data_volume:/app/media:ro
+    ports:
+      - "${WEB_PORT_BACKEND:-8002}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - ecmp_network
 
   celery:
     container_name: celery-ecmp
