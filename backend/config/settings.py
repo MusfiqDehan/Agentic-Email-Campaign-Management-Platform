@@ -38,7 +38,7 @@ SECRET_KEY = config("SECRET_KEY")
 EMAIL_CONFIG_ENCRYPTION_KEY = config("EMAIL_CONFIG_ENCRYPTION_KEY", default=None)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG", default=False, cast=bool)
 
 
 # Application definition
@@ -194,16 +194,16 @@ DATABASES = {
 CORS and security-related settings
 """
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*").split(",")
+ALLOWED_HOSTS = [h.strip() for h in config("ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",") if h.strip()]
 
 # Dynamic configuration for origins
-CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="").split(",")
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in config("CSRF_TRUSTED_ORIGINS", default="").split(",") if o.strip()]
 
-CORS_ORIGIN_WHITELIST = config("CORS_ORIGIN_WHITELIST", default="").split(",")
+CORS_ORIGIN_WHITELIST = [o.strip() for o in config("CORS_ORIGIN_WHITELIST", default="").split(",") if o.strip()]
 
-CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="").split(",")
+CORS_ALLOWED_ORIGINS = [o.strip() for o in config("CORS_ALLOWED_ORIGINS", default="").split(",") if o.strip()]
 
-CORS_ALLOW_CREDENTIALS = config("CORS_ALLOW_CREDENTIALS", default="True") == "True"
+CORS_ALLOW_CREDENTIALS = config("CORS_ALLOW_CREDENTIALS", default=True, cast=bool)
 
 
 
