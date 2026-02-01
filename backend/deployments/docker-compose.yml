@@ -12,7 +12,7 @@ services:
     networks:
       - ecmp_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -21,13 +21,13 @@ services:
   redis:
     container_name: redis-ecmp
     image: redis:7-alpine
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
     volumes:
       - redis_data_volume:/data
     networks:
       - ecmp_network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -36,7 +36,7 @@ services:
   api:
     container_name: backend-ecmp
     image: ghcr.io/musfiqdehan/emailcampaign-backend:latest
-    command: ["daphne", "-p", "8002", "-b", "0.0.0.0", "config.asgi:application"]
+    command: [ "daphne", "-p", "8002", "-b", "0.0.0.0", "config.asgi:application" ]
     expose:
       - "8002"
     env_file:
@@ -53,11 +53,11 @@ services:
       - ecmp_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/health/"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health/', timeout=5)" ]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 10
-      start_period: 60s
+      start_period: 90s
 
   nginx:
     container_name: backend-nginx-ecmp
@@ -78,7 +78,7 @@ services:
   celery:
     container_name: celery-ecmp
     image: ghcr.io/musfiqdehan/emailcampaign-backend:latest
-    command: ["celery", "-A", "config.celery", "worker", "--loglevel=info"]
+    command: [ "celery", "-A", "config.celery", "worker", "--loglevel=info" ]
     env_file:
       - ../.env
     depends_on:
@@ -91,7 +91,7 @@ services:
   celery-beat:
     container_name: celery-beat-ecmp
     image: ghcr.io/musfiqdehan/emailcampaign-backend:latest
-    command: ["celery", "-A", "config.celery", "beat", "--loglevel=info"]
+    command: [ "celery", "-A", "config.celery", "beat", "--loglevel=info" ]
     env_file:
       - ../.env
     depends_on:
@@ -106,6 +106,7 @@ volumes:
   redis_data_volume:
   static_data_volume:
   media_data_volume:
+
 
 networks:
   ecmp_network:
