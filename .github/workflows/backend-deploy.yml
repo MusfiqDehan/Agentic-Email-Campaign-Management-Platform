@@ -2,7 +2,7 @@ name: Deploy Backend (GHCR + Docker Compose)
 
 on:
   push:
-    branches: ["main"]
+    branches: ["refactor"]
     paths:
       - "backend/**"
       - ".github/workflows/backend-deploy.yml"
@@ -78,8 +78,8 @@ jobs:
             cd "$DEPLOY_PATH"
 
             git fetch --all
-            git checkout main
-            git reset --hard origin/main
+            git checkout refactor
+            git reset --hard origin/refactor
 
             docker network create ecmp_network >/dev/null 2>&1 || true
 
