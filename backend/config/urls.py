@@ -14,12 +14,18 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+from django.http import JsonResponse
+
+
+def healthz(request):
+    return JsonResponse({"status": "ok"})
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/auth/", include("apps.authentication.urls")),
     path("api/v1/campaigns/", include("apps.campaigns.urls")),
     path("health/", include("health_check.urls")),  # Docker healthcheck endpoint
+    path("healthz/", healthz, name="healthz"),
     # DRF Spectacular URLs for API documentation
     path(
         "api/v1/schemas/swagger.json", SpectacularAPIView.as_view(), name="schema-json"

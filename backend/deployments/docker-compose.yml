@@ -36,12 +36,7 @@ services:
   api:
     container_name: backend-ecmp
     image: ghcr.io/musfiqdehan/emailcampaign-backend:latest
-    command: >
-      sh -c "
-      python manage.py migrate --noinput &&
-      python manage.py collectstatic --noinput &&
-      daphne -p 8002 -b 0.0.0.0 config.asgi:application
-      "
+    command: [ "daphne", "-p", "8002", "-b", "0.0.0.0", "config.asgi:application" ]
     expose:
       - "8002"
     env_file:
@@ -58,11 +53,11 @@ services:
       - ecmp_network
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health/', timeout=5)" ]
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8002/healthz/ || exit 1" ]
       interval: 15s
       timeout: 10s
-      retries: 15
-      start_period: 120s
+      retries: 20
+      start_period: 180s
 
   nginx:
     container_name: backend-nginx-ecmp
