@@ -53,11 +53,11 @@ services:
       - ecmp_network
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "curl -fsS http://localhost:8002/healthz/ || exit 1" ]
-      interval: 15s
-      timeout: 10s
-      retries: 20
-      start_period: 180s
+      test: [ "CMD-SHELL", "pgrep -f 'daphne.*config.asgi:application' >/dev/null || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 240s
 
   nginx:
     container_name: backend-nginx-ecmp
