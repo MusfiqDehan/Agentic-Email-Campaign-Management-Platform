@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Cookies from 'js-cookie';
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8001';
+const getWsUrl = () => {
+  if (typeof window === 'undefined') return process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8002';
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host;
+  return process.env.NEXT_PUBLIC_WS_URL || `${protocol}//${host}`;
+};
+
+const WS_URL = getWsUrl();
 
 export interface CampaignStatusUpdate {
   id: string;
@@ -31,14 +39,14 @@ export const useRealtimeUpdates = () => {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef<number>(0);
   const callbacksRef = useRef<Map<string, CampaignStatusUpdateCallback>>(new Map());
-  
+
   const MAX_RECONNECT_ATTEMPTS = 5;
   const RECONNECT_DELAY = 3001; // 3 seconds
 
   // Register a callback for campaign status updates
   const onCampaignStatusUpdate = useCallback((id: string, callback: CampaignStatusUpdateCallback) => {
     callbacksRef.current.set(id, callback);
-    
+
     // Return unsubscribe function
     return () => {
       callbacksRef.current.delete(id);
@@ -52,7 +60,7 @@ export const useRealtimeUpdates = () => {
     if (callback) {
       callback(update);
     }
-    
+
     // Also call global callback if it exists
     const globalCallback = callbacksRef.current.get('*');
     if (globalCallback) {
@@ -77,7 +85,7 @@ export const useRealtimeUpdates = () => {
 
       // Create WebSocket connection with auth token
       const ws = new WebSocket(`${WS_URL}/ws/notifications/?token=${accessToken}`);
-      
+
       ws.onopen = () => {
         console.log('Realtime updates WebSocket connected');
         setIsConnected(true);
@@ -112,7 +120,7 @@ export const useRealtimeUpdates = () => {
         if (event.code !== 1000 && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttemptsRef.current += 1;
           console.log(`Reconnecting... Attempt ${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS}`);
-          
+
           reconnectTimeoutRef.current = setTimeout(() => {
             connectWebSocket();
           }, RECONNECT_DELAY);
@@ -131,18 +139,18 @@ export const useRealtimeUpdates = () => {
   // Initial WebSocket setup
   useEffect(() => {
     console.log('useRealtimeUpdates: Initializing...');
-    
+
     // Connect to WebSocket for real-time updates
     connectWebSocket();
 
     // Cleanup on unmount
     return () => {
       console.log('useRealtimeUpdates: Cleaning up...');
-      
+
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-      
+
       if (wsRef.current) {
         wsRef.current.close(1000); // Normal closure
         wsRef.current = null;

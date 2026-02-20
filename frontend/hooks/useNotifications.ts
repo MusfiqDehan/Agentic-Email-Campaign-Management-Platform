@@ -2,7 +2,15 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchNotifications, fetchUnreadCount, markNotificationAsRead, markAllNotificationsAsRead, Notification } from '@/services/notifications';
 import Cookies from 'js-cookie';
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8001';
+const getWsUrl = () => {
+  if (typeof window === 'undefined') return process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8002';
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host;
+  return process.env.NEXT_PUBLIC_WS_URL || `${protocol}//${host}`;
+};
+
+const WS_URL = getWsUrl();
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -49,7 +57,7 @@ export const useNotifications = () => {
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
       await markNotificationAsRead(notificationId);
-      
+
       // Update local state
       setNotifications(prevNotifications =>
         prevNotifications.map(notification =>
@@ -71,7 +79,7 @@ export const useNotifications = () => {
   const markAllAsRead = useCallback(async () => {
     try {
       await markAllNotificationsAsRead();
-      
+
       // Update all notifications to read
       setNotifications(prevNotifications =>
         prevNotifications.map(notification => ({
@@ -111,7 +119,7 @@ export const useNotifications = () => {
 
       // Create WebSocket connection with auth token
       const ws = new WebSocket(`${WS_URL}/ws/notifications/?token=${accessToken}`);
-      
+
       ws.onopen = () => {
         console.log('WebSocket connected');
         setIsConnected(true);
@@ -127,7 +135,7 @@ export const useNotifications = () => {
           if (message.type === 'notification') {
             // New notification received - add to list
             setNotifications(prev => [message.data, ...prev]);
-            
+
             // Update unread count if notification is unread
             if (!message.data.is_read) {
               setUnreadCount(prev => prev + 1);
@@ -154,7 +162,7 @@ export const useNotifications = () => {
         if (event.code !== 1000 && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttemptsRef.current += 1;
           console.log(`Reconnecting... Attempt ${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS}`);
-          
+
           reconnectTimeoutRef.current = setTimeout(() => {
             connectWebSocket();
           }, RECONNECT_DELAY);
@@ -173,7 +181,7 @@ export const useNotifications = () => {
   // Initial load and WebSocket setup
   useEffect(() => {
     console.log('useNotifications: Initializing...');
-    
+
     // Initial load of notifications
     const initialLoad = async () => {
       await Promise.all([loadNotifications(), loadUnreadCount()]);
@@ -186,11 +194,11 @@ export const useNotifications = () => {
     // Cleanup on unmount
     return () => {
       console.log('useNotifications: Cleaning up...');
-      
+
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-      
+
       if (wsRef.current) {
         wsRef.current.close(1000); // Normal closure
         wsRef.current = null;
