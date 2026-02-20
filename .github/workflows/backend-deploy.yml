@@ -77,9 +77,8 @@ jobs:
 
             cd "$DEPLOY_PATH"
 
-            git fetch --all
             git checkout refactor
-            git reset --hard origin/refactor
+            git pull origin refactor
 
             docker network create ecmp_network >/dev/null 2>&1 || true
 
