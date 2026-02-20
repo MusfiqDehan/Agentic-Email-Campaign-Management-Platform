@@ -13,7 +13,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # System deps needed for building wheels (e.g. cryptography/psycopg)
 # Keep `bash` (entrypoint) and `curl` (healthchecks) in the runtime image.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends bash curl build-essential \
+    && apt-get install -y --no-install-recommends bash curl build-essential procps \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python deps
