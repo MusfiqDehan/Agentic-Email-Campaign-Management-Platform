@@ -1,5 +1,3 @@
-
-
 """
 Django settings for config project.
 
@@ -11,6 +9,7 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
+
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -20,12 +19,12 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Celery Configuration
-CELERY_BROKER_URL = f'redis://:{config("REDIS_PASSWORD")}@redis-ecmp:6379/0'
-CELERY_RESULT_BACKEND = f'redis://:{config("REDIS_PASSWORD")}@redis-ecmp:6379/0'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'Asia/Dhaka'
+CELERY_BROKER_URL = f"redis://:{config('REDIS_PASSWORD')}@redis-ecmp:6379/0"
+CELERY_RESULT_BACKEND = f"redis://:{config('REDIS_PASSWORD')}@redis-ecmp:6379/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "Asia/Dhaka"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -45,81 +44,77 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 
 INSTALLED_APPS = [
     # Daphne MUST be first for WebSocket support
-    'daphne',
-    
+    "daphne",
     # Default Django apps
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
     # Third-party apps
-    'rest_framework',
-    'rest_framework_simplejwt',
+    "rest_framework",
+    "rest_framework_simplejwt",
     "health_check",
     "health_check.db",
     "health_check.cache",
     "health_check.storage",
-    'drf_spectacular',
-    'drf_spectacular_sidecar',
-    'django_celery_beat',
-    'django_filters',
-    'django_ses',
-    'corsheaders',
-    'channels',
-
+    "drf_spectacular",
+    "drf_spectacular_sidecar",
+    "django_celery_beat",
+    "django_filters",
+    "django_ses",
+    "corsheaders",
+    "channels",
     # Local apps
-    'apps.authentication',
-    'apps.campaigns',
-    'apps.utils',
-    'apps.template_managers',
-    'apps.notifications',
-    'apps.platform_admins',
-
+    "apps.authentication",
+    "apps.campaigns",
+    "apps.utils",
+    "apps.template_managers",
+    "apps.notifications",
+    "apps.platform_admins",
 ]
 
 API_VERSION = "v1"
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'config.urls'
+ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
-ASGI_APPLICATION = 'config.asgi.application'
+WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
 
 # Channel Layers Configuration for WebSocket
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
             "hosts": [f"redis://:{config('REDIS_PASSWORD')}@redis-ecmp:6379/0"],
         },
     },
@@ -139,29 +134,28 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
+    "EXCEPTION_HANDLER": "core.exceptions.custom_exception_handler",
     "DEFAULT_THROTTLE_RATES": {
         "auth_burst": "20/min",
         "auth_sustained": "100/day",
         "organization": "500/min",
         "email_sending": "60/min",
     },
-
 }
 
 SIMPLE_JWT = {
-    'SIGNING_KEY': config("SIGNING_KEY"),
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=7),
-    'SLIDING_TOKEN_LIFETIME': timedelta(days=30),
-    'SLIDING_TOKEN_REFRESH_LIFETIME_LATE_USER': timedelta(days=7),
-    'SLIDING_TOKEN_LIFETIME_LATE_USER': timedelta(days=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ALGORITHM': 'HS256',
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'BLACKLIST_AFTER_ROTATION': True,
-    'ROTATE_REFRESH_TOKENS': True,
-    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    "SIGNING_KEY": config("SIGNING_KEY"),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=7),
+    "SLIDING_TOKEN_LIFETIME": timedelta(days=30),
+    "SLIDING_TOKEN_REFRESH_LIFETIME_LATE_USER": timedelta(days=7),
+    "SLIDING_TOKEN_LIFETIME_LATE_USER": timedelta(days=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ALGORITHM": "HS256",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "BLACKLIST_AFTER_ROTATION": True,
+    "ROTATE_REFRESH_TOKENS": True,
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
 
 SPECTACULAR_SETTINGS = {
@@ -194,17 +188,35 @@ DATABASES = {
 CORS and security-related settings
 """
 
-ALLOWED_HOSTS = [h.strip() for h in config("ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",") if h.strip()]
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in config(
+        "ALLOWED_HOSTS",
+        default="localhost,127.0.0.1,emailcampaign.musfiqdehan.com,emailcampaign-api.musfiqdehan.com",
+    ).split(",")
+    if h.strip()
+]
 
 # Dynamic configuration for origins
-CSRF_TRUSTED_ORIGINS = [o.strip() for o in config("CSRF_TRUSTED_ORIGINS", default="").split(",") if o.strip()]
+CSRF_TRUSTED_ORIGINS = [
+    o.strip()
+    for o in config("CSRF_TRUSTED_ORIGINS", default="").split(",")
+    if o.strip()
+]
 
-CORS_ORIGIN_WHITELIST = [o.strip() for o in config("CORS_ORIGIN_WHITELIST", default="").split(",") if o.strip()]
+CORS_ORIGIN_WHITELIST = [
+    o.strip()
+    for o in config("CORS_ORIGIN_WHITELIST", default="").split(",")
+    if o.strip()
+]
 
-CORS_ALLOWED_ORIGINS = [o.strip() for o in config("CORS_ALLOWED_ORIGINS", default="").split(",") if o.strip()]
+CORS_ALLOWED_ORIGINS = [
+    o.strip()
+    for o in config("CORS_ALLOWED_ORIGINS", default="").split(",")
+    if o.strip()
+]
 
 CORS_ALLOW_CREDENTIALS = config("CORS_ALLOW_CREDENTIALS", default=True, cast=bool)
-
 
 
 # Password validation
@@ -212,29 +224,29 @@ CORS_ALLOW_CREDENTIALS = config("CORS_ALLOW_CREDENTIALS", default=True, cast=boo
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
 
-AUTH_USER_MODEL = 'authentication.User'
+AUTH_USER_MODEL = "authentication.User"
 
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'Asia/Dhaka'
+TIME_ZONE = "Asia/Dhaka"
 
 USE_I18N = True
 
@@ -244,27 +256,32 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
+STATIC_URL = "/static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media_files/')
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media_files/")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Email Configuration
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default='False') == 'True'
-EMAIL_USE_SSL = config('EMAIL_USE_SSL', default='False') == 'True'
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=config('EMAIL_HOST_USER', default='noreply@example.com'))
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend"
+)
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default="False") == "True"
+EMAIL_USE_SSL = config("EMAIL_USE_SSL", default="False") == "True"
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = config(
+    "DEFAULT_FROM_EMAIL",
+    default=config("EMAIL_HOST_USER", default="noreply@example.com"),
+)
 
-GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
 
 # ========================================================================
 # ORGANIZATION EMAIL PROVIDER SETTINGS
@@ -272,14 +289,22 @@ GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 # ========================================================================
 
 # Maximum rate limits for organization-owned providers
-ORG_PROVIDER_MAX_RATE_PER_SECOND = config('ORG_PROVIDER_MAX_RATE_PER_SECOND', default=10, cast=int)
-ORG_PROVIDER_MAX_RATE_PER_MINUTE = config('ORG_PROVIDER_MAX_RATE_PER_MINUTE', default=100, cast=int)
-ORG_PROVIDER_MAX_RATE_PER_HOUR = config('ORG_PROVIDER_MAX_RATE_PER_HOUR', default=1000, cast=int)
-ORG_PROVIDER_MAX_DAILY_QUOTA = config('ORG_PROVIDER_MAX_DAILY_QUOTA', default=10000, cast=int)
+ORG_PROVIDER_MAX_RATE_PER_SECOND = config(
+    "ORG_PROVIDER_MAX_RATE_PER_SECOND", default=10, cast=int
+)
+ORG_PROVIDER_MAX_RATE_PER_MINUTE = config(
+    "ORG_PROVIDER_MAX_RATE_PER_MINUTE", default=100, cast=int
+)
+ORG_PROVIDER_MAX_RATE_PER_HOUR = config(
+    "ORG_PROVIDER_MAX_RATE_PER_HOUR", default=1000, cast=int
+)
+ORG_PROVIDER_MAX_DAILY_QUOTA = config(
+    "ORG_PROVIDER_MAX_DAILY_QUOTA", default=10000, cast=int
+)
 
 # VAPID keys for Web Push Notifications
-VAPID_PUBLIC_KEY = config('VAPID_PUBLIC_KEY', default='')
-VAPID_PRIVATE_KEY = config('VAPID_PRIVATE_KEY', default='')
+VAPID_PUBLIC_KEY = config("VAPID_PUBLIC_KEY", default="")
+VAPID_PRIVATE_KEY = config("VAPID_PRIVATE_KEY", default="")
 VAPID_CLAIM_EMAIL = {
-    "sub": config('VAPID_CLAIM_EMAIL', default='mailto:admin@yourdomain.com')
+    "sub": config("VAPID_CLAIM_EMAIL", default="mailto:admin@yourdomain.com")
 }
