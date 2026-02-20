@@ -1,7 +1,12 @@
+name: ecmp-frontend
+
 services:
   app:
     container_name: ecmp-frontend
-    image: ghcr.io/musfiqdehan/emailcampaign-frontend:latest
+    image: ecmp-frontend:local
+    build:
+      context: ../
+      dockerfile: deployments/Dockerfile
     expose:
       - "3002"
     environment:
