@@ -54,10 +54,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NEXT_PUBLIC_API_URL=https://emailcampaign-api.musfiqdehan.com/api/v1
-            NEXT_PUBLIC_WS_URL=wss://emailcampaign-api.musfiqdehan.com
             NEXT_PUBLIC_VAPID_PUBLIC_KEY=${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
-
+          
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
