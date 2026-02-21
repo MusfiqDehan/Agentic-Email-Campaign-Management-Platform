@@ -3,7 +3,7 @@ name: Deploy Backend API
 on:
   push:
     branches:
-      - main
+      - refactor
     paths:
       - "backend/**"
       - ".github/workflows/backend-deploy.yml"
@@ -73,10 +73,10 @@ jobs:
             echo "==> Navigating to project directory..."
             cd ${{ secrets.BACKEND_APP_PATH }}
 
-            echo "==> Pulling latest code from main..."
-            git fetch origin main
-            git checkout -f main
-            git pull origin main
+            echo "==> Pulling latest code from refactor..."
+            git fetch origin refactor
+            git checkout -f refactor
+            git pull origin refactor
 
             echo "==> Logging in to GitHub Container Registry..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
