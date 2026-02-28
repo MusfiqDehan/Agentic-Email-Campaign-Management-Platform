@@ -6,6 +6,9 @@ __pycache__/
 
 media_files/
 profiles/
+.idea/
+.vscode/
+static/
 
 # Distribution / packaging
 .Python
