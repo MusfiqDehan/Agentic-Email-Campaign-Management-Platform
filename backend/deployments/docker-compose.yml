@@ -83,6 +83,8 @@ services:
     command: [ "celery", "-A", "config.celery", "worker", "--loglevel=info" ]
     env_file:
       - ../.env
+    volumes:
+      - ../:/usr/src/app
     depends_on:
       api:
         condition: service_healthy
@@ -96,6 +98,8 @@ services:
     command: [ "celery", "-A", "config.celery", "beat", "--loglevel=info" ]
     env_file:
       - ../.env
+    volumes:
+      - ../:/usr/src/app
     depends_on:
       api:
         condition: service_healthy
