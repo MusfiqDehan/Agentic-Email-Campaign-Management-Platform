@@ -216,3 +216,11 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ==========================================================================
+# Deployment — sensitive files (never commit these)
+# ==========================================================================
+.env
+!.env.example
+nginx/certs/*.pem
+nginx/certs/*.key
