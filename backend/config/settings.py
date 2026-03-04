@@ -19,9 +19,13 @@ from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Redis host: 'redis' works for both local (service name) and production (service name)
+# Override via REDIS_HOST env var if using a different hostname
+REDIS_HOST = config("REDIS_HOST", default="redis")
+
 # Celery Configuration
-CELERY_BROKER_URL = f'redis://:{config("REDIS_PASSWORD")}@redis-ecmp:6379/0'
-CELERY_RESULT_BACKEND = f'redis://:{config("REDIS_PASSWORD")}@redis-ecmp:6379/0'
+CELERY_BROKER_URL = f'redis://:{config("REDIS_PASSWORD")}@{REDIS_HOST}:6379/0'
+CELERY_RESULT_BACKEND = f'redis://:{config("REDIS_PASSWORD")}@{REDIS_HOST}:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -38,9 +42,13 @@ SECRET_KEY = config("SECRET_KEY")
 EMAIL_CONFIG_ENCRYPTION_KEY = config("EMAIL_CONFIG_ENCRYPTION_KEY", default=None)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = config(
+    "ALLOWED_HOSTS",
+    default="localhost,127.0.0.1",
+    cast=lambda v: [s.strip() for s in v.split(",")],
+)
 
 # Application definition
 
@@ -117,7 +125,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [f"redis://:{config('REDIS_PASSWORD')}@redis-ecmp:6379/0"],
+            "hosts": [f"redis://:{config('REDIS_PASSWORD')}@{REDIS_HOST}:6379/0"],
         },
     },
 }
@@ -194,27 +202,32 @@ CORS and security-related settings
 
 # Dynamic configuration for origins
 CSRF_TRUSTED_ORIGINS = [
+    # Production
+    "https://emailcampaign-api.musfiqdehan.com",
+    "https://emailcampaign.musfiqdehan.com",
+    # Local development
+    "http://localhost:8001",
     "http://127.0.0.1:8001",
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8005",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
 ]
 
 CORS_ORIGIN_WHITELIST = [
+    # Production
+    "https://emailcampaign.musfiqdehan.com",
+    # Local development
+    "http://localhost:8001",
     "http://127.0.0.1:8001",
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8005",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
-
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    # Production
+    "https://emailcampaign.musfiqdehan.com",
+    # Local development
+    "http://localhost:8001",
     "http://127.0.0.1:8001",
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8005",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
     "http://localhost:5500",
@@ -223,6 +236,11 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Reverse proxy settings (Nginx → Daphne)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 
 
