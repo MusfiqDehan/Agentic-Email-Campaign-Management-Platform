@@ -2,27 +2,32 @@ if [ -f .env ]; then
    source .env
 fi
 
-python manage.py makemigrations --noinput
-python manage.py migrate
+echo "==> Running migrations..."
+python manage.py migrate --noinput
+
+echo "==> Collecting static files..."
 python manage.py collectstatic --noinput
 
-# Create superuser using the correct command from authentication app
+# Create superuser from environment variables (idempotent with --force)
+echo "==> Creating superuser..."
 python manage.py create_superuser \
-    --username admin \
-    --email superadmin@example.com \
-    --password MySecurePass123! \
-    --first-name Admin \
-    --last-name User \
+    --username "${DJANGO_SUPERUSER_USERNAME:-admin}" \
+    --email "${DJANGO_SUPERUSER_EMAIL:-admin@example.com}" \
+    --password "${DJANGO_SUPERUSER_PASSWORD:-changeme}" \
+    --first-name "${DJANGO_SUPERUSER_FIRST_NAME:-Admin}" \
+    --last-name "${DJANGO_SUPERUSER_LAST_NAME:-User}" \
     --force
 
-# Create platform admin (if needed separately)
-python manage.py create_platform_admin admin@example.com \
+# Create platform admin
+echo "==> Creating platform admin..."
+python manage.py create_platform_admin "${DJANGO_SUPERUSER_EMAIL:-admin@example.com}" \
     --create \
-    --password MySecurePass123! \
-    --username platformadmin \
+    --password "${DJANGO_SUPERUSER_PASSWORD:-changeme}" \
+    --username "${DJANGO_SUPERUSER_USERNAME:-platformadmin}" \
     --staff
 
 # Ensure all users have organizations
 python manage.py create_user_organizations
 
+echo "==> Starting application..."
 $@
