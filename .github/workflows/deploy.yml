@@ -20,8 +20,8 @@ on:
       - main
 
 env:
-  PYTHON_VERSION: "3.12"
-  NODE_VERSION: "22"
+  PYTHON_VERSION: "3.13"
+  NODE_VERSION: "24"
 
 jobs:
   # ════════════════════════════════════════════════════════════════════════
