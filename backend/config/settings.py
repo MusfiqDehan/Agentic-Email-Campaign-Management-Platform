@@ -205,6 +205,7 @@ CSRF_TRUSTED_ORIGINS = [
     # Production
     "https://emailcampaign-api.musfiqdehan.com",
     "https://emailcampaign.musfiqdehan.com",
+    "https://test-contactlist.musfiqdehan.com",
     # Local development
     "http://localhost:8001",
     "http://127.0.0.1:8001",
@@ -215,6 +216,7 @@ CSRF_TRUSTED_ORIGINS = [
 CORS_ORIGIN_WHITELIST = [
     # Production
     "https://emailcampaign.musfiqdehan.com",
+    "https://test-contactlist.musfiqdehan.com",
     # Local development
     "http://localhost:8001",
     "http://127.0.0.1:8001",
@@ -225,6 +227,7 @@ CORS_ORIGIN_WHITELIST = [
 CORS_ALLOWED_ORIGINS = [
     # Production
     "https://emailcampaign.musfiqdehan.com",
+    "https://test-contactlist.musfiqdehan.com",
     # Local development
     "http://localhost:8001",
     "http://127.0.0.1:8001",
