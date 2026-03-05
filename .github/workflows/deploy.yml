@@ -8,6 +8,7 @@
 #   VPS_HOST          — VPS IP or hostname (e.g., vmi2937231.contaboserver.net)
 #   VPS_USER          — SSH user (e.g., root)
 #   VPS_SSH_KEY       — Private SSH key for VPS access
+#   VPS_SSH_PASSPHRASE — Passphrase for SSH key (if applicable)
 #   VPS_DEPLOY_PATH   — Absolute path on VPS (e.g., /root/Email-Campaign-Management-Platform)
 # ==========================================================================
 
