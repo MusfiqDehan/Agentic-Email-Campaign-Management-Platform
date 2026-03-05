@@ -25,6 +25,7 @@ services:
       - ./nginx/certs:/etc/nginx/certs:ro
       - static_data_volume:/usr/src/app/static:ro
       - media_data_volume:/usr/src/app/media_files:ro
+      - ./frontend-newsletter:/usr/share/nginx/newsletter:ro
     depends_on:
       backend:
         condition: service_healthy
