@@ -320,3 +320,6 @@ VAPID_PRIVATE_KEY = config('VAPID_PRIVATE_KEY', default='')
 VAPID_CLAIM_EMAIL = {
     "sub": config('VAPID_CLAIM_EMAIL', default='mailto:admin@yourdomain.com')
 }
+
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3001')
+BACKEND_URL = config('BACKEND_URL', default='http://localhost:8001')
