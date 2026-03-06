@@ -10,7 +10,7 @@ const NEWSLETTER_CONFIG = {
     
     // The subscription token for your contact list
     // Each ContactList has a unique subscription_token
-    LIST_TOKEN: 'S69CPaLnglLIzILw4cIxlhgfvox2qRUjlND5y7nUC0haYytPDWUW1TMy05aiEpBC',
+    LIST_TOKEN: 'vk3BVR0zZFUfsnAW61dCUcRxPhrLKfTHRvgmtvTE0luypZvmejjnvD2csbG3zCuO',
     
     // Optional: Custom success messages
     MESSAGES: {
