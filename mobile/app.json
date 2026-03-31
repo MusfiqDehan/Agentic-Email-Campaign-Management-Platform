@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "EmailCampaign",
+    "slug": "emailcampaign-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.emailcampaign.mobile"
+    },
+    "android": {
+      "package": "com.emailcampaign.mobile"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow EmailCampaign to access your photos."
+        }
+      ],
+      "expo-font",
+      "expo-image"
+    ],
+    "scheme": "emailcampaign",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
