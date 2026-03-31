@@ -216,6 +216,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+node_modules/
 
 # ==========================================================================
 # Deployment — sensitive files (never commit these)
