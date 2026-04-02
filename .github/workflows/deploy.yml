@@ -1,7 +1,7 @@
 # ==========================================================================
 # CI/CD Pipeline — Email Campaign Management Platform
 # ==========================================================================
-# Triggers on push to main branch.
+# Triggers on push to production branch.
 # Runs tests, then deploys to VPS via SSH.
 #
 # Required GitHub Secrets:
@@ -17,7 +17,7 @@ name: Deploy to Production
 on:
   push:
     branches:
-      - main
+      - production
 
 env:
   PYTHON_VERSION: "3.13"
@@ -190,8 +190,8 @@ jobs:
 
             # Pull latest code
             echo "→ Pulling latest code..."
-            git fetch origin main
-            git reset --hard origin/main
+            git fetch origin production
+            git reset --hard origin/production
 
             # Build and deploy with Docker Compose
             echo "→ Building and starting containers..."
