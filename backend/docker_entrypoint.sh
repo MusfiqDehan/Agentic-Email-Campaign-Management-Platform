@@ -30,4 +30,4 @@ python manage.py create_platform_admin "${DJANGO_SUPERUSER_EMAIL:-admin@example.
 python manage.py create_user_organizations
 
 echo "==> Starting application..."
-$@
+exec "$@"
