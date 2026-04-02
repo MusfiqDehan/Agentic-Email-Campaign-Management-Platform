@@ -4,6 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+FRONTEND_URL = settings.FRONTEND_URL  # Ensure this is set in your .env file
 
 class EmailService:
     """Email service using Django's send_mail function."""
@@ -17,9 +18,9 @@ class EmailService:
             token: Verification token UUID
         """
         subject = 'Verify Your Email Address'
-        
+
         # Construct verification URL (update domain as needed)
-        verification_url = f"http://localhost:3001/verify-email?token={token}"
+        verification_url = f"{FRONTEND_URL}/verify-email?token={token}"
         
         message = f"""
         Welcome to Email Campaign Management Platform!
@@ -83,7 +84,7 @@ class EmailService:
         subject = 'Reset Your Password'
         
         # Construct reset URL (update domain as needed)
-        reset_url = f"http://localhost:3001/reset-password?token={token}"
+        reset_url = f"{FRONTEND_URL}/reset-password?token={token}"
         
         message = f"""
         Password Reset Request

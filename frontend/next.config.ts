@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
+        protocol: 'https',
+        hostname: 'emailcampaign-api.musfiqdehan.com',
+        pathname: '/media/**',
+      },
+      {
         protocol: 'http',
         hostname: 'localhost',
         port: '8001',

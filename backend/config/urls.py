@@ -29,7 +29,9 @@ urlpatterns = [
     path(f"api/v1/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui-legacy"),
     path(f"api/v1/schemas/redoc", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 
+    # Health check endpoint (used by Docker health checks and monitoring)
+    path('api/v1/healthz/', include('health_check.urls')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Media files served by Nginx in production, Django fallback in development
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
