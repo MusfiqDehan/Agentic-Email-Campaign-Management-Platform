@@ -15,14 +15,14 @@ The product also includes **AI-assisted** workflows:
 - Generative AI support for email template creation
 - Agentic contact management through natural-language and voice-driven commands
 
----
+
 
 ## **AI Tools Used**
 
 * **Claude Code CLI** – for code generation, problem-solving, and architectural guidance
 * **GitHub Copilot** – for real-time code suggestions and productivity improvements
 
----
+
 
 ## **Key Learnings**
 
@@ -61,7 +61,7 @@ During the development of this platform, I gained hands-on experience in both sy
 * Implemented unsubscribe mechanisms and email compliance standards
 * Applied best practices for secure email template rendering and campaign execution
 
----
+
 
 ## **Areas for Improvement**
 
