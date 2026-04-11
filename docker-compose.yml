@@ -13,37 +13,37 @@
 # ==========================================================================
 
 services:
-  # ─── Nginx Reverse Proxy ───────────────────────────────────────────────
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: nginx-ecmp
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
-      - static_data_volume:/usr/src/app/static:ro
-      - media_data_volume:/usr/src/app/media_files:ro
-      - ./frontend-newsletter:/usr/share/nginx/newsletter:ro
-    depends_on:
-      backend:
-        condition: service_healthy
-      frontend:
-        condition: service_started
-    networks:
-      - ecmp_network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/nginx-health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+  # # ─── Nginx Reverse Proxy ───────────────────────────────────────────────
+  # nginx:
+  #   image: nginx:1.27-alpine
+  #   container_name: nginx-ecmp
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/certs:/etc/nginx/certs:ro
+  #     - static_data_volume:/usr/src/app/static:ro
+  #     - media_data_volume:/usr/src/app/media_files:ro
+  #     - ./frontend-newsletter:/usr/share/nginx/newsletter:ro
+  #   depends_on:
+  #     backend:
+  #       condition: service_healthy
+  #     frontend:
+  #       condition: service_started
+  #   networks:
+  #     - ecmp_network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/nginx-health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
 
   # ─── PostgreSQL Database ───────────────────────────────────────────────
   database:
@@ -58,6 +58,7 @@ services:
       - postgres_data_volume:/var/lib/postgresql/data
     networks:
       - ecmp_network
+      - traefik_proxy
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -79,6 +80,7 @@ services:
       - redis_data_volume:/data
     networks:
       - ecmp_network
+      - traefik_proxy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
@@ -114,6 +116,7 @@ services:
         condition: service_healthy
     networks:
       - ecmp_network
+      - traefik_proxy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/v1/healthz/')"]
@@ -126,6 +129,11 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ecmp-api.rule=Host(`emailcampaign-api.musfiqdehan.com`)"
+      - "traefik.http.routers.ecmp-api.entrypoints=websecure"
+      - "traefik.http.services.ecmp-api.loadbalancer.server.port=8001"
 
   # ─── Celery Worker ─────────────────────────────────────────────────────
   celery:
@@ -147,6 +155,7 @@ services:
         condition: service_healthy
     networks:
       - ecmp_network
+      - traefik_proxy
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -172,6 +181,7 @@ services:
         condition: service_healthy
     networks:
       - ecmp_network
+      - traefik_proxy
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -198,12 +208,18 @@ services:
       - HOSTNAME=0.0.0.0
     networks:
       - ecmp_network
+      - traefik_proxy
     restart: unless-stopped
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ecmp-frontend.rule=Host(`emailcampaign.musfiqdehan.com`)"
+      - "traefik.http.routers.ecmp-frontend.entrypoints=websecure"
+      - "traefik.http.services.ecmp-frontend.loadbalancer.server.port=3001"
 
 # ─── Volumes ───────────────────────────────────────────────────────────────
 volumes:
