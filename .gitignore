@@ -9,6 +9,10 @@ profiles/
 .idea/
 .vscode/
 static/
+.expo/
+expo-env.d.ts
+node_modules/
+
 
 # Distribution / packaging
 .Python
