@@ -80,7 +80,7 @@ jsonschema-specifications==2025.9.1
 kombu==5.6.1
 matplotlib-inline==0.2.1
 mccabe==0.7.0
-msgpack==1.1.2
+msgpack==1.2.1
 multidict==6.7.0
 mypy-extensions==1.1.0
 nodeenv==1.9.1
