@@ -305,6 +305,7 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=config('EMAIL_HOST_USER', default='noreply@example.com'))
 
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+DEEPSEEK_API_KEY = config('DEEPSEEK_API_KEY', default='')
 
 # ========================================================================
 # ORGANIZATION EMAIL PROVIDER SETTINGS
