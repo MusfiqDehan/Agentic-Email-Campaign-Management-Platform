@@ -2,18 +2,20 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from django.conf import settings
-from django.shortcuts import get_object_or_404
-from google import genai
 import json
 import logging
 from ..models import Contact, ContactList
+from apps.campaigns.utils.ai_client import (
+    AIConfigurationError,
+    AIGenerationError,
+    generate_json_text,
+)
 
 logger = logging.getLogger(__name__)
 
 class ContactAgentView(APIView):
     """
-    API View to manage contacts and contact lists using Google Gemini AI agent.
+    API View to manage contacts and contact lists using Gemini, with DeepSeek fallback on rate limits.
     """
     permission_classes = [IsAuthenticated]
 
@@ -22,13 +24,7 @@ class ContactAgentView(APIView):
         if not prompt:
             return Response({"error": "Prompt is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        api_key = getattr(settings, 'GEMINI_API_KEY', None)
-        if not api_key:
-            return Response({"error": "GEMINI_API_KEY not configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-
         try:
-            client = genai.Client(api_key=api_key)
-            
             system_instruction = """
             You are an AI assistant that manages contacts and contact lists for an email marketing platform.
             Interpret the user's natural language request and convert it into a structured JSON action.
@@ -63,21 +59,20 @@ class ContactAgentView(APIView):
             For list actions (CREATE/UPDATE/DELETE_CONTACT_LIST), list_name is required.
             Return ONLY the JSON object.
             """
-            
-            response = client.models.generate_content(
-                model="gemini-2.5-flash-lite",
-                contents=f"{system_instruction}\n\nUser Request: {prompt}",
-                config={'response_mime_type': 'application/json'}
+
+            text_content, _provider = generate_json_text(
+                f"{system_instruction}\n\nUser Request: {prompt}"
             )
-            
             try:
-                text_content = response.text
-                if text_content.strip().startswith("```json"):
-                    text_content = text_content.replace("```json", "").replace("```", "")
-                result = json.loads(text_content)
+                cleaned = text_content.strip()
+                if cleaned.startswith("```json"):
+                    cleaned = cleaned.replace("```json", "", 1).replace("```", "")
+                elif cleaned.startswith("```"):
+                    cleaned = cleaned.replace("```", "")
+                result = json.loads(cleaned.strip())
             except json.JSONDecodeError:
                 return Response(
-                    {"error": "Failed to parse AI response as JSON.", "raw_response": response.text},
+                    {"error": "Failed to parse AI response as JSON.", "raw_response": text_content},
                     status=status.HTTP_502_BAD_GATEWAY
                 )
 
@@ -284,6 +279,11 @@ class ContactAgentView(APIView):
             else:
                 return Response({"error": "Unknown action determined by AI."}, status=status.HTTP_400_BAD_REQUEST)
 
+        except AIConfigurationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except AIGenerationError as e:
+            logger.error("Agent AI error: %s", e)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             logger.error(f"Agent error: {str(e)}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
