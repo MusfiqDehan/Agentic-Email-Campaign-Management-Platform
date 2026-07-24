@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { BrandLogo } from '@/components/brand-logo';
 import { 
   ArrowRight, 
   Mail, 
@@ -92,11 +93,8 @@ export default function LandingPage() {
       {/* Navigation */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2.5 font-bold text-xl transition-transform hover:scale-105">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-bg">
-              <Mail className="h-5 w-5 text-white" />
-            </div>
-            <span className="hidden sm:inline-block">EmailCampaign</span>
+          <Link href="/" className="transition-transform hover:scale-105">
+            <BrandLogo size={36} wordmarkClassName="hidden sm:inline-block text-xl" priority />
           </Link>
           <nav className="flex items-center gap-2 sm:gap-4">
             <ThemeToggle />
@@ -308,11 +306,8 @@ export default function LandingPage() {
         <div className="container mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <Link href="/" className="flex items-center gap-2.5 font-bold text-xl">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-bg">
-                  <Mail className="h-5 w-5 text-white" />
-                </div>
-                <span>EmailCampaign</span>
+              <Link href="/" className="transition-transform hover:scale-105">
+                <BrandLogo size={36} wordmarkClassName="text-xl" />
               </Link>
               <p className="mt-4 text-sm text-muted-foreground">
                 Modern email marketing platform for organizations that want to grow.
