@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/config/utils';
 import {
   LayoutDashboard,
-  Mail,
   Users,
   Settings,
   FileText,
@@ -25,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useAuth, usePlatformAdmin, useOrgAdmin } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { BrandLogo } from '@/components/brand-logo';
 
 const sidebarItems = [
   {
@@ -143,16 +143,15 @@ export function Sidebar({ isOpen = true, onClose, isCollapsed = false, onToggleC
           <Link 
             href="/dashboard" 
             className={cn(
-              "flex items-center gap-2.5 font-bold transition-transform hover:scale-105",
+              "transition-transform hover:scale-105",
               isCollapsed && "justify-center"
             )}
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-bg shadow-lg shadow-primary/20">
-              <Mail className="h-5 w-5 text-white" />
-            </div>
-            {!isCollapsed && (
-              <span className="text-lg text-sidebar-foreground">EmailCampaign</span>
-            )}
+            <BrandLogo
+              size={36}
+              showWordmark={!isCollapsed}
+              wordmarkClassName="text-lg text-sidebar-foreground"
+            />
           </Link>
           
           {/* Close button on mobile */}
