@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="i-bg" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3B82F6"/>
+      <stop offset="0.55" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="i-accent" x1="38" y1="10" x2="54" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDE68A"/>
+      <stop offset="1" stop-color="#FBBF24"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#i-bg)"/>
+  <path d="M14 24.5c0-1.9 1.5-3.5 3.4-3.5h29.2c1.9 0 3.4 1.6 3.4 3.5v17c0 1.9-1.5 3.5-3.4 3.5H17.4c-1.9 0-3.4-1.6-3.4-3.5v-17z" fill="#fff" fill-opacity=".96"/>
+  <path d="M16.2 22.2 32 33.4 47.8 22.2" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M39 14.5c4.2-1.8 9.1-.4 11.8 3.2" stroke="url(#i-accent)" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M46.8 13.2 55 18.4l-8.6 1.6 2.4-6.8z" fill="url(#i-accent)"/>
+  <circle cx="20.5" cy="41.5" r="1.6" fill="#93C5FD"/>
+  <circle cx="25" cy="44.5" r="1.1" fill="#BFDBFE"/>
+</svg>
