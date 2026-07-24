@@ -17,6 +17,14 @@ export const metadata: Metadata = {
   title: "EmailCampaign - Modern Email Marketing Platform",
   description: "Powerful, AI-driven email campaign management for modern organizations. Create, send, and track email campaigns with ease.",
   keywords: ["email marketing", "campaign management", "email automation", "newsletter"],
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/logo.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({
