@@ -2,6 +2,7 @@
 __pycache__/
 .cursor/
 graphify-out/
+CLAUDE.md
 
 # C extensions
 *.so
