@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, Count, Avg
+from django.db.models import Q, Count, Avg, Sum
 from rest_framework.response import Response
 from rest_framework import status, permissions, generics, filters
 from rest_framework.views import APIView
@@ -878,14 +878,25 @@ class EmailDeliveryLogAnalyticsView(CustomResponseMixin, APIView):
         # Engagement metrics
         opened_emails = queryset.filter(open_count__gt=0).count()
         clicked_emails = queryset.filter(click_count__gt=0).count()
+        bounced_emails = queryset.filter(delivery_status='BOUNCED').count()
+        complained_emails = queryset.filter(delivery_status='COMPLAINED').count()
+        delivered_emails = queryset.filter(
+            delivery_status__in=['DELIVERED', 'OPENED', 'CLICKED']
+        ).count()
+        total_opens = queryset.aggregate(t=Sum('open_count'))['t'] or 0
+        total_clicks = queryset.aggregate(t=Sum('click_count'))['t'] or 0
+        hard_bounces = queryset.filter(bounce_type='HARD').count()
+        soft_bounces = queryset.filter(bounce_type='SOFT').count()
         
         # Provider performance
         provider_stats = queryset.values(
             'email_provider__name'
         ).annotate(
             total=Count('id'),
-            delivered=Count('id', filter=Q(delivery_status='DELIVERED')),
-            bounced=Count('id', filter=Q(delivery_status='BOUNCED'))
+            delivered=Count('id', filter=Q(delivery_status__in=['DELIVERED', 'OPENED', 'CLICKED'])),
+            bounced=Count('id', filter=Q(delivery_status='BOUNCED')),
+            opened=Count('id', filter=Q(open_count__gt=0)),
+            clicked=Count('id', filter=Q(click_count__gt=0)),
         ).order_by('-total')
         
         return self.success_response(
@@ -900,14 +911,26 @@ class EmailDeliveryLogAnalyticsView(CustomResponseMixin, APIView):
                 },
                 'engagement_rates': {
                     'open_rate': round((opened_emails / total_emails) * 100, 2),
-                    'click_rate': round((clicked_emails / total_emails) * 100, 2)
+                    'click_rate': round((clicked_emails / total_emails) * 100, 2),
+                    'bounce_rate': round((bounced_emails / total_emails) * 100, 2),
+                    'complaint_rate': round((complained_emails / total_emails) * 100, 2),
+                    'delivery_rate': round((delivered_emails / total_emails) * 100, 2),
+                    'unique_opens': opened_emails,
+                    'total_opens': total_opens,
+                    'unique_clicks': clicked_emails,
+                    'total_clicks': total_clicks,
+                    'hard_bounces': hard_bounces,
+                    'soft_bounces': soft_bounces,
+                    'complaints': complained_emails,
                 },
                 'provider_stats': [
                     {
                         'provider': stat['email_provider__name'],
                         'total': stat['total'],
                         'delivery_rate': round((stat['delivered'] / stat['total']) * 100, 2) if stat['total'] > 0 else 0,
-                        'bounce_rate': round((stat['bounced'] / stat['total']) * 100, 2) if stat['total'] > 0 else 0
+                        'bounce_rate': round((stat['bounced'] / stat['total']) * 100, 2) if stat['total'] > 0 else 0,
+                        'open_rate': round((stat['opened'] / stat['total']) * 100, 2) if stat['total'] > 0 else 0,
+                        'click_rate': round((stat['clicked'] / stat['total']) * 100, 2) if stat['total'] > 0 else 0,
                     }
                     for stat in provider_stats
                 ]

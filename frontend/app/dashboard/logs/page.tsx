@@ -90,12 +90,24 @@ interface Analytics {
   engagement_rates: {
     open_rate: number;
     click_rate: number;
+    bounce_rate?: number;
+    complaint_rate?: number;
+    delivery_rate?: number;
+    unique_opens?: number;
+    total_opens?: number;
+    unique_clicks?: number;
+    total_clicks?: number;
+    hard_bounces?: number;
+    soft_bounces?: number;
+    complaints?: number;
   };
   provider_stats: Array<{
     provider: string;
     total: number;
     delivery_rate: number;
     bounce_rate: number;
+    open_rate?: number;
+    click_rate?: number;
   }>;
 }
 
@@ -355,6 +367,65 @@ export default function DeliveryLogsPage() {
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">
               {isAnalyticsLoading ? '...' : `${analytics?.engagement_rates?.click_rate || 0}%`}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {analytics?.engagement_rates?.total_clicks ?? 0} total clicks
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Bounce Rate</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {isAnalyticsLoading ? '...' : `${analytics?.engagement_rates?.bounce_rate || 0}%`}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Hard {analytics?.engagement_rates?.hard_bounces ?? 0} · Soft {analytics?.engagement_rates?.soft_bounces ?? 0}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Complaint Rate</CardTitle>
+            <XCircle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {isAnalyticsLoading ? '...' : `${analytics?.engagement_rates?.complaint_rate || 0}%`}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {analytics?.engagement_rates?.complaints ?? 0} complaints
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Unique Opens</CardTitle>
+            <Eye className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {isAnalyticsLoading ? '...' : (analytics?.engagement_rates?.unique_opens ?? 0)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {analytics?.engagement_rates?.total_opens ?? 0} total opens
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Delivery Rate</CardTitle>
+            <Send className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {isAnalyticsLoading ? '...' : `${analytics?.engagement_rates?.delivery_rate || 0}%`}
             </div>
           </CardContent>
         </Card>

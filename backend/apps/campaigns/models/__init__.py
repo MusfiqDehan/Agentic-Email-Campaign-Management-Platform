@@ -34,6 +34,9 @@ from .automation_rule_model import AutomationRule
 from .campaign_models import Campaign
 from .contact_models import ContactList, Contact
 
+# Mailbox (bidirectional send/receive)
+from .mailbox_models import EmailAccount, MailboxMessage
+
 # Notification models
 from .notification_models import Notification
 
@@ -74,6 +77,10 @@ __all__ = [
     'Campaign',
     'ContactList',
     'Contact',
+
+    # Mailbox
+    'EmailAccount',
+    'MailboxMessage',
     
     # Notifications
     'Notification',

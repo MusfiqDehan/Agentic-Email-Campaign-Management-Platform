@@ -36,6 +36,7 @@ const providerSchema = z.object({
   aws_secret_access_key: z.string().optional(),
   aws_session_token: z.string().optional(),
   region_name: z.string().optional(),
+  configuration_set: z.string().optional(),
 
   api_key: z.string().optional(), // For SendGrid/Brevo
 });
@@ -70,6 +71,7 @@ export default function EditProviderPage() {
       aws_secret_access_key: '',
       aws_session_token: '',
       region_name: '',
+      configuration_set: '',
       api_key: '',
     }
   });
@@ -102,6 +104,7 @@ export default function EditProviderPage() {
           aws_secret_access_key: '', // Don't populate secret
           aws_session_token: '',
           region_name: config.region_name || '',
+          configuration_set: config.configuration_set || '',
           // API Key based
           api_key: '', // Don't populate API key
         });
@@ -137,6 +140,7 @@ export default function EditProviderPage() {
           aws_access_key_id: data.aws_access_key_id,
           region_name: data.region_name,
           from_email: data.from_email,
+          configuration_set: data.configuration_set || undefined,
         };
         if (data.aws_secret_access_key) config.aws_secret_access_key = data.aws_secret_access_key;
         if (data.aws_session_token) config.aws_session_token = data.aws_session_token;
@@ -292,6 +296,13 @@ export default function EditProviderPage() {
                 <div className="space-y-2">
                   <Label htmlFor="region_name">Region</Label>
                   <Input id="region_name" placeholder="us-east-1" {...register('region_name')} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="configuration_set">Configuration Set (opens / bounces)</Label>
+                  <Input id="configuration_set" placeholder="my-ses-config-set" {...register('configuration_set')} />
+                  <p className="text-xs text-muted-foreground">
+                    SNS should POST to <code>/api/v1/campaigns/webhooks/ses/</code>.
+                  </p>
                 </div>
               </div>
             )}

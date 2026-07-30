@@ -927,7 +927,30 @@ class CampaignAnalyticsView(APIView):
                 'click_rate': campaign.click_rate,
                 'bounce_rate': campaign.bounce_rate,
                 'delivery_rate': campaign.delivery_rate,
-            }
+            },
+            'engagement': {
+                'unique_opens': EmailDeliveryLog.objects.filter(
+                    campaign=campaign, opened_at__isnull=False
+                ).count(),
+                'total_opens': EmailDeliveryLog.objects.filter(
+                    campaign=campaign
+                ).aggregate(total=Sum('open_count'))['total'] or 0,
+                'unique_clicks': EmailDeliveryLog.objects.filter(
+                    campaign=campaign, clicked_at__isnull=False
+                ).count(),
+                'total_clicks': EmailDeliveryLog.objects.filter(
+                    campaign=campaign
+                ).aggregate(total=Sum('click_count'))['total'] or 0,
+                'hard_bounces': EmailDeliveryLog.objects.filter(
+                    campaign=campaign, bounce_type='HARD'
+                ).count(),
+                'soft_bounces': EmailDeliveryLog.objects.filter(
+                    campaign=campaign, bounce_type='SOFT'
+                ).count(),
+                'complaints': EmailDeliveryLog.objects.filter(
+                    campaign=campaign, delivery_status='COMPLAINED'
+                ).count(),
+            },
         })
 
 

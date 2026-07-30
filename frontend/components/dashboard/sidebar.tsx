@@ -20,7 +20,8 @@ import {
   Bell,
   UsersRound,
   CheckSquare,
-  ScrollText
+  ScrollText,
+  Inbox
 } from 'lucide-react';
 import { useAuth, usePlatformAdmin, useOrgAdmin } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,12 @@ const sidebarItems = [
     href: '/dashboard',
     icon: LayoutDashboard,
     color: 'text-blue-500'
+  },
+  {
+    title: 'Inbox',
+    href: '/dashboard/inbox',
+    icon: Inbox,
+    color: 'text-sky-500'
   },
   {
     title: 'Campaigns',

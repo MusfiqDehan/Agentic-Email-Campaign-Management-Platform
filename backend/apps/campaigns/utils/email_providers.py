@@ -100,6 +100,50 @@ class AWSSESProvider(EmailProviderInterface):
             logger.error(f"Failed to initialize SES client: {e}")
             raise
     
+    def _configuration_set(self) -> Optional[str]:
+        return (
+            self.config.get('configuration_set')
+            or self.config.get('configuration_set_name')
+            or self.config.get('aws_ses_configuration_set')
+            or getattr(settings, 'AWS_SES_CONFIGURATION_SET', None)
+            or None
+        )
+
+    def _send_raw_email(
+        self,
+        source: str,
+        recipient_email: str,
+        subject: str,
+        html_content: str,
+        text_content: str,
+        headers: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Send via send_raw_email so custom headers + configuration set are applied."""
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = source
+        msg['To'] = recipient_email
+        for key, value in (headers or {}).items():
+            if key.lower() in {'from', 'to', 'subject'}:
+                continue
+            msg[key] = str(value)
+        if text_content:
+            msg.attach(MIMEText(text_content, 'plain', 'utf-8'))
+        if html_content:
+            msg.attach(MIMEText(html_content, 'html', 'utf-8'))
+        elif not text_content:
+            msg.attach(MIMEText(subject or '', 'plain', 'utf-8'))
+
+        kwargs: Dict[str, Any] = {
+            'Source': source,
+            'Destinations': [recipient_email],
+            'RawMessage': {'Data': msg.as_string()},
+        }
+        configuration_set = self._configuration_set()
+        if configuration_set:
+            kwargs['ConfigurationSetName'] = configuration_set
+        return self.client.send_raw_email(**kwargs)
+
     def send_email(self, 
                    recipient_email: str, 
                    subject: str, 
@@ -107,7 +151,7 @@ class AWSSESProvider(EmailProviderInterface):
                    text_content: str = None,
                    sender_email: str = None,
                    headers: Dict[str, Any] = None) -> Tuple[bool, str, Dict[str, Any]]:
-        """Send email via AWS SES"""
+        """Send email via AWS SES (supports Configuration Set + custom headers)."""
         try:
             # Prepare email content
             destination = {'ToAddresses': [recipient_email]}
@@ -122,32 +166,40 @@ class AWSSESProvider(EmailProviderInterface):
             if not source:
                 return False, "", {"error": "No sender email configured"}
             
-            message = {
-                'Subject': {'Data': subject, 'Charset': 'UTF-8'},
-                'Body': {}
-            }
-            
-            if html_content:
-                message['Body']['Html'] = {'Data': html_content, 'Charset': 'UTF-8'}
-            
-            if text_content:
-                message['Body']['Text'] = {'Data': text_content, 'Charset': 'UTF-8'}
-            elif not html_content:
-                # If no content provided, create basic text
-                message['Body']['Text'] = {'Data': subject, 'Charset': 'UTF-8'}
-            
-            # Add custom headers if provided
-            if headers:
-                # SES doesn't support arbitrary headers in the simple send_email method
-                # For custom headers, we'd need to use send_raw_email
-                pass
-            
-            # Send email
-            response = self.client.send_email(
-                Source=source,
-                Destination=destination,
-                Message=message
-            )
+            configuration_set = self._configuration_set()
+
+            # Prefer raw email when we need custom headers or a configuration set
+            # (configuration set also works on send_email, but raw keeps one code path
+            # for Reply-To / List-Unsubscribe / tracking headers).
+            if headers or configuration_set:
+                response = self._send_raw_email(
+                    source=source,
+                    recipient_email=recipient_email,
+                    subject=subject,
+                    html_content=html_content or '',
+                    text_content=text_content or '',
+                    headers=headers or {},
+                )
+            else:
+                message = {
+                    'Subject': {'Data': subject, 'Charset': 'UTF-8'},
+                    'Body': {}
+                }
+
+                if html_content:
+                    message['Body']['Html'] = {'Data': html_content, 'Charset': 'UTF-8'}
+
+                if text_content:
+                    message['Body']['Text'] = {'Data': text_content, 'Charset': 'UTF-8'}
+                elif not html_content:
+                    message['Body']['Text'] = {'Data': subject, 'Charset': 'UTF-8'}
+
+                send_kwargs: Dict[str, Any] = {
+                    'Source': source,
+                    'Destination': destination,
+                    'Message': message,
+                }
+                response = self.client.send_email(**send_kwargs)
             
             message_id = response.get('MessageId', '')
             logger.info(f"Email sent successfully via SES: {message_id}")
@@ -155,6 +207,7 @@ class AWSSESProvider(EmailProviderInterface):
             return True, message_id, {
                 'provider': 'AWS_SES',
                 'message_id': message_id,
+                'configuration_set': configuration_set,
                 'response': response
             }
             
