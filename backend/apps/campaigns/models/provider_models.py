@@ -23,6 +23,7 @@ class EmailProvider(BaseModel):
         ('SENDGRID', 'SendGrid'),
         ('BREVO', 'Brevo (formerly Sendinblue)'),
         ('SMTP', 'Custom SMTP'),
+        ('GMAIL_SMTP', 'Gmail SMTP'),
         ('INTERNAL', 'Internal System'),
     ]
     

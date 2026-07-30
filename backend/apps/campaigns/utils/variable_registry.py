@@ -371,6 +371,7 @@ class VariableRegistry:
             Dictionary with all variable values
         """
         from django.utils import timezone
+        from apps.campaigns.utils.email_tracking import unsubscribe_url_for_contact
         
         context = {
             # Contact variables
@@ -380,8 +381,12 @@ class VariableRegistry:
             "full_name": contact.full_name or "",
             "phone": getattr(contact, 'phone', '') or "",
             
-            # System variables
-            "unsubscribe_url": f"/campaigns/unsubscribe/?token={contact.unsubscribe_token}",
+            # System variables — absolute frontend URL for email clients
+            "unsubscribe_url": (
+                unsubscribe_url_for_contact(contact.unsubscribe_token)
+                if getattr(contact, 'unsubscribe_token', None)
+                else ""
+            ),
             "current_date": timezone.now().strftime("%B %d, %Y"),
             "current_year": str(timezone.now().year),
         }

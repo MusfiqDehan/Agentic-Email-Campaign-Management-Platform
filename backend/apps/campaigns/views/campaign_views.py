@@ -25,7 +25,6 @@ from ..serializers import (
     ContactListSerializer,
     ContactListSummarySerializer,
     BulkContactCreateSerializer,
-    UnsubscribeSerializer,
     GDPRForgetSerializer,
     PublicSubscribeSerializer,
 )
@@ -927,7 +926,30 @@ class CampaignAnalyticsView(APIView):
                 'click_rate': campaign.click_rate,
                 'bounce_rate': campaign.bounce_rate,
                 'delivery_rate': campaign.delivery_rate,
-            }
+            },
+            'engagement': {
+                'unique_opens': EmailDeliveryLog.objects.filter(
+                    campaign=campaign, opened_at__isnull=False
+                ).count(),
+                'total_opens': EmailDeliveryLog.objects.filter(
+                    campaign=campaign
+                ).aggregate(total=Sum('open_count'))['total'] or 0,
+                'unique_clicks': EmailDeliveryLog.objects.filter(
+                    campaign=campaign, clicked_at__isnull=False
+                ).count(),
+                'total_clicks': EmailDeliveryLog.objects.filter(
+                    campaign=campaign
+                ).aggregate(total=Sum('click_count'))['total'] or 0,
+                'hard_bounces': EmailDeliveryLog.objects.filter(
+                    campaign=campaign, bounce_type='HARD'
+                ).count(),
+                'soft_bounces': EmailDeliveryLog.objects.filter(
+                    campaign=campaign, bounce_type='SOFT'
+                ).count(),
+                'complaints': EmailDeliveryLog.objects.filter(
+                    campaign=campaign, delivery_status='COMPLAINED'
+                ).count(),
+            },
         })
 
 
@@ -965,65 +987,7 @@ class CampaignRefreshStatsView(APIView):
 # =============================================================================
 # PUBLIC VIEWS
 # =============================================================================
-
-class UnsubscribeView(APIView):
-    """
-    Public endpoint for unsubscribing contacts.
-    
-    GET /unsubscribe/?token=xxx - Get unsubscribe confirmation page data
-    POST /unsubscribe/ - Process unsubscription
-    """
-    permission_classes = []  # Public endpoint
-    
-    def get(self, request):
-        """Handle GET requests for unsubscribe links."""
-        token = request.query_params.get('token')
-        if not token:
-            return Response(
-                {'error': 'Token required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        contact = Contact.objects.filter(unsubscribe_token=token).first()
-        if not contact:
-            return Response(
-                {'error': 'Invalid token'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        if contact.status == 'UNSUBSCRIBED':
-            return Response({'message': 'Already unsubscribed', 'email': contact.email})
-        
-        # Return confirmation page data
-        return Response({
-            'email': contact.email,
-            'status': contact.status,
-            'confirm_url': f'/campaigns/unsubscribe/?token={token}'
-        })
-    
-    def post(self, request):
-        """Process unsubscription."""
-        serializer = UnsubscribeSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        token = serializer.validated_data['token']
-        reason = serializer.validated_data.get('reason', '')
-        
-        contact = Contact.objects.filter(unsubscribe_token=token).first()
-        if not contact:
-            return Response(
-                {'error': 'Invalid token'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        contact.unsubscribe(reason)
-        
-        return Response({
-            'message': 'Successfully unsubscribed',
-            'email': contact.email
-        })
-
+# UnsubscribeView lives in unsubscribe_views.py (RFC 8058 one-click + CORS).
 
 class GDPRForgetView(APIView):
     """

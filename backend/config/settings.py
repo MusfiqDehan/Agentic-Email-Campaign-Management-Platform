@@ -327,3 +327,17 @@ VAPID_CLAIM_EMAIL = {
 
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3001')
 BACKEND_URL = config('BACKEND_URL', default='http://localhost:8001')
+PUBLIC_API_BASE_URL = config('PUBLIC_API_BASE_URL', default=BACKEND_URL)
+
+# ========================================================================
+# AWS SES EVENT / INBOUND SETTINGS (django-ses)
+# Point SNS topics for bounce/complaint/delivery/open/click/received here:
+#   POST {PUBLIC_API_BASE_URL}/api/v1/campaigns/webhooks/ses/
+# ========================================================================
+AWS_SES_CONFIGURATION_SET = config('AWS_SES_CONFIGURATION_SET', default='')
+AWS_SES_VERIFY_EVENT_SIGNATURES = config('AWS_SES_VERIFY_EVENT_SIGNATURES', default='True') == 'True'
+AWS_SES_VERIFY_BOUNCE_SIGNATURES = AWS_SES_VERIFY_EVENT_SIGNATURES
+AWS_SES_INBOUND_HANDLER = config(
+    'AWS_SES_INBOUND_HANDLER',
+    default='apps.campaigns.services.ses_inbound.SESInboundHandler',
+)

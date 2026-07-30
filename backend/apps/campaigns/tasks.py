@@ -1290,37 +1290,90 @@ def launch_campaign_task(self, campaign_id):
             headers = {}
             if campaign.reply_to:
                 headers['Reply-To'] = campaign.reply_to
-            
-            success, message_id, response_data = email_provider_instance.send_email(
-                recipient_email=contact.email,
-                subject=personalized_subject,
-                html_content=personalized_html,
-                text_content=personalized_text,
-                sender_email=sender_email,
-                headers=headers if headers else None
-            )
-            
-            # Log delivery
-            delivery_status = 'SENT' if success else 'FAILED'
-            EmailDeliveryLog.objects.create(
+
+            # Create delivery log first so first-party open/click tokens can embed log id
+            delivery_log = EmailDeliveryLog.objects.create(
                 campaign=campaign,
                 organization=campaign.organization,
                 recipient_email=contact.email,
                 contact=contact,
                 sender_email=from_email,
                 subject=personalized_subject,
-                delivery_status=delivery_status,
-                sent_at=timezone.now(),
-                provider_message_id=message_id or '',
-                error_message=response_data.get('error_message', '') if not success else '',
+                delivery_status='QUEUED',
+                email_provider=getattr(campaign.email_provider, 'provider', None)
+                if getattr(campaign, 'email_provider', None) else None,
+            )
+
+            tracked_html = personalized_html
+            if campaign.track_opens or campaign.track_clicks:
+                from .utils.email_tracking import apply_tracking
+                tracked_html = apply_tracking(
+                    personalized_html,
+                    str(delivery_log.id),
+                    track_opens=bool(campaign.track_opens),
+                    track_clicks=bool(campaign.track_clicks),
+                )
+
+            # List-Unsubscribe: API URL for RFC 8058 one-click; body links use frontend page
+            try:
+                if getattr(contact, 'unsubscribe_token', None):
+                    from .utils.email_tracking import (
+                        unsubscribe_url_for_contact,
+                        api_unsubscribe_url_for_contact,
+                        ensure_unsubscribe_footer,
+                    )
+                    unsub_page = unsubscribe_url_for_contact(contact.unsubscribe_token)
+                    unsub_api = api_unsubscribe_url_for_contact(contact.unsubscribe_token)
+                    headers['List-Unsubscribe'] = f'<{unsub_api}>'
+                    headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
+
+                    include_unsub = True
+                    settings_blob = getattr(campaign, 'segment_filters', None) or {}
+                    if isinstance(settings_blob, dict) and 'include_unsubscribe' in settings_blob:
+                        include_unsub = bool(settings_blob.get('include_unsubscribe'))
+                    # Also honor settings JSON if present on campaign
+                    camp_settings = getattr(campaign, 'settings', None)
+                    if isinstance(camp_settings, dict) and 'include_unsubscribe' in camp_settings:
+                        include_unsub = bool(camp_settings.get('include_unsubscribe'))
+
+                    if include_unsub:
+                        org_name = getattr(campaign.organization, 'name', '') if campaign.organization_id else ''
+                        tracked_html = ensure_unsubscribe_footer(tracked_html, unsub_page, org_name)
+            except Exception:
+                pass
+            
+            success, message_id, response_data = email_provider_instance.send_email(
+                recipient_email=contact.email,
+                subject=personalized_subject,
+                html_content=tracked_html,
+                text_content=personalized_text,
+                sender_email=sender_email,
+                headers=headers if headers else None
             )
             
+            # Update delivery log
             if success:
+                delivery_log.delivery_status = 'SENT'
+                delivery_log.provider_message_id = message_id or ''
+                delivery_log.sent_at = timezone.now()
+                delivery_log.save(update_fields=[
+                    'delivery_status', 'provider_message_id', 'sent_at', 'updated_at'
+                ])
                 sent_count += 1
                 contact.emails_sent = (contact.emails_sent or 0) + 1
                 contact.last_email_sent_at = timezone.now()
                 contact.save(update_fields=['emails_sent', 'last_email_sent_at'])
             else:
+                err = ''
+                if isinstance(response_data, dict):
+                    err_obj = response_data.get('error') or {}
+                    if isinstance(err_obj, dict):
+                        err = err_obj.get('message') or response_data.get('error_message', '')
+                    else:
+                        err = str(err_obj or response_data.get('error_message', ''))
+                delivery_log.delivery_status = 'FAILED'
+                delivery_log.error_message = err
+                delivery_log.save(update_fields=['delivery_status', 'error_message', 'updated_at'])
                 failed_count += 1
                 
         except Exception as e:
@@ -1626,3 +1679,39 @@ def send_test_campaign_email(self, campaign_id, recipient_email, subject, html_c
             'recipient': recipient_email,
             'error': str(e)
         }
+
+@shared_task(bind=True, max_retries=1)
+def sync_mailbox_account_task(self, account_id):
+    """Sync a single IMAP mailbox account."""
+    from .models import EmailAccount
+    from .utils.mailbox_sync import sync_account_inbox
+
+    try:
+        account = EmailAccount.objects.get(id=account_id, sync_enabled=True, is_active=True)
+    except EmailAccount.DoesNotExist:
+        return {'success': False, 'error': 'Account not found or sync disabled'}
+
+    if account.account_type == 'AWS_SES':
+        return {'success': True, 'skipped': True, 'reason': 'SES is push-based'}
+
+    return sync_account_inbox(account)
+
+
+@shared_task
+def sync_all_mailbox_accounts():
+    """Periodic IMAP sync for all enabled Gmail/custom accounts."""
+    from .models import EmailAccount
+
+    accounts = EmailAccount.objects.filter(
+        sync_enabled=True,
+        is_active=True,
+        is_deleted=False,
+    ).exclude(account_type__in=['AWS_SES', 'SENDGRID', 'BREVO'])
+
+    queued = 0
+    for account in accounts.iterator():
+        sync_mailbox_account_task.delay(str(account.id))
+        queued += 1
+
+    logger.info(f"[sync_all_mailbox_accounts] Queued {queued} mailbox syncs")
+    return {'queued': queued}

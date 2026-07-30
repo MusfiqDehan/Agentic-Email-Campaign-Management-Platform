@@ -14,6 +14,7 @@ All endpoints use APIView for explicit control.
 """
 
 from django.urls import path
+from django_ses.views import SESEventWebhookView
 # Import campaign views
 from .views import (
     # Contact List Views
@@ -44,7 +45,6 @@ from .views import (
     OrganizationStatsView,
     
     # Public Views
-    UnsubscribeView,
     GDPRForgetView,
     PublicContactSubscribeView,
     
@@ -107,6 +107,24 @@ from .views.notification_views import (
 
 # Import push notification views
 from .views.push_views import PushSubscriptionViewSet
+
+# Import tracking + mailbox views
+from .views.tracking_views import TrackOpenView, TrackClickView
+from .views.mailbox_views import (
+    EmailAccountListCreateView,
+    EmailAccountDetailView,
+    EmailAccountSyncView,
+    MailboxMessageListView,
+    MailboxMessageDetailView,
+    MailboxComposeView,
+    MailboxStatsView,
+)
+from .views.provider_webhooks import (
+    SendGridEventWebhookView,
+    BrevoEventWebhookView,
+    SendGridInboundParseView,
+)
+from .views.unsubscribe_views import UnsubscribeView
 
 # Import template operation views
 from .views.template_operations import (
@@ -286,6 +304,26 @@ urlpatterns = [
     # Email Actions
     path('actions/', EmailActionListView.as_view(), name='email-action-list'),
     path('actions/<uuid:pk>/', EmailActionDetailView.as_view(), name='email-action-detail'),
+
+    # First-party open/click tracking (public)
+    path('track/open/<path:token>', TrackOpenView.as_view(), name='track-open'),
+    path('track/click/<path:token>/', TrackClickView.as_view(), name='track-click'),
+
+    # Mailbox (Gmail-like send + receive)
+    path('mailbox/accounts/', EmailAccountListCreateView.as_view(), name='mailbox-account-list'),
+    path('mailbox/accounts/<uuid:pk>/', EmailAccountDetailView.as_view(), name='mailbox-account-detail'),
+    path('mailbox/accounts/<uuid:pk>/sync/', EmailAccountSyncView.as_view(), name='mailbox-account-sync'),
+    path('mailbox/messages/', MailboxMessageListView.as_view(), name='mailbox-message-list'),
+    path('mailbox/messages/<uuid:pk>/', MailboxMessageDetailView.as_view(), name='mailbox-message-detail'),
+    path('mailbox/compose/', MailboxComposeView.as_view(), name='mailbox-compose'),
+    path('mailbox/stats/', MailboxStatsView.as_view(), name='mailbox-stats'),
+
+    # AWS SES SNS webhook (bounce/complaint/delivery/open/click/received)
+    path('webhooks/ses/', SESEventWebhookView.as_view(), name='ses-event-webhook'),
+    # SendGrid / Brevo event + inbound webhooks
+    path('webhooks/sendgrid/', SendGridEventWebhookView.as_view(), name='sendgrid-event-webhook'),
+    path('webhooks/sendgrid/inbound/', SendGridInboundParseView.as_view(), name='sendgrid-inbound'),
+    path('webhooks/brevo/', BrevoEventWebhookView.as_view(), name='brevo-event-webhook'),
     
     # ========================================================================
     # SECTION 5: SMS & WHATSAPP AUTOMATION

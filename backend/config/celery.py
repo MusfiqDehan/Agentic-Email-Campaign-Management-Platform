@@ -37,4 +37,8 @@ app.conf.beat_schedule = {
         'task': 'apps.campaigns.tasks.cleanup_old_logs',
         'schedule': crontab(hour=0, minute=0),  # Daily at midnight
     },
+    'sync-mailbox-accounts-every-5-minutes': {
+        'task': 'apps.campaigns.tasks.sync_all_mailbox_accounts',
+        'schedule': crontab(minute='*/5'),
+    },
 }

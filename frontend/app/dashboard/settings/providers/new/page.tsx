@@ -36,6 +36,7 @@ const providerSchema = z.object({
   aws_secret_access_key: z.string().optional(),
   aws_session_token: z.string().optional(),
   region_name: z.string().optional(),
+  configuration_set: z.string().optional(),
 
   api_key: z.string().optional(), // For SendGrid/Brevo
 });
@@ -67,6 +68,7 @@ export default function NewProviderPage() {
       aws_secret_access_key: '',
       aws_session_token: '',
       region_name: '',
+      configuration_set: '',
       api_key: '',
     }
   });
@@ -103,6 +105,7 @@ export default function NewProviderPage() {
           aws_session_token: data.aws_session_token || undefined,
           region_name: data.region_name,
           from_email: data.from_email,
+          configuration_set: data.configuration_set || undefined,
         };
       } else if (['SENDGRID', 'BREVO'].includes(data.provider_type)) {
         if (!data.api_key) {
@@ -267,6 +270,14 @@ export default function NewProviderPage() {
                   <Input id="region_name" placeholder="us-east-1" {...register('region_name')} />
                   {errors.region_name && <p className="text-sm text-red-500">{errors.region_name.message}</p>}
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="configuration_set">Configuration Set (opens / bounces)</Label>
+                  <Input id="configuration_set" placeholder="my-ses-config-set" {...register('configuration_set')} />
+                  <p className="text-xs text-muted-foreground">
+                    Optional but required for SES open/click/bounce events. SNS should POST to{' '}
+                    <code>/api/v1/campaigns/webhooks/ses/</code>.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -278,6 +289,11 @@ export default function NewProviderPage() {
                   <Input id="api_key" type="password" {...register('api_key')} />
                   {errors.api_key && <p className="text-sm text-red-500">{errors.api_key.message}</p>}
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  {providerType === 'SENDGRID'
+                    ? 'Configure Event Webhook → /api/v1/campaigns/webhooks/sendgrid/ for opens, clicks, and bounces.'
+                    : 'Configure Brevo webhook → /api/v1/campaigns/webhooks/brevo/ for opens, clicks, and bounces.'}
+                </p>
               </div>
             )}
 

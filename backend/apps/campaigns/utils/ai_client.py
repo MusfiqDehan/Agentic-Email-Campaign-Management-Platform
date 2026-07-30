@@ -127,10 +127,19 @@ def generate_json_text(prompt: str) -> tuple[str, str]:
             return _generate_with_gemini(prompt), "gemini"
         except Exception as exc:  # noqa: BLE001 - provider boundary
             last_error = exc
-            if not (_is_rate_limit_error(exc) and deepseek_key):
+            # Fall back to DeepSeek on rate limits OR when DeepSeek is configured
+            # and Gemini fails for any recoverable reason (timeouts, 5xx, empty).
+            can_fallback = bool(deepseek_key) and (
+                _is_rate_limit_error(exc)
+                or any(
+                    marker in str(exc).lower()
+                    for marker in ("timeout", "503", "502", "500", "unavailable", "empty response")
+                )
+            )
+            if not can_fallback:
                 raise AIGenerationError(f"Gemini AI generation failed: {exc}") from exc
             logger.warning(
-                "Gemini rate/quota limit hit; falling back to DeepSeek: %s",
+                "Gemini failed; falling back to DeepSeek: %s",
                 exc,
             )
 
@@ -140,7 +149,7 @@ def generate_json_text(prompt: str) -> tuple[str, str]:
         except Exception as exc:  # noqa: BLE001 - provider boundary
             if last_error is not None:
                 raise AIGenerationError(
-                    f"AI generation failed after Gemini rate-limit and DeepSeek attempt. "
+                    f"AI generation failed after Gemini and DeepSeek attempts. "
                     f"Gemini: {last_error}; DeepSeek: {exc}"
                 ) from exc
             raise AIGenerationError(f"DeepSeek AI generation failed: {exc}") from exc
