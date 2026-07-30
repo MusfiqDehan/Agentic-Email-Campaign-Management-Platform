@@ -1065,6 +1065,7 @@ class UnsubscribeSerializer(serializers.Serializer):
     token = serializers.CharField(help_text="Unsubscribe token from email link")
     reason = serializers.CharField(
         required=False,
+        allow_blank=True,
         max_length=500,
         help_text="Optional reason for unsubscribing"
     )
@@ -1073,8 +1074,7 @@ class UnsubscribeSerializer(serializers.Serializer):
         contact = Contact.objects.filter(unsubscribe_token=value).first()
         if not contact:
             raise serializers.ValidationError("Invalid unsubscribe token")
-        if contact.status == 'UNSUBSCRIBED':
-            raise serializers.ValidationError("Already unsubscribed")
+        # Idempotent: already unsubscribed is OK (handled in the view)
         return value
 
 

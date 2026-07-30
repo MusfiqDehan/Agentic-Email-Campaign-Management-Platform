@@ -45,7 +45,6 @@ from .views import (
     OrganizationStatsView,
     
     # Public Views
-    UnsubscribeView,
     GDPRForgetView,
     PublicContactSubscribeView,
     
@@ -120,6 +119,12 @@ from .views.mailbox_views import (
     MailboxComposeView,
     MailboxStatsView,
 )
+from .views.provider_webhooks import (
+    SendGridEventWebhookView,
+    BrevoEventWebhookView,
+    SendGridInboundParseView,
+)
+from .views.unsubscribe_views import UnsubscribeView
 
 # Import template operation views
 from .views.template_operations import (
@@ -315,6 +320,10 @@ urlpatterns = [
 
     # AWS SES SNS webhook (bounce/complaint/delivery/open/click/received)
     path('webhooks/ses/', SESEventWebhookView.as_view(), name='ses-event-webhook'),
+    # SendGrid / Brevo event + inbound webhooks
+    path('webhooks/sendgrid/', SendGridEventWebhookView.as_view(), name='sendgrid-event-webhook'),
+    path('webhooks/sendgrid/inbound/', SendGridInboundParseView.as_view(), name='sendgrid-inbound'),
+    path('webhooks/brevo/', BrevoEventWebhookView.as_view(), name='brevo-event-webhook'),
     
     # ========================================================================
     # SECTION 5: SMS & WHATSAPP AUTOMATION

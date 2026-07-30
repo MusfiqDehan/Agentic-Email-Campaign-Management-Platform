@@ -1314,13 +1314,31 @@ def launch_campaign_task(self, campaign_id):
                     track_clicks=bool(campaign.track_clicks),
                 )
 
-            # List-Unsubscribe helps deliverability and compliance
+            # List-Unsubscribe: API URL for RFC 8058 one-click; body links use frontend page
             try:
                 if getattr(contact, 'unsubscribe_token', None):
-                    from .utils.email_tracking import unsubscribe_url_for_contact
-                    unsub_url = unsubscribe_url_for_contact(contact.unsubscribe_token)
-                    headers['List-Unsubscribe'] = f'<{unsub_url}>'
+                    from .utils.email_tracking import (
+                        unsubscribe_url_for_contact,
+                        api_unsubscribe_url_for_contact,
+                        ensure_unsubscribe_footer,
+                    )
+                    unsub_page = unsubscribe_url_for_contact(contact.unsubscribe_token)
+                    unsub_api = api_unsubscribe_url_for_contact(contact.unsubscribe_token)
+                    headers['List-Unsubscribe'] = f'<{unsub_api}>'
                     headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
+
+                    include_unsub = True
+                    settings_blob = getattr(campaign, 'segment_filters', None) or {}
+                    if isinstance(settings_blob, dict) and 'include_unsubscribe' in settings_blob:
+                        include_unsub = bool(settings_blob.get('include_unsubscribe'))
+                    # Also honor settings JSON if present on campaign
+                    camp_settings = getattr(campaign, 'settings', None)
+                    if isinstance(camp_settings, dict) and 'include_unsubscribe' in camp_settings:
+                        include_unsub = bool(camp_settings.get('include_unsubscribe'))
+
+                    if include_unsub:
+                        org_name = getattr(campaign.organization, 'name', '') if campaign.organization_id else ''
+                        tracked_html = ensure_unsubscribe_footer(tracked_html, unsub_page, org_name)
             except Exception:
                 pass
             
@@ -1688,7 +1706,7 @@ def sync_all_mailbox_accounts():
         sync_enabled=True,
         is_active=True,
         is_deleted=False,
-    ).exclude(account_type='AWS_SES')
+    ).exclude(account_type__in=['AWS_SES', 'SENDGRID', 'BREVO'])
 
     queued = 0
     for account in accounts.iterator():

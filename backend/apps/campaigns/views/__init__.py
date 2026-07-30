@@ -75,10 +75,10 @@ from .campaign_views import (
 
 # Campaign views - Public
 from .campaign_views import (
-    UnsubscribeView,
     GDPRForgetView,
     PublicContactSubscribeView,
 )
+from .unsubscribe_views import UnsubscribeView
 
 # Admin views - Providers
 from .admin_views import (

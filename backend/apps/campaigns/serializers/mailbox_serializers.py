@@ -61,6 +61,10 @@ class EmailAccountSerializer(serializers.ModelSerializer):
         elif account_type == 'AWS_SES':
             config.setdefault('from_email', email_address)
             config.setdefault('default_from_email', email_address)
+        elif account_type in ('SENDGRID', 'BREVO'):
+            config.setdefault('from_email', email_address)
+            config.setdefault('default_from_email', email_address)
+            config.setdefault('enable_tracking', True)
         else:
             config.setdefault('from_email', email_address)
             config.setdefault('username', email_address)

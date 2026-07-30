@@ -23,6 +23,8 @@ class EmailAccount(BaseModel):
     ACCOUNT_TYPES = [
         ('GMAIL', 'Gmail'),
         ('AWS_SES', 'Amazon SES'),
+        ('SENDGRID', 'SendGrid'),
+        ('BREVO', 'Brevo'),
         ('CUSTOM', 'Custom SMTP/IMAP'),
     ]
 

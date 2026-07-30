@@ -289,6 +289,11 @@ export default function NewProviderPage() {
                   <Input id="api_key" type="password" {...register('api_key')} />
                   {errors.api_key && <p className="text-sm text-red-500">{errors.api_key.message}</p>}
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  {providerType === 'SENDGRID'
+                    ? 'Configure Event Webhook → /api/v1/campaigns/webhooks/sendgrid/ for opens, clicks, and bounces.'
+                    : 'Configure Brevo webhook → /api/v1/campaigns/webhooks/brevo/ for opens, clicks, and bounces.'}
+                </p>
               </div>
             )}
 

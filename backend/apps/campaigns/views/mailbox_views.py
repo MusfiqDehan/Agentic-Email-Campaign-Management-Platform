@@ -103,10 +103,17 @@ class EmailAccountSyncView(CustomResponseMixin, APIView):
         except EmailAccount.DoesNotExist:
             return self.error_response('Not found', status_code=status.HTTP_404_NOT_FOUND)
 
-        if account.account_type == 'AWS_SES':
+        if account.account_type in ('AWS_SES', 'SENDGRID', 'BREVO'):
             return self.success_response(
-                data={'note': 'SES inbound is push-based via SNS; nothing to poll.'},
-                message='SES accounts receive mail via SNS webhook',
+                data={
+                    'note': (
+                        'This provider receives mail via webhooks, not IMAP. '
+                        'Configure SendGrid Inbound Parse or SES SNS to '
+                        '/api/v1/campaigns/webhooks/... '
+                    ),
+                    'account_type': account.account_type,
+                },
+                message='Webhook-based accounts do not use IMAP sync',
             )
 
         result = sync_account_inbox(account)
@@ -235,6 +242,12 @@ def _provider_for_account(account):
 
     if account.account_type == 'AWS_SES':
         return EmailProviderFactory.create_provider('AWS_SES', merged)
+
+    if account.account_type == 'SENDGRID':
+        return EmailProviderFactory.create_provider('SENDGRID', merged)
+
+    if account.account_type == 'BREVO':
+        return EmailProviderFactory.create_provider('BREVO', merged)
 
     # Gmail / Custom → SMTP
     smtp_config = {

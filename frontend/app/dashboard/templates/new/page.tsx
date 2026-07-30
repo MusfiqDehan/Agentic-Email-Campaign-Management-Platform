@@ -56,6 +56,9 @@ export default function NewTemplatePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [aiTone, setAiTone] = useState('professional');
+  const [aiAudience, setAiAudience] = useState('');
+  const [aiCta, setAiCta] = useState('');
 
   const { register, handleSubmit, setValue, watch, control, formState: { errors } } = useForm<TemplateFormValues>({
     resolver: zodResolver(templateSchema),
@@ -74,6 +77,7 @@ export default function NewTemplatePage() {
   const content = watch('content');
   const subject = watch('subject');
   const name = watch('name');
+  const category = watch('category');
 
   const handleGenerateAI = async () => {
     if (!name || !subject) {
@@ -86,13 +90,18 @@ export default function NewTemplatePage() {
       const response = await api.post('/campaigns/ai/generate/email/content/', {
         template_name: name,
         email_subject: subject,
+        category,
+        tone: aiTone,
+        audience: aiAudience || undefined,
+        cta_text: aiCta || undefined,
       });
 
-      const { email_body, text_body, description, tags } = response.data;
+      const { email_body, text_body, description, tags, preview_text } = response.data;
 
       if (email_body) setValue('content', email_body);
       if (text_body) setValue('text_body', text_body);
       if (description) setValue('description', description);
+      if (preview_text) setValue('preview_text', preview_text);
       if (tags && Array.isArray(tags)) setValue('tags', tags.join(', '));
 
       toast.success('AI content generated successfully');
@@ -212,24 +221,58 @@ export default function NewTemplatePage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Email Content (HTML)</Label>
+              <div className="flex flex-col gap-3 rounded-xl border bg-muted/40 p-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="grid flex-1 gap-3 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">AI tone</Label>
+                    <Select value={aiTone} onValueChange={setAiTone}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="professional">Professional</SelectItem>
+                        <SelectItem value="friendly">Friendly</SelectItem>
+                        <SelectItem value="persuasive">Persuasive</SelectItem>
+                        <SelectItem value="warm">Warm</SelectItem>
+                        <SelectItem value="concise">Concise</SelectItem>
+                        <SelectItem value="playful">Playful</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Audience</Label>
+                    <Input
+                      placeholder="e.g. SaaS founders"
+                      value={aiAudience}
+                      onChange={(e) => setAiAudience(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">CTA text</Label>
+                    <Input
+                      placeholder="e.g. Start free trial"
+                      value={aiCta}
+                      onChange={(e) => setAiCta(e.target.value)}
+                    />
+                  </div>
+                </div>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleGenerateAI}
                   disabled={isGenerating}
-                  className="gap-2"
+                  className="gap-2 shrink-0"
                 >
                   {isGenerating ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    <Sparkles className="h-4 w-4 text-sky-500" />
                   )}
                   {isGenerating ? 'Generating...' : 'Generate with AI'}
                 </Button>
               </div>
+              <Label>Email Content (HTML)</Label>
               <Editor
                 value={content || ''}
                 onChange={(val) => setValue('content', val)}

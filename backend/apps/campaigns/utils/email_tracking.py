@@ -145,5 +145,41 @@ def build_list_unsubscribe_header(unsubscribe_url: str) -> str:
 
 
 def unsubscribe_url_for_contact(token: str) -> str:
+    """Human-facing unsubscribe page on the frontend."""
     base = getattr(settings, 'FRONTEND_URL', 'http://localhost:3001').rstrip('/')
     return f"{base}/unsubscribe?{urlencode({'token': token})}"
+
+
+def api_unsubscribe_url_for_contact(token: str) -> str:
+    """
+    API URL for List-Unsubscribe / RFC 8058 one-click POST.
+    Mail clients POST List-Unsubscribe=One-Click to this URL.
+    """
+    base = get_tracking_base_url()
+    return f"{base}/api/v1/campaigns/unsubscribe/?{urlencode({'token': token})}"
+
+
+def build_unsubscribe_footer_html(unsubscribe_url: str, organization_name: str = '') -> str:
+    org = organization_name or 'us'
+    return (
+        '<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;'
+        'font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#6b7280;text-align:center;">'
+        f'<p style="margin:0 0 8px;">You are receiving this email from {org}.</p>'
+        f'<p style="margin:0;"><a href="{unsubscribe_url}" style="color:#2563eb;text-decoration:underline;">'
+        'Unsubscribe</a> from future emails.</p>'
+        '</div>'
+    )
+
+
+def ensure_unsubscribe_footer(html_content: str, unsubscribe_url: str, organization_name: str = '') -> str:
+    """Append an unsubscribe footer if the HTML does not already include one."""
+    if not html_content:
+        html_content = '<html><body></body></html>'
+    lowered = html_content.lower()
+    if 'unsubscribe' in lowered and (unsubscribe_url.lower() in lowered or '{{unsubscribe_url}}' in lowered):
+        return html_content
+    footer = build_unsubscribe_footer_html(unsubscribe_url, organization_name)
+    body_close = lowered.rfind('</body>')
+    if body_close != -1:
+        return html_content[:body_close] + footer + html_content[body_close:]
+    return html_content + footer

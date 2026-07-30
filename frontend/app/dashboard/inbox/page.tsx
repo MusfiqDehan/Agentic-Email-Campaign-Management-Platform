@@ -43,7 +43,7 @@ interface EmailAccount {
   id: string;
   name: string;
   email_address: string;
-  account_type: 'GMAIL' | 'AWS_SES' | 'CUSTOM';
+  account_type: 'GMAIL' | 'AWS_SES' | 'SENDGRID' | 'BREVO' | 'CUSTOM';
   display_name: string;
   sync_enabled: boolean;
   sync_status: string;
@@ -118,6 +118,7 @@ export default function InboxPage() {
     aws_secret_access_key: '',
     region_name: 'us-east-1',
     configuration_set: '',
+    api_key: '',
     smtp_server: '',
     smtp_port: '587',
     imap_server: '',
@@ -196,9 +197,9 @@ export default function InboxPage() {
   const handleSync = async (accountId?: string) => {
     const targets = accountId
       ? accounts.filter((a) => a.id === accountId)
-      : accounts.filter((a) => a.account_type !== 'AWS_SES');
+      : accounts.filter((a) => !['AWS_SES', 'SENDGRID', 'BREVO'].includes(a.account_type));
     if (!targets.length) {
-      toast.message('No IMAP accounts to sync (SES is push-based via SNS)');
+      toast.message('No IMAP accounts to sync (SES/SendGrid/Brevo use webhooks)');
       return;
     }
     setIsSyncing(true);
@@ -243,6 +244,16 @@ export default function InboxPage() {
           region_name: connectForm.region_name,
           configuration_set: connectForm.configuration_set || undefined,
           from_email: connectForm.email_address,
+        };
+      } else if (connectForm.account_type === 'SENDGRID' || connectForm.account_type === 'BREVO') {
+        if (!connectForm.api_key) {
+          toast.error('API key is required');
+          return;
+        }
+        config = {
+          api_key: connectForm.api_key,
+          from_email: connectForm.email_address,
+          enable_tracking: true,
         };
       } else {
         config = {
@@ -407,8 +418,16 @@ export default function InboxPage() {
               className="cursor-pointer px-3 py-1"
               onClick={() => setAccountFilter(accountFilter === account.id ? 'all' : account.id)}
             >
-              {account.account_type === 'GMAIL' ? 'Gmail' : account.account_type === 'AWS_SES' ? 'SES' : 'SMTP'}{' '}
-              · {account.email_address}
+                  {account.account_type === 'GMAIL'
+                    ? 'Gmail'
+                    : account.account_type === 'AWS_SES'
+                      ? 'SES'
+                      : account.account_type === 'SENDGRID'
+                        ? 'SendGrid'
+                        : account.account_type === 'BREVO'
+                          ? 'Brevo'
+                          : 'SMTP'}{' '}
+                  · {account.email_address}
               {account.unread_count > 0 ? ` (${account.unread_count})` : ''}
             </Badge>
           ))}
@@ -577,6 +596,8 @@ export default function InboxPage() {
                 <SelectContent>
                   <SelectItem value="GMAIL">Gmail</SelectItem>
                   <SelectItem value="AWS_SES">Amazon SES</SelectItem>
+                  <SelectItem value="SENDGRID">SendGrid</SelectItem>
+                  <SelectItem value="BREVO">Brevo</SelectItem>
                   <SelectItem value="CUSTOM">Custom SMTP/IMAP</SelectItem>
                 </SelectContent>
               </Select>
@@ -657,6 +678,23 @@ export default function InboxPage() {
                   </p>
                 </div>
               </>
+            )}
+
+            {(connectForm.account_type === 'SENDGRID' || connectForm.account_type === 'BREVO') && (
+              <div className="space-y-2">
+                <Label>API key</Label>
+                <Input
+                  type="password"
+                  value={connectForm.api_key}
+                  onChange={(e) => setConnectForm((f) => ({ ...f, api_key: e.target.value }))}
+                  placeholder={connectForm.account_type === 'SENDGRID' ? 'SG....' : 'xkeysib-...'}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {connectForm.account_type === 'SENDGRID'
+                    ? 'Event webhook → /api/v1/campaigns/webhooks/sendgrid/ · Inbound Parse → /webhooks/sendgrid/inbound/'
+                    : 'Transactional webhook → /api/v1/campaigns/webhooks/brevo/'}
+                </p>
+              </div>
             )}
 
             {connectForm.account_type === 'CUSTOM' && (

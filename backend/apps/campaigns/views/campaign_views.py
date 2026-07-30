@@ -25,7 +25,6 @@ from ..serializers import (
     ContactListSerializer,
     ContactListSummarySerializer,
     BulkContactCreateSerializer,
-    UnsubscribeSerializer,
     GDPRForgetSerializer,
     PublicSubscribeSerializer,
 )
@@ -988,65 +987,7 @@ class CampaignRefreshStatsView(APIView):
 # =============================================================================
 # PUBLIC VIEWS
 # =============================================================================
-
-class UnsubscribeView(APIView):
-    """
-    Public endpoint for unsubscribing contacts.
-    
-    GET /unsubscribe/?token=xxx - Get unsubscribe confirmation page data
-    POST /unsubscribe/ - Process unsubscription
-    """
-    permission_classes = []  # Public endpoint
-    
-    def get(self, request):
-        """Handle GET requests for unsubscribe links."""
-        token = request.query_params.get('token')
-        if not token:
-            return Response(
-                {'error': 'Token required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        contact = Contact.objects.filter(unsubscribe_token=token).first()
-        if not contact:
-            return Response(
-                {'error': 'Invalid token'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        if contact.status == 'UNSUBSCRIBED':
-            return Response({'message': 'Already unsubscribed', 'email': contact.email})
-        
-        # Return confirmation page data
-        return Response({
-            'email': contact.email,
-            'status': contact.status,
-            'confirm_url': f'/campaigns/unsubscribe/?token={token}'
-        })
-    
-    def post(self, request):
-        """Process unsubscription."""
-        serializer = UnsubscribeSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        token = serializer.validated_data['token']
-        reason = serializer.validated_data.get('reason', '')
-        
-        contact = Contact.objects.filter(unsubscribe_token=token).first()
-        if not contact:
-            return Response(
-                {'error': 'Invalid token'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        contact.unsubscribe(reason)
-        
-        return Response({
-            'message': 'Successfully unsubscribed',
-            'email': contact.email
-        })
-
+# UnsubscribeView lives in unsubscribe_views.py (RFC 8058 one-click + CORS).
 
 class GDPRForgetView(APIView):
     """
