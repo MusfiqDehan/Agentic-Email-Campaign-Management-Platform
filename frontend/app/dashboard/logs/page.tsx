@@ -59,6 +59,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { DeliveryStatusChart } from '@/components/dashboard/charts/delivery-status-chart';
+import { ProviderPerformanceChart } from '@/components/dashboard/charts/provider-performance-chart';
+import { PieChart } from 'lucide-react';
 
 interface EmailDeliveryLog {
   id: string;
@@ -430,6 +433,37 @@ export default function DeliveryLogsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Performance Charts */}
+      {!isAnalyticsLoading && analytics && analytics.total_emails > 0 && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PieChart className="h-5 w-5" />
+                Delivery Status Breakdown
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DeliveryStatusChart data={analytics.delivery_rates} />
+            </CardContent>
+          </Card>
+
+          {analytics.provider_stats && analytics.provider_stats.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Provider Comparison
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProviderPerformanceChart data={analytics.provider_stats} />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Provider Stats */}
       {analytics?.provider_stats && analytics.provider_stats.length > 0 && (
