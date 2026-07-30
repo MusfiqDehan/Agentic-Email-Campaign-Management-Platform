@@ -139,7 +139,7 @@ txaio==25.12.2
 typing-extensions==4.15.0
 typing-inspection==0.4.2
 tzdata==2025.2
-ujson==5.11.0
+ujson==5.13.0
 uritemplate==4.2.0
 urllib3==2.6.0
 vine==5.1.0
