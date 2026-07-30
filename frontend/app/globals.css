@@ -246,6 +246,15 @@ button:disabled {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 24s linear infinite;
+}
+
 /* Stagger animation for lists */
 .stagger-animation > * {
   animation: slide-up 0.4s ease-out backwards;
