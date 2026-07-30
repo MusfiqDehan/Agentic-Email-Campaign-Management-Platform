@@ -8,7 +8,7 @@ import api from '@/config/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ArrowLeft, Play, Copy, Eye, Send, AlertCircle, CheckCircle2, Clock, PauseCircle, XCircle, Rocket, Calendar, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Play, Copy, Eye, Send, AlertCircle, CheckCircle2, Clock, PauseCircle, XCircle, Rocket, Calendar, RotateCcw, LineChart, Filter } from 'lucide-react';
 import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,6 +32,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CampaignTimelineChart, type CampaignTimelinePoint } from '@/components/dashboard/charts/campaign-timeline-chart';
+import { EngagementFunnelChart } from '@/components/dashboard/charts/engagement-funnel-chart';
 
 interface Campaign {
     id: string;
@@ -59,6 +61,8 @@ interface Campaign {
 }
 
 interface CampaignAnalytics {
+    period?: string;
+    timeline?: CampaignTimelinePoint[];
     totals: {
         sent: number;
         delivered: number;
@@ -339,6 +343,46 @@ export default function CampaignDetailPage() {
                     )}
                 </div>
             </div>
+
+            {analytics && (analytics.totals.sent > 0 || (analytics.timeline && analytics.timeline.length > 0)) && (
+                <div className="grid gap-6 lg:grid-cols-3">
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <LineChart className="h-5 w-5 text-primary" />
+                                Performance Over Time
+                            </CardTitle>
+                            <CardDescription>
+                                Deliveries, opens, clicks, and bounces per {analytics.period === 'hour' ? 'hour' : 'day'}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <CampaignTimelineChart
+                                data={(analytics.timeline ?? []) as CampaignTimelinePoint[]}
+                                granularity={analytics.period === 'hour' ? 'hour' : 'day'}
+                            />
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Filter className="h-5 w-5 text-primary" />
+                                Engagement Funnel
+                            </CardTitle>
+                            <CardDescription>Where recipients drop off</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <EngagementFunnelChart
+                                sent={analytics.totals.sent}
+                                delivered={analytics.totals.delivered}
+                                opened={analytics.totals.opened}
+                                clicked={analytics.totals.clicked}
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             <div className="grid gap-6 md:grid-cols-3">
                 <div className="md:col-span-2 space-y-6">
