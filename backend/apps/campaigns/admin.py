@@ -9,6 +9,7 @@ from .models import (
     OrganizationEmailConfiguration, EmailProvider, OrganizationEmailProvider,
     EmailValidation, EmailQueue, EmailDeliveryLog, EmailAction,
     Campaign, ContactList, Contact,
+    Package, SendingDomain, SenderEmail, DomainAuditLog,
 )
 import logging
 
@@ -113,3 +114,32 @@ class ContactAdmin(admin.ModelAdmin):
     list_display = ['email', 'first_name', 'last_name', 'created_at']
     list_filter = ['created_at']
     search_fields = ['email', 'first_name', 'last_name']
+
+
+@admin.register(Package)
+class PackageAdmin(admin.ModelAdmin):
+    list_display = ['name', 'display_name', 'is_default', 'is_active', 'max_domains', 'max_sender_emails']
+    list_filter = ['is_active', 'is_default']
+    search_fields = ['name', 'display_name']
+
+
+@admin.register(SendingDomain)
+class SendingDomainAdmin(admin.ModelAdmin):
+    list_display = ['domain', 'organization', 'ownership_mode', 'status', 'verified_at']
+    list_filter = ['ownership_mode', 'status']
+    search_fields = ['domain', 'organization__name']
+
+
+@admin.register(SenderEmail)
+class SenderEmailAdmin(admin.ModelAdmin):
+    list_display = ['email_address', 'organization', 'status', 'created_at']
+    list_filter = ['status']
+    search_fields = ['email_address', 'organization__name']
+
+
+@admin.register(DomainAuditLog)
+class DomainAuditLogAdmin(admin.ModelAdmin):
+    list_display = ['action', 'object_type', 'object_repr', 'actor', 'created_at']
+    list_filter = ['action', 'object_type']
+    search_fields = ['object_repr']
+    readonly_fields = ['organization', 'object_type', 'object_id', 'object_repr', 'action', 'details', 'actor', 'created_at']
