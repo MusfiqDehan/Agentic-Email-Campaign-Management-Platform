@@ -233,6 +233,7 @@ export default function LandingPage() {
               <Link href="#how-it-works" className="transition-colors hover:text-foreground">How it works</Link>
               <Link href="#features" className="transition-colors hover:text-foreground">Features</Link>
               <Link href="#pricing" className="transition-colors hover:text-foreground">Pricing</Link>
+              <Link href="/docs" className="transition-colors hover:text-foreground">Docs</Link>
             </div>
             <ThemeToggle />
             <Link href="/login">
@@ -608,6 +609,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="#features" className="transition-colors hover:text-foreground">Features</Link></li>
                 <li><Link href="#pricing" className="transition-colors hover:text-foreground">Pricing</Link></li>
+                <li><Link href="/docs" className="transition-colors hover:text-foreground">Documentation</Link></li>
                 <li><Link href="#" className="transition-colors hover:text-foreground">Integrations</Link></li>
                 <li><Link href="#" className="transition-colors hover:text-foreground">API</Link></li>
               </ul>
