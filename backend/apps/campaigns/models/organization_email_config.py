@@ -64,13 +64,31 @@ class OrganizationEmailConfiguration(BaseModel):
         help_text="Organization timezone for campaign scheduling"
     )
     
-    # Subscription plan (can be synced from billing service or set manually)
+    # Subscription plan (display mirror of package.name when a package is set)
     plan_type = models.CharField(max_length=20, choices=PLAN_TYPES, default='FREE')
-    
-    # Plan limits (JSONField for flexibility, initialized from constants)
+
+    # Plan limits (JSONField for flexibility, initialized from constants).
+    # Legacy: authoritative only when `package` is NULL — see get_effective_limits().
     plan_limits = models.JSONField(
         default=get_default_plan_limits_json,
         help_text="Plan limits including batch_size, api_requests_per_minute, etc."
+    )
+
+    # DB-backed package assignment (platform-admin controlled). When set, it is
+    # the authoritative source of limits/flags, refined by limit_overrides.
+    package = models.ForeignKey(
+        'campaigns.Package',
+        null=True, blank=True,
+        on_delete=models.PROTECT,
+        related_name='organizations',
+    )
+    limit_overrides = models.JSONField(
+        default=dict, blank=True,
+        help_text="Sparse per-organization overrides of package limits/flags (override wins)"
+    )
+    domain_feature_enabled = models.BooleanField(
+        default=True,
+        help_text="Platform-admin kill switch for the sending-domains feature"
     )
     
     # Email limits based on plan (denormalized for quick access)
@@ -116,30 +134,68 @@ class OrganizationEmailConfiguration(BaseModel):
             except (ZoneInfoNotFoundError, KeyError):
                 raise ValidationError(f"Invalid timezone: {self.timezone}")
     
+    # Sentinel used when a NULL (= unlimited) limit must fit a non-null
+    # denormalized PositiveIntegerField.
+    UNLIMITED_SENTINEL = 10 ** 9
+
     def save(self, *args, **kwargs):
         # Validate before save
         self.clean()
-        
-        # Sync plan limits from plan_type if plan changed
-        if self.pk:
-            try:
-                old = OrganizationEmailConfiguration.objects.get(pk=self.pk)
-                if old.plan_type != self.plan_type:
-                    self.sync_plan_limits()
-            except OrganizationEmailConfiguration.DoesNotExist:
-                self.sync_plan_limits()
-        else:
+
+        if self.package_id:
+            # Package is authoritative: keep plan_type as a display mirror and
+            # refresh the denormalized counters from effective limits. Manual
+            # limit_overrides always survive (they participate in the merge).
+            mirrored = self.package.name.upper()
+            if mirrored in dict(self.PLAN_TYPES):
+                self.plan_type = mirrored
             self.sync_plan_limits()
-        
+        else:
+            # Legacy path: sync from the hardcoded catalog only when the plan
+            # type changes (or on first save).
+            if self.pk:
+                try:
+                    old = OrganizationEmailConfiguration.objects.get(pk=self.pk)
+                    if old.plan_type != self.plan_type:
+                        self.sync_plan_limits()
+                except OrganizationEmailConfiguration.DoesNotExist:
+                    self.sync_plan_limits()
+            else:
+                self.sync_plan_limits()
+
         super().save(*args, **kwargs)
-    
+
+    def get_effective_limits(self):
+        """
+        Effective limits/flags for this organization.
+
+        Package limits merged with sparse per-org limit_overrides (override
+        wins); falls back to the legacy plan_limits JSON when no package is
+        assigned. NULL integer limits mean unlimited.
+        """
+        if self.package_id:
+            limits = self.package.get_limits_dict()
+        else:
+            limits = dict(self.plan_limits or get_plan_limits(self.plan_type))
+        overrides = self.limit_overrides or {}
+        limits.update({k: v for k, v in overrides.items()})
+        return limits
+
     def sync_plan_limits(self):
-        """Sync limits from plan_type to plan_limits and denormalized fields."""
-        limits = get_plan_limits(self.plan_type)
-        self.plan_limits = limits
-        self.emails_per_day = limits.get('emails_per_day', 100)
-        self.emails_per_month = limits.get('emails_per_month', 1000)
-        self.emails_per_minute = limits.get('emails_per_minute', 10)
+        """Refresh the denormalized limit fields (and legacy plan_limits JSON)."""
+        if self.package_id:
+            limits = self.get_effective_limits()
+        else:
+            limits = get_plan_limits(self.plan_type)
+            self.plan_limits = limits
+
+        def _num(value):
+            # NULL limit = unlimited; denormalized fields are non-null ints
+            return self.UNLIMITED_SENTINEL if value is None else value
+
+        self.emails_per_day = _num(limits.get('emails_per_day', 100))
+        self.emails_per_month = _num(limits.get('emails_per_month', 1000))
+        self.emails_per_minute = _num(limits.get('emails_per_minute', 10))
     
     def _ensure_counters_current(self):
         """
@@ -237,7 +293,7 @@ class OrganizationEmailConfiguration(BaseModel):
         if not self.is_active or self.is_suspended:
             return False, "Organization is not active or suspended"
         
-        api_limit = self.plan_limits.get('api_requests_per_minute', 60)
+        api_limit = self.get_effective_limits().get('api_requests_per_minute', 60) or 60
         # For simplicity, we check daily limit; per-minute should use Redis
         if self.api_requests_today >= api_limit * 60 * 24:  # Rough daily estimate
             return False, "API rate limit exceeded"
@@ -270,27 +326,42 @@ class OrganizationEmailConfiguration(BaseModel):
     @property
     def is_custom_domain_allowed(self):
         """Check if custom domain is allowed for this plan."""
-        return self.plan_limits.get('custom_domain_allowed', False)
-    
+        return bool(self.get_effective_limits().get('custom_domain_allowed', False))
+
     @property
     def is_bulk_email_allowed(self):
         """Check if bulk email is allowed for this plan."""
-        return self.plan_limits.get('bulk_email_allowed', False)
-    
+        return bool(self.get_effective_limits().get('bulk_email_allowed', False))
+
+    @property
+    def is_org_owned_ses_allowed(self):
+        """Check if org-owned SES domains are allowed for this plan."""
+        return bool(self.get_effective_limits().get('org_owned_ses_allowed', False))
+
     @property
     def batch_size(self):
         """Get the batch size for this organization's plan."""
-        return self.plan_limits.get('batch_size', 100)
-    
+        return self.get_effective_limits().get('batch_size') or 100
+
     @property
     def contacts_limit(self):
         """Get the contacts limit for this organization's plan."""
-        return self.plan_limits.get('contacts_limit')
-    
+        return self.get_effective_limits().get('contacts_limit')
+
     @property
     def campaigns_per_month(self):
         """Get the campaigns per month limit for this organization's plan."""
-        return self.plan_limits.get('campaigns_per_month')
+        return self.get_effective_limits().get('campaigns_per_month')
+
+    @property
+    def max_domains(self):
+        """Max sending domains for this organization (None = unlimited)."""
+        return self.get_effective_limits().get('max_domains', 0)
+
+    @property
+    def max_sender_emails(self):
+        """Max sender email addresses for this organization (None = unlimited)."""
+        return self.get_effective_limits().get('max_sender_emails', 0)
     
     def get_daily_limit(self):
         """Get the daily email limit for this organization."""
