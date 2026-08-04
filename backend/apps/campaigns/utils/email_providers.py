@@ -1032,98 +1032,135 @@ class EmailProviderFactory:
 class EmailProviderManager:
     """High-level manager for email provider operations"""
     
-    def __init__(self, tenant_id: Optional[str]):
-        self.tenant_id = tenant_id
+    def __init__(self, organization_id: Optional[str]):
+        self.organization_id = organization_id
         self._providers_cache = {}
-    
+
     def get_provider_for_tenant(self, provider_config=None) -> Optional[EmailProviderInterface]:
-        """Get the appropriate email provider for a tenant
-        
+        """Get the appropriate email provider for an organization
+
         Priority order:
-        1. Tenant-owned provider (if exists and enabled)
-        2. Primary tenant-bound global provider
-        3. Global default provider
+        1. Organization-owned provider (if exists and enabled)
+        2. Primary organization-bound provider
+        3. Shared default provider
         """
         from ..models.provider_models import TenantEmailProvider, EmailProvider
-        from django.db.models import Q
-        
+
         try:
             # If specific provider config is provided, use it
             if provider_config:
                 provider_type = provider_config.provider.provider_type
                 config = provider_config.get_effective_config()
                 return EmailProviderFactory.create_provider(provider_type, config)
-            
-            # 1. Check for tenant-owned provider first
-            if self.tenant_id:
-                tenant_owned_provider = EmailProvider.objects.filter(
-                    tenant_id=self.tenant_id,
-                    is_global=False,
-                    activated_by_root=True,
-                    activated_by_tmd=True,
-                    is_default=True  # Use the default tenant-owned provider
+
+            # 1. Check for an organization-owned provider first
+            if self.organization_id:
+                owned_provider = EmailProvider.objects.filter(
+                    organization_id=self.organization_id,
+                    is_active=True,
+                    is_default=True,
                 ).first()
-                
-                if tenant_owned_provider:
-                    config = tenant_owned_provider.decrypt_config()
-                    return EmailProviderFactory.create_provider(tenant_owned_provider.provider_type, config)
-            
-            # 2. Get primary provider from tenant-bound global providers
-            tenant_provider = None
-            if self.tenant_id:
-                tenant_provider = TenantEmailProvider.objects.filter(
-                    tenant_id=self.tenant_id,
+
+                if owned_provider:
+                    config = owned_provider.decrypt_config()
+                    return EmailProviderFactory.create_provider(owned_provider.provider_type, config)
+
+            # 2. Get the primary provider bound to this organization
+            org_provider = None
+            if self.organization_id:
+                org_provider = TenantEmailProvider.objects.filter(
+                    organization_id=self.organization_id,
                     is_enabled=True,
                     is_primary=True
                 ).select_related('provider').first()
-            
-            if tenant_provider:
-                provider_type = tenant_provider.provider.provider_type
-                config = tenant_provider.get_effective_config()
+
+            if org_provider:
+                provider_type = org_provider.provider.provider_type
+                config = org_provider.get_effective_config()
                 return EmailProviderFactory.create_provider(provider_type, config)
-            
-            # 3. Fallback to global default provider
+
+            # 3. Fallback to the shared default provider
             default_provider = EmailProvider.objects.filter(
-                is_global=True,
-                tenant_id__isnull=True,
-                activated_by_root=True,
-                activated_by_tmd=True,
+                is_shared=True,
+                organization__isnull=True,
+                is_active=True,
                 is_default=True
             ).first()
-            
+
             if default_provider:
                 config = default_provider.decrypt_config()
                 return EmailProviderFactory.create_provider(default_provider.provider_type, config)
-            
+
             return None
-            
+
         except Exception as e:
-            logger.error(f"Error getting provider for tenant {self.tenant_id}: {e}")
+            logger.error(f"Error getting provider for organization {self.organization_id}: {e}")
             return None
     
-    def send_email_with_fallback(self, 
-                                recipient_email: str, 
-                                subject: str, 
-                                html_content: str, 
+    def send_email_with_fallback(self,
+                                recipient_email: str,
+                                subject: str,
+                                html_content: str,
                                 text_content: str = None,
                                 sender_email: str = None,
-                                headers: Dict[str, Any] = None) -> Tuple[bool, str, Dict[str, Any]]:
-        """Send email with automatic fallback to alternative providers"""
+                                headers: Dict[str, Any] = None,
+                                preferred_provider_id: str = None) -> Tuple[bool, str, Dict[str, Any]]:
+        """Send email with automatic fallback to alternative providers.
+
+        When preferred_provider_id is given, that provider is tried first;
+        the normal organization → shared hierarchy still applies as fallback.
+        """
         from ..models.provider_models import TenantEmailProvider, EmailProvider
-        
-        # Get all available providers for tenant, ordered by priority
-        if self.tenant_id:
+
+        # Try the explicitly requested provider first, if any
+        if preferred_provider_id:
+            preferred = EmailProvider.objects.filter(
+                id=preferred_provider_id, is_active=True
+            ).first()
+            if preferred:
+                try:
+                    provider_instance = EmailProviderFactory.create_provider(
+                        preferred.provider_type, preferred.decrypt_config()
+                    )
+                    success, message_id, response_data = provider_instance.send_email(
+                        recipient_email=recipient_email,
+                        subject=subject,
+                        html_content=html_content,
+                        text_content=text_content,
+                        sender_email=sender_email,
+                        headers=headers
+                    )
+                    if success:
+                        preferred.emails_sent_today += 1
+                        preferred.emails_sent_this_hour += 1
+                        preferred.last_used_at = timezone.now()
+                        preferred.save(update_fields=[
+                            'emails_sent_today', 'emails_sent_this_hour', 'last_used_at'
+                        ])
+                        response_data['provider_name'] = preferred.name
+                        response_data['provider_id'] = str(preferred.id)
+                        response_data['provider_type'] = preferred.provider_type
+                        if message_id and 'message_id' not in response_data:
+                            response_data['message_id'] = message_id
+                        return True, message_id, response_data
+                    logger.warning(f"Preferred provider {preferred.name} failed: {response_data}")
+                except Exception as e:
+                    logger.error(f"Error with preferred provider {preferred.name}: {e}")
+            else:
+                logger.warning(f"Preferred provider {preferred_provider_id} not found or inactive")
+
+        # Get all available providers for the organization, ordered by priority
+        if self.organization_id:
             tenant_providers = TenantEmailProvider.objects.filter(
-                tenant_id=self.tenant_id,
+                organization_id=self.organization_id,
                 is_enabled=True,
-                provider__activated_by_root=True,
-                provider__activated_by_tmd=True
+                provider__is_active=True,
             ).select_related('provider').order_by('-is_primary', 'provider__priority')
         else:
             tenant_providers = TenantEmailProvider.objects.none()
-        
+
         last_error = {}
-        
+
         for tenant_provider in tenant_providers:
             try:
                 # Check if provider can send email
@@ -1178,10 +1215,11 @@ class EmailProviderManager:
                 logger.error(f"Error with provider {tenant_provider.provider.name}: {e}")
                 last_error = {'error_message': str(e), 'provider': tenant_provider.provider.name}
         
-        # Fallback to global default provider if tenant-specific providers are unavailable or failed
+        # Fallback to the shared default provider if organization providers are unavailable or failed
         default_provider = EmailProvider.objects.filter(
-            activated_by_root=True,
-            activated_by_tmd=True,
+            is_shared=True,
+            organization__isnull=True,
+            is_active=True,
             is_default=True
         ).first()
         if default_provider:
