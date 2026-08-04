@@ -55,19 +55,17 @@ def _log_email_dispatch(
             if fallback_email:
                 recipients = [fallback_email]
 
-        tenant_id = getattr(rule, 'tenant_id', None) if rule else metadata.get('tenant_id')
-        product_id = getattr(rule, 'product_id', None) if rule else metadata.get('product_id')
-        
-        # Allow metadata to override tenant_id and product_id from rule (for dynamic triggering)
-        if metadata.get('tenant_id') is not None:
-            tenant_id = metadata.get('tenant_id')
-        if metadata.get('product_id') is not None:
-            product_id = metadata.get('product_id')
+        organization_id = getattr(rule, 'organization_id', None) if rule else None
+        # Allow metadata to override the organization from the rule (for dynamic triggering)
+        for key in ('organization_id', 'tenant_id'):
+            if metadata.get(key) is not None:
+                organization_id = metadata.get(key)
+                break
 
         reason_name = metadata.get('reason_name') or (rule.reason_name if rule else AutomationRule.ReasonName.OTHER)
         trigger_type = metadata.get('trigger_type') or (rule.trigger_type if rule else AutomationRule.TriggerType.IMMEDIATE)
 
-        template_obj = email_template or getattr(rule, 'email_template_id', None)
+        template_obj = email_template or getattr(rule, 'email_template', None)
         template_id = metadata.get('email_template_id')
         if not template_obj and template_id:
             try:
@@ -77,11 +75,6 @@ def _log_email_dispatch(
             except Exception:
                 template_obj = None
 
-        log_scope = metadata.get('log_scope')
-        if not log_scope and rule:
-            log_scope = rule.rule_scope
-        log_scope = (log_scope or AutomationRule.RuleScope.TENANT).upper()
-
         delivery_status = metadata.get('delivery_status', 'SENT' if success else 'FAILED')
         context_data = metadata.get('email_variables') or metadata.get('context_data') or {}
 
@@ -89,8 +82,7 @@ def _log_email_dispatch(
             try:
                 EmailDeliveryLog.objects.create(
                     automation_rule=rule if rule else None,
-                    tenant_id=tenant_id,
-                    product_id=product_id,
+                    organization_id=organization_id,
                     reason_name=reason_name,
                     trigger_type=trigger_type,
                     email_template=template_obj,
@@ -98,7 +90,6 @@ def _log_email_dispatch(
                     sender_email=metadata.get('sender_email', ''),
                     subject=metadata.get('subject', ''),
                     delivery_status=delivery_status,
-                    log_scope=log_scope,
                     planned_delivery_at=planned_delivery_at,
                     context_data=context_data,
                     error_message='' if success else (message or metadata.get('error_message', '')),
@@ -112,7 +103,7 @@ def _log_email_dispatch(
         print(f"[EmailDeliveryLog ERROR] rule={getattr(rule,'id','?')}: {e}")
 
 @shared_task
-def dispatch_email_task(rule_id, recipient_emails, email_variables, email_template_id=None, planned_delivery_at=None, override_tenant_id=None, override_product_id=None):
+def dispatch_email_task(rule_id, recipient_emails, email_variables, email_template_id=None, planned_delivery_at=None, override_organization_id=None):
     rule = None
     try:
         rule = AutomationRule.objects.get(id=rule_id)
@@ -123,12 +114,14 @@ def dispatch_email_task(rule_id, recipient_emails, email_variables, email_templa
             override_email_template_id=email_template_id
         )
         
-        # Build metadata with overrides for tenant_id and product_id if provided
+        # Build metadata, allowing the caller to override the owning organization
         dispatch_metadata = {
-            **metadata, 
+            **metadata,
             'email_variables': email_variables,
-            'tenant_id': override_tenant_id if override_tenant_id is not None else getattr(rule, 'tenant_id', None),
-            'product_id': override_product_id if override_product_id is not None else getattr(rule, 'product_id', None),
+            'organization_id': (
+                override_organization_id if override_organization_id is not None
+                else getattr(rule, 'organization_id', None)
+            ),
         }
         
         _log_email_dispatch(
@@ -136,7 +129,7 @@ def dispatch_email_task(rule_id, recipient_emails, email_variables, email_templa
             recipient_emails,
             success,
             msg,
-            email_template=(rule.email_template_id if not email_template_id else rule.email_template_id),
+            email_template=rule.email_template,
             planned_delivery_at=planned_delivery_at,
             metadata=dispatch_metadata,
         )
@@ -147,7 +140,7 @@ def dispatch_email_task(rule_id, recipient_emails, email_variables, email_templa
             False,
             f"Rule {rule_id} not found",
             planned_delivery_at=planned_delivery_at,
-            metadata={'tenant_id': None, 'product_id': None, 'email_variables': email_variables},
+            metadata={'organization_id': None, 'email_variables': email_variables},
         )
     except Exception as e:
         _log_email_dispatch(
@@ -177,7 +170,7 @@ def dispatch_scheduled_email_task(rule_id, planned_delivery_at=None):
             success,
             msg,
             planned_delivery_at=planned_delivery_at,
-            metadata={**metadata, 'email_variables': {}, 'tenant_id': getattr(rule, 'tenant_id', None)},
+            metadata={**metadata, 'email_variables': {}, 'organization_id': getattr(rule, 'organization_id', None)},
         )
     except AutomationRule.DoesNotExist:
         _log_email_dispatch(
@@ -186,7 +179,7 @@ def dispatch_scheduled_email_task(rule_id, planned_delivery_at=None):
             False,
             f"Rule {rule_id} not found",
             planned_delivery_at=planned_delivery_at,
-            metadata={'tenant_id': None, 'product_id': None, 'email_variables': {}},
+            metadata={'organization_id': None, 'email_variables': {}},
         )
     except Exception as e:
         _log_email_dispatch(
@@ -494,52 +487,34 @@ def dispatch_enhanced_email_task(self, rule_id, recipient_emails, email_variable
     import uuid
     from django.utils import timezone
     from .models import AutomationRule, EmailQueue, TenantEmailConfiguration
-    from .utils.tenant_service import TenantServiceAPI
-    from .utils.email_providers import EmailProviderManager
-    
+
     options = options or {}
     correlation_id = options.get('correlation_id', str(uuid.uuid4()))
-    
+
     try:
         # Get automation rule
         rule = AutomationRule.objects.select_related(
-            'email_template_id', 'preferred_email_provider'
-        ).get(id=rule_id, activated_by_root=True, activated_by_tmd=True)
-        
-        tenant_id = options.get('tenant_id') or rule.tenant_id
-        
-        # Validate tenant can send emails
-        tenant_config = TenantEmailConfiguration.objects.filter(tenant_id=tenant_id).first()
-        if not tenant_config:
-            # Create default configuration
-            limits = TenantServiceAPI.get_tenant_plan_limits(str(tenant_id))
-            tenant_config = TenantEmailConfiguration.objects.create(
-                tenant_id=tenant_id,
-                plan_type='FREE',
-                emails_per_day=limits.get('emails_per_day', 50),
-                emails_per_month=limits.get('emails_per_month', 500),
-                emails_per_minute=limits.get('emails_per_minute', 5),
-                activated_by_tmd=True
-            )
-        
-        can_send, reason = tenant_config.can_send_email()
+            'email_template', 'email_provider', 'organization'
+        ).get(id=rule_id, is_active=True)
+
+        organization_id = options.get('organization_id') or options.get('tenant_id') or rule.organization_id
+
+        # Validate the organization can send emails
+        org_config, _ = TenantEmailConfiguration.objects.get_or_create(
+            organization_id=organization_id
+        )
+
+        can_send, reason = org_config.can_send_email()
         if not can_send:
-            raise Exception(f"Tenant cannot send emails: {reason}")
+            raise Exception(f"Organization cannot send emails: {reason}")
         
         # Extract preferred_provider_id from options or rule defaults
         preferred_provider_id = options.get('preferred_provider_id')
-        if not preferred_provider_id and getattr(rule, 'preferred_email_provider', None):
-            try:
-                # TenantEmailProvider.provider is a FK to EmailProvider
-                preferred_provider_id = str(rule.preferred_email_provider.provider.id)
-                logger.info(f"[dispatch_enhanced_email_task] Extracted provider ID from rule.preferred_email_provider: {preferred_provider_id}")
-            except Exception as e:
-                logger.warning(f"[dispatch_enhanced_email_task] Failed to extract provider from rule.preferred_email_provider: {e}")
-                preferred_provider_id = None
-        if not preferred_provider_id and getattr(rule, 'preferred_global_provider', None):
-            preferred_provider_id = str(rule.preferred_global_provider_id)
-            logger.info(f"[dispatch_enhanced_email_task] Using rule.preferred_global_provider_id: {preferred_provider_id}")
-        
+        if not preferred_provider_id and getattr(rule, 'email_provider_id', None):
+            preferred_provider_id = str(rule.email_provider_id)
+            logger.info(f"[dispatch_enhanced_email_task] Using rule.email_provider: {preferred_provider_id}")
+
+
         logger.info(f"[dispatch_enhanced_email_task] Final preferred_provider_id: {preferred_provider_id}")
         
         # Determine the effective template once for rendering
@@ -581,13 +556,12 @@ def dispatch_enhanced_email_task(self, rule_id, recipient_emails, email_variable
                 context_data['preferred_provider_id'] = str(preferred_provider_id)
             context_data.setdefault('reason_name', rule.reason_name)
             context_data.setdefault('trigger_type', rule.trigger_type)
-            context_data.setdefault('product_id', str(rule.product_id) if rule.product_id else None)
-            context_data.setdefault('rule_scope', rule.rule_scope)
-            
+
             # Create queue item
             queue_item = EmailQueue.objects.create(
                 automation_rule=rule,
-                tenant_id=tenant_id,
+                organization_id=organization_id,
+                campaign=rule.campaign,
                 recipient_email=recipient_email,
                 subject=subject,
                 html_content=html_content,
@@ -605,10 +579,10 @@ def dispatch_enhanced_email_task(self, rule_id, recipient_emails, email_variable
             result = process_email_queue_item(queue_item, correlation_id)
             results.append(result)
         
-        # Update tenant usage
+        # Update organization usage
         successful_sends = sum(1 for r in results if r.get('success'))
-        if successful_sends > 0:
-            tenant_config.increment_usage()
+        for _ in range(successful_sends):
+            org_config.increment_email_usage()
         
         return {
             'success': True,
@@ -713,18 +687,13 @@ def process_email_queue_item(queue_item, correlation_id=None):
                 }
         
         # Get email provider manager
-        tenant_identifier = str(queue_item.tenant_id) if queue_item.tenant_id else None
-        provider_manager = EmailProviderManager(tenant_identifier)
-        
+        organization_identifier = str(queue_item.organization_id) if queue_item.organization_id else None
+        provider_manager = EmailProviderManager(organization_identifier)
+
         # Extract preferred_provider_id from context_data if provided
         preferred_provider_id = context.get('preferred_provider_id') if context else None
         logger.info(f"[process_email_queue_item] Queue {queue_item.id}: preferred_provider_id={preferred_provider_id}")
-        
-        # Determine sender email using the SAME logic as UnifiedEmailSender (ConfigurationHierarchy)
-        # This ensures consistency between trigger/email/ and trigger/enhanced-email/
-        from campaigns.utils.sync_utils import ConfigurationHierarchy
-        from campaigns.models.provider_models import EmailProvider
-        
+
         # Get the provider config to extract from_email
         provider_config = None
         if preferred_provider_id:
@@ -734,10 +703,10 @@ def process_email_queue_item(queue_item, correlation_id=None):
                     provider_config = email_provider.decrypt_config()
             except Exception as e:
                 logger.warning(f"Failed to get provider config for {preferred_provider_id}: {e}")
-        
+
         # Use ConfigurationHierarchy to resolve sender email (same as UnifiedEmailSender)
         sender_email_candidate = ConfigurationHierarchy.get_effective_from_email(
-            tenant_id=str(queue_item.tenant_id) if queue_item.tenant_id else None,
+            organization_id=organization_identifier,
             provider_config=provider_config,
             rule=queue_item.automation_rule
         )
@@ -794,8 +763,8 @@ def process_email_queue_item(queue_item, correlation_id=None):
         resolved_template_id = context.get('resolved_template_id') if context else None
         if resolved_template_id:
             resolved_template = EmailTemplate.objects.filter(id=resolved_template_id).first()
-        if not resolved_template:
-            resolved_template = queue_item.campaigns.email_template_id
+        if not resolved_template and queue_item.campaign_id:
+            resolved_template = queue_item.campaign.email_template
 
         # Create or update delivery log (idempotent - handles race conditions & retries)
         initial_event = {
@@ -815,7 +784,9 @@ def process_email_queue_item(queue_item, correlation_id=None):
             queue_item=queue_item,  # Unique constraint field
             defaults={
                 'automation_rule': queue_item.automation_rule,
-                'tenant_id': queue_item.tenant_id,
+                'organization': queue_item.organization,
+                'campaign': queue_item.campaign,
+                'contact': queue_item.contact,
                 'email_validation': email_validation,
                 'email_provider_id': response_data.get('provider_id'),
                 'provider_message_id': message_id or '',
@@ -828,8 +799,6 @@ def process_email_queue_item(queue_item, correlation_id=None):
                 'sent_at': timezone.now() if not hasattr(queue_item, 'delivery_log') else queue_item.delivery_log.sent_at,
                 'reason_name': context.get('reason_name') or getattr(queue_item.automation_rule, 'reason_name', ''),
                 'trigger_type': context.get('trigger_type') or getattr(queue_item.automation_rule, 'trigger_type', ''),
-                'product_id': context.get('product_id') or queue_item.campaigns.product_id,
-                'log_scope': (context.get('rule_scope') or queue_item.campaigns.rule_scope or AutomationRule.RuleScope.TENANT),
                 'email_template': resolved_template,
                 'context_data': context,
             }
@@ -1025,19 +994,26 @@ def submit_email_queue_task(queue_item_id, priority=5, eta=None):
 
 
 @shared_task
-def process_pending_email_queue():
+def process_pending_email_queue(batch_size=100, organization_id=None):
     """
-    Periodic task to process pending emails in the queue
+    Periodic task to process pending emails in the queue.
+
+    Args:
+        batch_size: Maximum number of queue items to process in this run.
+        organization_id: Optional organization to restrict processing to.
     """
     from django.utils import timezone
     from .models import EmailQueue
-    
+
     # Get pending emails scheduled for now or earlier
     pending_emails = EmailQueue.objects.filter(
         status='PENDING',
         scheduled_at__lte=timezone.now()
-    ).order_by('priority', 'scheduled_at')[:100]  # Process in batches
-    
+    )
+    if organization_id:
+        pending_emails = pending_emails.filter(organization_id=organization_id)
+    pending_emails = pending_emails.order_by('priority', 'scheduled_at')[:batch_size]
+
     results = []
     for queue_item in pending_emails:
         result = process_email_queue_item(queue_item)
@@ -1160,7 +1136,20 @@ def launch_campaign_task(self, campaign_id):
         campaign.save(update_fields=['status', 'completed_at'])
         logger.info(f"[launch_campaign_task] Campaign {campaign_id} completed - no contacts to send")
         return {'success': True, 'sent': 0, 'message': 'No contacts to send'}
-    
+
+    # Re-validate the sender identity at launch time: the domain or address
+    # may have been suspended/deleted since the campaign was drafted.
+    from django.core.exceptions import ValidationError as DjangoValidationError
+    from .utils.sender_validation import validate_sender
+    try:
+        validate_sender(campaign.organization, campaign.from_email)
+    except DjangoValidationError as exc:
+        reason = '; '.join(exc.messages)
+        campaign.status = 'FAILED'
+        campaign.save(update_fields=['status'])
+        logger.error(f"[launch_campaign_task] Campaign {campaign_id} sender rejected: {reason}")
+        return {'success': False, 'error': f'Sender validation failed: {reason}'}
+
     # Get email provider
     email_provider_instance = None
     provider_name = "Unknown"
@@ -1714,4 +1703,55 @@ def sync_all_mailbox_accounts():
         queued += 1
 
     logger.info(f"[sync_all_mailbox_accounts] Queued {queued} mailbox syncs")
+    return {'queued': queued}
+
+
+# =============================================================================
+# SENDING DOMAIN VERIFICATION (AWS SES identities)
+# =============================================================================
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=120)
+def check_single_domain_verification(self, domain_id):
+    """Poll SES for one domain's verification status and apply transitions."""
+    from .models import SendingDomain
+    from .services import domain_service
+    from .utils.ses_identity_service import SESIdentityError
+
+    try:
+        domain = SendingDomain.objects.get(id=domain_id)
+    except SendingDomain.DoesNotExist:
+        return {'success': False, 'error': 'Domain not found'}
+
+    if domain.status not in SendingDomain.PENDING_STATUSES:
+        return {'success': True, 'skipped': True, 'status': domain.status}
+
+    try:
+        verified, detail = domain_service.check_domain_verification(domain)
+        return {'success': True, 'domain': domain.domain, 'verified': verified, 'detail': detail}
+    except SESIdentityError as e:
+        if e.retryable:
+            raise self.retry(exc=e)
+        logger.error(f"[check_single_domain_verification] {domain.domain}: {e}")
+        return {'success': False, 'domain': domain.domain, 'error': str(e)}
+
+
+@shared_task
+def poll_domain_verification():
+    """Periodic poller: fan out verification checks for pending domains."""
+    from django.db.models import Q
+    from .models import SendingDomain
+
+    cutoff = timezone.now() - timedelta(minutes=8)
+    domains = SendingDomain.objects.filter(
+        status__in=SendingDomain.PENDING_STATUSES,
+    ).filter(
+        Q(last_checked_at__isnull=True) | Q(last_checked_at__lt=cutoff)
+    )
+
+    queued = 0
+    for domain in domains.iterator():
+        check_single_domain_verification.delay(str(domain.id))
+        queued += 1
+
+    logger.info(f"[poll_domain_verification] Queued {queued} verification checks")
     return {'queued': queued}
