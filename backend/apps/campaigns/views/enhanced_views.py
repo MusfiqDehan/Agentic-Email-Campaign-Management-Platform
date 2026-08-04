@@ -26,7 +26,6 @@ from ..serializers.enhanced_serializers import (
     EmailQueueSerializer, EmailActionSerializer, EmailProviderSerializer,
     OrganizationOwnEmailProviderSerializer
 )
-from ..utils.tenant_service import TenantServiceAPI
 from ..signals import log_provider_health_check, log_provider_test_send
 from ..utils.email_providers import EmailProviderManager
 from ..utils.email_utils import is_email_service_active, render_email_template
@@ -128,44 +127,22 @@ TenantEmailConfigurationResetUsageView = OrganizationEmailConfigurationResetUsag
 
 
 class OrganizationEmailConfigurationVerifyDomainView(CustomResponseMixin, APIView):
-    """Verify custom domain for organization"""
-    
+    """Deprecated: domain verification moved to the sending-domains API.
+
+    The previous implementation marked any domain as verified without
+    checking DNS or SES — an open spoofing path. Real verification now
+    lives at /campaigns/domains/ (SES identity + DKIM polling).
+    """
+
     permission_classes = [permissions.IsAuthenticated, IsOrganizationAdmin]
-    
+
     def post(self, request, pk):
-        if not request.user.organization:
-            return self.error_response(
-                message="You must belong to an organization",
-                status_code=status.HTTP_403_FORBIDDEN
-            )
-        
-        try:
-            config = OrganizationEmailConfiguration.objects.get(
-                pk=pk,
-                organization=request.user.organization
-            )
-        except OrganizationEmailConfiguration.DoesNotExist:
-            return self.error_response(
-                message="Organization configuration not found",
-                status_code=status.HTTP_404_NOT_FOUND
-            )
-        
-        if not config.custom_domain:
-            return self.error_response(
-                message="No custom domain configured",
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # In production, this would involve actual DNS verification
-        config.custom_domain_verified = True
-        config.save()
-        
-        return self.success_response(
-            data={
-                'message': 'Domain verified successfully',
-                'domain': config.custom_domain
-            },
-            message="Domain verified successfully"
+        return self.error_response(
+            message=(
+                "Domain verification has moved. Register your domain via "
+                "/api/v1/campaigns/domains/ and verify it there."
+            ),
+            status_code=status.HTTP_410_GONE
         )
 
 
@@ -555,10 +532,9 @@ def _build_queue_payload_from_log(log, recipient_email, priority, subject_prefix
 
     return {
         'automation_rule': automation_rule,
-        'tenant_id': (
-            log.tenant_id
-            or getattr(automation_rule, 'tenant_id', None)
-            or getattr(getattr(automation_rule, 'tenant_email_config', None), 'tenant_id', None)
+        'organization_id': (
+            log.organization_id
+            or getattr(automation_rule, 'organization_id', None)
         ),
         'recipient_email': recipient_email,
         'subject': subject,
@@ -583,10 +559,9 @@ class EmailDeliveryLogListView(UniversalAutoFilterMixin, CustomResponseMixin, ge
     - Ordering by any field plus annotated JSON key `context_name` (from `context_data.name`)
     - Range queries for `sent_at` via `sent_at__gte`, `sent_at__lte`, or `sent_at__range`
 
-    Scope Handling:
-    - `scope=global` returns only GLOBAL logs
-    - `scope=tenant` returns only TENANT logs
-    - `scope=all` or `include_global=true` returns combined scopes
+    Scoping:
+    - Authenticated requests are limited to the caller's organization
+    - `organization_id` (or legacy `tenant_id`) filters explicitly
     """
 
     queryset = EmailDeliveryLog.objects.all()
@@ -623,19 +598,16 @@ class EmailDeliveryLogListView(UniversalAutoFilterMixin, CustomResponseMixin, ge
         return super().filter_queryset(queryset)
 
     def get_queryset(self):
-        """Filter logs based on tenant and product access"""
+        """Filter logs by organization"""
         queryset = super().get_queryset()
-        
-        tenant_id = self.request.query_params.get('tenant_id')
-        if tenant_id:
-            queryset = queryset.filter(tenant_id=tenant_id)
-        
-        product_id = self.request.query_params.get('product_id')
-        if product_id:
-            queryset = queryset.filter(
-                Q(product_id=product_id) | Q(automation_rule__product_id=product_id)
-            )
-        
+
+        organization_id = (
+            self.request.query_params.get('organization_id')
+            or self.request.query_params.get('tenant_id')
+        )
+        if organization_id:
+            queryset = queryset.filter(organization_id=organization_id)
+
         date_from = self.request.query_params.get('date_from')
         date_to = self.request.query_params.get('date_to')
         
@@ -1324,16 +1296,16 @@ class EmailQueueProcessView(CustomResponseMixin, APIView):
     def post(self, request):
         """Trigger processing of pending email queue items"""
         try:
-            from ..tasks import process_email_queue_batch
-            
+            from ..tasks import process_pending_email_queue
+
             # Get parameters
             batch_size = request.data.get('batch_size', 10)
-            tenant_id = request.data.get('tenant_id')
-            
+            organization_id = request.data.get('organization_id') or request.data.get('tenant_id')
+
             # Trigger batch processing
-            task_result = process_email_queue_batch.delay(
+            task_result = process_pending_email_queue.delay(
                 batch_size=batch_size,
-                tenant_id=tenant_id
+                organization_id=organization_id
             )
             
             return self.success_response(
@@ -1355,9 +1327,10 @@ class EmailQueueProcessView(CustomResponseMixin, APIView):
 
 
 class EmailActionFilter(django_filters.FilterSet):
-    """Filter email actions, exposing tenant_id as a friendly parameter."""
+    """Filter email actions, exposing organization_id as a friendly parameter."""
 
-    tenant_id = django_filters.UUIDFilter(field_name="original_log__tenant_id")
+    organization_id = django_filters.UUIDFilter(field_name="original_log__organization_id")
+    tenant_id = django_filters.UUIDFilter(field_name="original_log__organization_id")
 
     class Meta:
         model = EmailAction
@@ -1377,13 +1350,16 @@ class EmailActionListView(CustomResponseMixin, generics.ListAPIView):
     ordering = ['-performed_at']
 
     def get_queryset(self):
-        """Filter actions based on tenant access"""
+        """Filter actions by organization"""
         queryset = super().get_queryset()
-        
-        tenant_id = self.request.query_params.get('tenant_id')
-        if tenant_id:
-            queryset = queryset.filter(original_log__tenant_id=tenant_id)
-        
+
+        organization_id = (
+            self.request.query_params.get('organization_id')
+            or self.request.query_params.get('tenant_id')
+        )
+        if organization_id:
+            queryset = queryset.filter(original_log__organization_id=organization_id)
+
         return queryset
 
 
@@ -1428,13 +1404,13 @@ class EnhancedTriggerEmailView(CustomResponseMixin, generics.GenericAPIView):
                     "correlation_id": correlation_id
                 }, status=status.HTTP_404_NOT_FOUND)
             
-            # Check if tenant can send emails
-            tenant_id = data.get('tenant_id') or rule.tenant_id
-            if not self._check_tenant_can_send(tenant_id):
+            # Check if the organization can send emails
+            organization_id = data.get('organization_id') or data.get('tenant_id') or rule.organization_id
+            if not self._check_tenant_can_send(organization_id):
                 return Response({
                     "error_code": "TENANT_CANNOT_SEND",
-                    "message": "Tenant is not allowed to send emails",
-                    "tenant_id": str(tenant_id),
+                    "message": "Organization is not allowed to send emails",
+                    "organization_id": str(organization_id),
                     "correlation_id": correlation_id
                 }, status=status.HTTP_403_FORBIDDEN)
             
@@ -1453,95 +1429,47 @@ class EnhancedTriggerEmailView(CustomResponseMixin, generics.GenericAPIView):
     
     def _find_automation_rule(self, data):
         """
-        Find automation rule based on provided criteria.
-        
-        Priority:
+        Find an automation rule based on the provided criteria.
+
+        Rules are organization-scoped, so resolution is:
         1. Rule ID (if provided)
-        2. Tenant-specific rule matching criteria + product
-        3. Tenant-specific rule matching criteria (ignore product)
-        4. Global rule matching criteria + product
-        5. Global rule matching criteria (ignore product - broadest fallback)
+        2. The organization's rule matching automation_name / reason_name
         """
         logger.info(f"Searching for automation rule with data: {data}")
-        
+
         if data.get('rule_id'):
             rule = AutomationRule.objects.filter(
                 id=data['rule_id'],
-                activated_by_root=True,
-                activated_by_tmd=True
+                is_active=True,
             ).first()
             logger.info(f"Rule ID search result: {rule}")
             return rule
-        
-        # Build base filter criteria
-        base_criteria = {
-            'activated_by_root': True,
-            'activated_by_tmd': True,
-            'communication_type': AutomationRule.CommunicationType.EMAIL
+
+        criteria = {
+            'is_active': True,
+            'communication_type': AutomationRule.CommunicationType.EMAIL,
         }
-        
-        # Add optional filters
+
         if data.get('automation_name'):
-            base_criteria['automation_name'] = data['automation_name']
-        
+            criteria['automation_name'] = data['automation_name']
+
         if data.get('reason_name'):
-            base_criteria['reason_name'] = data['reason_name']
-        
-        logger.info(f"Base search criteria: {base_criteria}")
-        
-        # First, try to find a tenant-specific rule
-        tenant_id = data.get('tenant_id')
-        product_id = data.get('product_id')
-        
-        if tenant_id:
-            # Try with product_id first (most specific)
-            if product_id:
-                tenant_product_criteria = {**base_criteria, 'tenant_id': tenant_id, 'product_id': product_id}
-                logger.info(f"Searching for tenant+product-specific rule with criteria: {tenant_product_criteria}")
-                tenant_rule = AutomationRule.objects.filter(**tenant_product_criteria).first()
-                if tenant_rule:
-                    logger.info(f"Found tenant+product-specific rule: {tenant_rule.id}")
-                    return tenant_rule
-            
-            # Try tenant-specific without product requirement
-            tenant_criteria = {**base_criteria, 'tenant_id': tenant_id}
-            logger.info(f"Searching for tenant-specific rule (any product) with criteria: {tenant_criteria}")
-            tenant_rule = AutomationRule.objects.filter(**tenant_criteria).first()
-            if tenant_rule:
-                logger.info(f"Found tenant-specific rule: {tenant_rule.id} for tenant {tenant_id}")
-                return tenant_rule
-            else:
-                logger.info(f"No tenant-specific rule found for tenant {tenant_id}")
-        
-        # Fallback to global rules (tenant_id__isnull=True)
-        # Try with product_id first
-        if product_id:
-            global_product_criteria = {**base_criteria, 'tenant_id__isnull': True, 'product_id': product_id}
-            logger.info(f"Searching for global+product rule with criteria: {global_product_criteria}")
-            global_rule = AutomationRule.objects.filter(**global_product_criteria).first()
-            if global_rule:
-                logger.info(f"Using global+product rule: {global_rule.id}")
-                return global_rule
-        
-        # Broadest fallback: global rule without product requirement
-        global_criteria = {**base_criteria, 'tenant_id__isnull': True}
-        logger.info(f"Searching for global rule (any product) with criteria: {global_criteria}")
-        global_rule = AutomationRule.objects.filter(**global_criteria).first()
-        
-        if global_rule:
-            logger.info(f"Using global rule: {global_rule.id} for tenant {tenant_id or 'N/A'}")
+            criteria['reason_name'] = data['reason_name']
+
+        organization_id = data.get('organization_id') or data.get('tenant_id')
+        if organization_id:
+            criteria['organization_id'] = organization_id
+
+        logger.info(f"Searching for automation rule with criteria: {criteria}")
+        rule = AutomationRule.objects.filter(**criteria).first()
+
+        if rule:
+            logger.info(f"Found automation rule: {rule.id}")
         else:
-            logger.warning(f"No global rule found with criteria: {global_criteria}")
-            # Debug: Check what rules exist at all
-            all_rules = AutomationRule.objects.filter(
-                activated_by_root=True,
-                activated_by_tmd=True,
-                communication_type=AutomationRule.CommunicationType.EMAIL
-            ).values('id', 'automation_name', 'reason_name', 'product_id', 'tenant_id')
-            logger.warning(f"Available rules in database: {list(all_rules)}")
-        
-        return global_rule
-    
+            logger.warning(f"No automation rule found with criteria: {criteria}")
+
+        return rule
+
     def _check_tenant_can_send(self, tenant_id):
         """Check if tenant can send emails using service activation and local limits."""
         try:
@@ -1549,7 +1477,7 @@ class EnhancedTriggerEmailView(CustomResponseMixin, generics.GenericAPIView):
 
             # Ensure the Email Automation service is active for this tenant (or globally as fallback)
             if tenant_id_str:
-                if not is_email_service_active(tenant_id=tenant_id_str):
+                if not is_email_service_active(organization_id=tenant_id_str):
                     # from service_integration.models import ServiceDefinition  # Legacy - module doesn't exist
                     # Simplified: if service is not active, log and deny
                     logger.warning(
@@ -1574,21 +1502,17 @@ class EnhancedTriggerEmailView(CustomResponseMixin, generics.GenericAPIView):
                         )
                     return can_send
 
-                # If no config exists, provision a default configuration using organization plan limits
+                # If no config exists, provision one. Limits come from the
+                # default Package via OrganizationEmailConfiguration.save().
                 logger.info(
                     "No local email config for organization %s. Creating default configuration and allowing send.",
                     tenant_id_str
                 )
-                limits = TenantServiceAPI.get_tenant_plan_limits(tenant_id_str)
+                from ..models import Package
+
                 OrganizationEmailConfiguration.objects.get_or_create(
                     organization_id=tenant_id,
-                    defaults={
-                        'plan_type': 'FREE',
-                        'emails_per_day': limits.get('emails_per_day', 50),
-                        'emails_per_month': limits.get('emails_per_month', 500),
-                        'emails_per_minute': limits.get('emails_per_minute', 5),
-                        'activated_by_tmd': True
-                    }
+                    defaults={'package': Package.objects.filter(is_default=True).first()},
                 )
 
                 return True
@@ -1609,8 +1533,7 @@ class EnhancedTriggerEmailView(CustomResponseMixin, generics.GenericAPIView):
                 data['recipient_emails'],
                 data['email_variables'],
                 {
-                    'tenant_id': str(data.get('tenant_id') or rule.tenant_id),
-                    'product_id': str(data.get('product_id') or rule.product_id) if data.get('product_id') or rule.product_id else None,
+                    'organization_id': str(data.get('organization_id') or data.get('tenant_id') or rule.organization_id),
                     'email_template_id': str(data.get('email_template_id')) if data.get('email_template_id') else None,
                     'preferred_provider_id': str(data.get('preferred_provider_id')) if data.get('preferred_provider_id') else None,
                     'priority': data.get('priority', 5),
