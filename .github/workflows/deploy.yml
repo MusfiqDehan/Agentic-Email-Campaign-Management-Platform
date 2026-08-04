@@ -141,8 +141,10 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      # `next lint` was removed in Next.js 16 (it resolved as a build of a
+      # directory named "lint"); the project lints via the eslint flat config.
       - name: Lint check
-        run: npx next lint
+        run: npm run lint
         continue-on-error: true
 
       - name: Type check
