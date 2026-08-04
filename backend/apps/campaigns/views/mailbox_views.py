@@ -282,6 +282,17 @@ class MailboxComposeView(CustomResponseMixin, APIView):
         except EmailAccount.DoesNotExist:
             return self.error_response('Account not found', status_code=status.HTTP_404_NOT_FOUND)
 
+        # Enforce sender identities once the org has adopted sending domains
+        # (suspended/unverified addresses must not send from the mailbox either).
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from ..utils.sender_validation import validate_sender
+        try:
+            validate_sender(org, account.email_address)
+        except DjangoValidationError as exc:
+            return self.error_response(
+                '; '.join(exc.messages), status_code=status.HTTP_403_FORBIDDEN
+            )
+
         parent = None
         headers = {}
         if data.get('reply_to_message_id'):
