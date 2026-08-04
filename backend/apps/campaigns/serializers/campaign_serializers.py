@@ -847,7 +847,20 @@ class CampaignSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 'subject': "Either 'subject' or a valid 'email_template' with email_subject is required."
             })
-        
+
+        # Once an org has registered sending domains/sender emails, the
+        # resolved from-address must be one of its active sender identities.
+        request = self.context.get('request')
+        organization = getattr(getattr(request, 'user', None), 'organization', None)
+        if organization:
+            from django.core.exceptions import ValidationError as DjangoValidationError
+            from ..utils.sender_validation import validate_sender
+            resolved_from_email = from_email or template_from_email or provider_from_email
+            try:
+                validate_sender(organization, resolved_from_email)
+            except DjangoValidationError as exc:
+                raise serializers.ValidationError({'from_email': exc.messages})
+
         return attrs
     
     def _apply_settings(self, validated_data):
