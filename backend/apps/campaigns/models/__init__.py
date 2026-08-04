@@ -19,6 +19,12 @@ from .organization_email_config import (
     TenantEmailConfiguration,  # Legacy alias
 )
 
+# Packages (DB-backed plan catalog)
+from .package_models import Package
+
+# Sending domains + dynamic sender emails (AWS SES identities)
+from .domain_models import SendingDomain, SenderEmail, DomainAuditLog
+
 # Provider models
 from .provider_models import (
     EmailProvider,
@@ -63,6 +69,14 @@ __all__ = [
     # Organization config
     'OrganizationEmailConfiguration',
     'TenantEmailConfiguration',  # Legacy alias
+
+    # Packages
+    'Package',
+
+    # Sending domains
+    'SendingDomain',
+    'SenderEmail',
+    'DomainAuditLog',
     
     # Providers
     'EmailProvider',
