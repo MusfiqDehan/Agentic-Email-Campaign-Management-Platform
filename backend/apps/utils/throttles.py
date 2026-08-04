@@ -105,14 +105,14 @@ class OrganizationRateThrottle(SimpleRateThrottle):
         
         # Fetch from database
         try:
-            from campaigns.models import OrganizationEmailConfiguration
+            from apps.campaigns.models import OrganizationEmailConfiguration
             
             config = OrganizationEmailConfiguration.objects.filter(
                 organization_id=organization_id
             ).first()
             
-            if config and config.plan_limits:
-                rate = config.plan_limits.get('api_requests_per_minute', 60)
+            if config:
+                rate = config.get_effective_limits().get('api_requests_per_minute', 60) or 60
             else:
                 # Default to FREE plan
                 rate = 60
@@ -211,7 +211,7 @@ class EmailSendingRateThrottle(SimpleRateThrottle):
             return cached_limit
         
         try:
-            from campaigns.models import OrganizationEmailConfiguration
+            from apps.campaigns.models import OrganizationEmailConfiguration
             
             config = OrganizationEmailConfiguration.objects.filter(
                 organization_id=organization_id
