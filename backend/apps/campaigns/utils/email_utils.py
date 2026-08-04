@@ -21,84 +21,25 @@ from .hierarchy_resolver import is_email_service_active as hierarchical_is_email
 logger = logging.getLogger(__name__)
 
 
-def is_email_service_active(product_id=None, tenant_id=None, use_new_architecture=True):
+def is_email_service_active(product_id=None, organization_id=None, tenant_id=None):
     """
-    Checks if the Email Automation service is active through all required layers.
-    
-    Supports pre-signup scenarios where tenant_id may be None - in this case,
-    only global service activation is checked.
-    
-    Args:
-        product_id: Optional UUID of product to check specific activation
-        tenant_id: Optional tenant ID to filter services (None for pre-signup)
-        use_new_architecture: If True, use new ServiceDefinition architecture; 
-                             if False, use legacy ServiceDefinition
-        
-    Returns:
-        bool: True if service is active, False otherwise
-    """
-    # Use hierarchical resolver for new architecture (supports pre-signup)
-    if use_new_architecture:
-        try:
-            return hierarchical_is_email_service_active(
-                tenant_id=tenant_id,
-                product_id=product_id
-            )
-        except Exception as e:
-            logger.warning(f"Hierarchical check failed, falling back to legacy: {e}")
-            # Fall through to legacy check
-    
-    # Legacy check (backward compatibility)
-    try:
-        # For pre-signup (no tenant_id), check global service only
-        if not tenant_id:
-            global_service = ServiceDefinition.objects.filter(
-                service_name="Email Automation",
-                tenant_id__isnull=True
-            ).first()
-            
-            if not global_service:
-                logger.warning("Global Email Automation service not found.")
-                return False
-            
-            if not global_service.activated_by_tmd:
-                logger.warning("Email service is not activated by TMD.")
-                return False
-            
-            if not global_service.enabled_for_td:
-                logger.warning("Email service is not enabled for TD.")
-                return False
-            
-            # Global checks passed - allow pre-signup emails
-            return True
-        
-        # For tenant-specific check
-        query = {'service_name': "Email Automation", 'tenant_id': tenant_id}
-        service = ServiceDefinition.objects.filter(**query).first()
-        
-        # If no tenant-specific record, fall back to global
-        if not service:
-            service = ServiceDefinition.objects.filter(
-                service_name="Email Automation",
-                tenant_id__isnull=True
-            ).first()
-            
-            if not service:
-                logger.warning("Email Automation service not found.")
-                return False
-        
-        # Check TMD activation (required for all)
-        if not service.activated_by_tmd:
-            logger.warning("Email service is not activated by TMD.")
-            return False
-        
-        if not service.enabled_for_td:
-            logger.warning(f"Email service is not enabled for TD.")
-            return False
-        
-        # All checks passed
-        return True
+    Check whether email sending is currently enabled for an organization.
 
+    Args:
+        product_id: Unused, retained for backward compatibility.
+        organization_id: Organization UUID. None means a pre-signup send, which
+            is always allowed.
+        tenant_id: Legacy alias for organization_id.
+
+    Returns:
+        bool: True if the service is active, False otherwise
+    """
+    organization_id = organization_id or tenant_id
+    try:
+        return hierarchical_is_email_service_active(
+            organization_id=organization_id,
+            product_id=product_id
+        )
     except Exception as e:
         logger.error(f"An error occurred while checking email service status: {e}")
         return False
@@ -169,39 +110,25 @@ def send_email_for_specific_rule(rule: AutomationRule, recipient_emails: list,
 
 
 def send_automated_email(recipient_emails: list, email_variables: dict, reason_name: str,
-                         product_id: str, tenant_id: str = None):
+                         product_id: str = None, organization_id: str = None,
+                         tenant_id: str = None):
     """
-    Legacy / fallback lookup by reason + tenant/product.
-    Returns first matching rule after applying precedence.
-    
-    REFACTORED: Now uses UnifiedEmailSender for consistency.
+    Look up an organization's automation rule by reason and send through it.
+
+    Args:
+        product_id: Unused, retained for backward compatibility.
+        organization_id: Organization UUID that owns the rule.
+        tenant_id: Legacy alias for organization_id.
     """
+    organization_id = organization_id or tenant_id
     try:
-        # --- Rule Prioritization Logic ---
-        # Collect candidate rules
-        rules_qs = AutomationRule.objects.filter(
-            communication_type=AutomationRule.CommunicationType.EMAIL,
+        rule = HierarchicalResolver.get_automation_rule(
             reason_name=reason_name,
-            activated_by_root=True,
+            organization_id=organization_id,
+            communication_type=AutomationRule.CommunicationType.EMAIL,
         )
-        if product_id:
-            rules_qs = rules_qs.filter(product_id=product_id)
-        # Prefer tenant-specific first if tenant_id provided
-        if tenant_id:
-            tenant_rules = rules_qs.filter(tenant_id=tenant_id)
-            if tenant_rules.exists():
-                rules_qs = tenant_rules
-            else:
-                rules_qs = rules_qs.filter(tenant_id__isnull=True)
-        else:
-            rules_qs = rules_qs.filter(tenant_id__isnull=True)
-
-        if not rules_qs.exists():
+        if not rule:
             raise AutomationRule.DoesNotExist
-
-        # Deterministic ordering: newest wins (or change to 'id')
-        rule = rules_qs.order_by('-id').first()
-        # --- End Prioritization ---
 
         # Use the unified email sender
         return UnifiedEmailSender.send_email(
@@ -210,11 +137,10 @@ def send_automated_email(recipient_emails: list, email_variables: dict, reason_n
             email_variables=email_variables,
         )
     except AutomationRule.DoesNotExist:
-        return False, f"AutomationRule for reason '{reason_name}' not found for the given tenant/product.", {
+        return False, f"AutomationRule for reason '{reason_name}' not found for the given organization.", {
             'reason': reason_name,
             'recipient_emails': recipient_emails,
-            'tenant_id': tenant_id,
-            'product_id': product_id,
+            'organization_id': organization_id,
         }
     except Exception as e:
         logger.error(f"ERROR sending automated email: {e}")
