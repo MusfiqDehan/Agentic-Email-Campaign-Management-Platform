@@ -99,7 +99,7 @@ class UnifiedEmailSender:
             
             # 3. Resolve provider and configuration (with optional manual override)
             provider, tenant_provider, provider_config = ConfigurationHierarchy.get_effective_provider(
-                tenant_id=rule.tenant_id,
+                organization_id=rule.organization_id,
                 rule=rule,
                 preferred_provider_id=preferred_provider_id
             )
@@ -116,7 +116,7 @@ class UnifiedEmailSender:
             
             # 4. Check rate limits across all layers
             can_send, reason = RateLimitChecker.can_send_email(
-                tenant_id=rule.tenant_id,
+                organization_id=rule.organization_id,
                 provider=provider,
                 tenant_provider=tenant_provider
             )
@@ -129,7 +129,7 @@ class UnifiedEmailSender:
             try:
                 from_email = UnifiedEmailSender._resolve_from_email(
                     override_from_email=override_from_email,
-                    tenant_id=rule.tenant_id,
+                    organization_id=rule.organization_id,
                     provider_config=provider_config
                 )
                 if not from_email:
@@ -140,6 +140,16 @@ class UnifiedEmailSender:
                 logger.error(f"Error resolving from_email: {e}", exc_info=True)
                 metadata['from_email_error'] = str(e)
                 return False, f"Failed to determine sender email address: {str(e)}", metadata
+
+            # 5b. Enforce registered sender identities (sending-domains feature)
+            try:
+                from django.core.exceptions import ValidationError as DjangoValidationError
+                from .sender_validation import validate_sender
+                validate_sender(rule.organization, from_email)
+            except DjangoValidationError as e:
+                reason = '; '.join(e.messages)
+                metadata['sender_validation_error'] = reason
+                return False, f"Sender validation failed: {reason}", metadata
             
             # 6. Build email connection
             connection = UnifiedEmailSender._build_connection(
@@ -164,7 +174,7 @@ class UnifiedEmailSender:
             
             # 8. Update usage metrics across all applicable layers
             RateLimitChecker.increment_usage_counters(
-                tenant_id=rule.tenant_id,
+                organization_id=rule.organization_id,
                 provider=provider,
                 tenant_provider=tenant_provider
             )
@@ -255,13 +265,13 @@ class UnifiedEmailSender:
                 return template
             logger.warning(f"Override template {override_template_id} not found")
         
-        if hasattr(rule, 'email_template_id') and rule.email_template_id:
-            return rule.email_template_id
-        
-        # Use hierarchical resolver for tenant → global fallback
+        if getattr(rule, 'email_template', None):
+            return rule.email_template
+
+        # Use hierarchical resolver for organization → global fallback
         return HierarchicalResolver.get_email_template(
             category=rule.reason_name,
-            tenant_id=rule.tenant_id
+            organization_id=rule.organization_id
         )
     
     @staticmethod
@@ -286,24 +296,24 @@ class UnifiedEmailSender:
     @staticmethod
     def _resolve_from_email(
         override_from_email: str = None,
-        tenant_id: str = None,
+        organization_id: str = None,
         provider_config: Dict = None
     ) -> str:
         """
         Resolve from_email address.
-        
+
         Priority:
         1. Override from_email
-        2. Tenant custom/default domain (from TenantEmailConfiguration)
+        2. The organization's registered sender email
         3. Provider config from_email
         4. Fallback default
         """
         if override_from_email:
             return override_from_email
-        
+
         # Use configuration hierarchy
         return ConfigurationHierarchy.get_effective_from_email(
-            tenant_id=tenant_id,
+            organization_id=organization_id,
             provider_config=provider_config,
             rule=None
         )
