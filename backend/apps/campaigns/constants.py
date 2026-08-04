@@ -3,6 +3,10 @@ Constants and plan configuration for the campaigns app.
 """
 
 # Plan tiers with their limits
+# DEPRECATED: the authoritative plan catalog is now the DB-backed
+# campaigns.Package model (seeded from this dict by migration 0005).
+# This constant remains only as the fallback for organizations without a
+# package assigned and as the seed source — do not add new keys here.
 PLAN_LIMITS = {
     'FREE': {
         'contacts_limit': 500,
