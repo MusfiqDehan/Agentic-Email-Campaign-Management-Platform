@@ -54,7 +54,7 @@ class SESInboundHandler(S3Handler):
         super().handle(content=content, *args, **kwargs)
 
     def process(self):
-        from apps.campaigns.models import EmailAccount, MailboxMessage
+        from apps.campaigns.models import EmailAccount, MailboxMessage, SenderEmail
 
         email = self.email
         common = self.mail_obj.get('commonHeaders', {}) if self.mail_obj else {}
@@ -62,7 +62,9 @@ class SESInboundHandler(S3Handler):
         if isinstance(destination, str):
             destination = [destination]
 
-        # Match destination to a configured SES mailbox account
+        # Match destination to a configured SES mailbox account by EXACT
+        # address only. (A previous domain-suffix fallback could deliver one
+        # org's mail into another org's mailbox and was removed.)
         account = None
         for dest in destination:
             _, addr = parseaddr(dest)
@@ -77,27 +79,21 @@ class SESInboundHandler(S3Handler):
             ).first()
             if account:
                 break
-
-        if not account:
-            # Fallback: any org SES account that matches destination domain
-            for dest in destination:
-                _, addr = parseaddr(dest)
-                addr = (addr or dest or '').lower().strip()
-                if '@' not in addr:
-                    continue
-                domain = addr.split('@', 1)[1]
-                account = EmailAccount.objects.filter(
-                    email_address__iendswith=f'@{domain}',
-                    account_type='AWS_SES',
-                    is_active=True,
-                    is_deleted=False,
-                ).first()
-                if account:
-                    break
+            # Sender emails created via the domains feature link to their
+            # mailbox account explicitly — resolve through that link.
+            sender = SenderEmail.objects.filter(
+                email_address__iexact=addr,
+                status=SenderEmail.STATUS_ACTIVE,
+                mailbox_account__isnull=False,
+            ).select_related('mailbox_account').first()
+            if sender and sender.mailbox_account.is_active:
+                account = sender.mailbox_account
+                break
 
         if not account:
             logger.warning(
-                "SES inbound: no EmailAccount matched destinations %s", destination
+                "SES inbound: no EmailAccount matched destinations %s — dropping message",
+                destination,
             )
             return
 
