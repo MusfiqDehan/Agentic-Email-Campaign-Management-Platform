@@ -1,11 +1,8 @@
 import logging
 from typing import Any, Dict, Tuple
-from urllib.parse import urlparse
 
-from django.conf import settings
 from django.core.mail import get_connection
 from django.core.mail.backends.smtp import EmailBackend
-from django_ses import settings as django_ses_settings
 
 
 def _clean_kwargs(raw_kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -100,36 +97,19 @@ class ProviderBackendResolver:
                 raw_endpoint,
             )
         resolved_endpoint_url = region_endpoint or f"https://email.{region}.amazonaws.com"
-        parsed_endpoint = urlparse(resolved_endpoint_url)
-        resolved_endpoint_host = parsed_endpoint.netloc or resolved_endpoint_url.replace("https://", "")
-        try:
-            setattr(settings, "AWS_SES_REGION_NAME", region)
-            setattr(settings, "AWS_SES_REGION_ENDPOINT", resolved_endpoint_host)
-            setattr(settings, "AWS_SES_REGION_ENDPOINT_URL", resolved_endpoint_url)
-            django_ses_settings.AWS_SES_REGION_NAME = region
-            django_ses_settings.AWS_SES_REGION_ENDPOINT = resolved_endpoint_host
-            django_ses_settings.AWS_SES_REGION_ENDPOINT_URL = resolved_endpoint_url
-        except Exception:
-            # Settings may be locked in some contexts; ignore if we can't set them.
-            pass
 
         # Default to SES v2 unless explicitly disabled
         use_ses_v2 = config.get("use_ses_v2")
         if use_ses_v2 is None:
             use_ses_v2 = True
 
-        # Ensure global django-ses settings reflect our preferences to avoid internal fallbacks
-        try:
-            # Disable auto-throttle to prevent GetAccount/GetSendQuota calls that can fail with
-            # region-scoping errors when using temporary credentials or cross-region configs.
-            setattr(settings, "AWS_SES_AUTO_THROTTLE", 0)
-            # Prefer SESv2 at the global level as well for consistency
-            setattr(settings, "USE_SES_V2", True)
-            django_ses_settings.AWS_SES_AUTO_THROTTLE = 0
-            django_ses_settings.USE_SES_V2 = True
-        except Exception:
-            pass
-
+        # Every per-provider value is passed as a constructor kwarg below.
+        # SESBackend only falls back to the process-wide django-ses settings for
+        # kwargs left unset, so nothing here may mutate global settings state:
+        # concurrent Celery workers sending for different organizations (and
+        # different SES regions) would otherwise race and cross-configure each
+        # other. Static defaults (AWS_SES_AUTO_THROTTLE, USE_SES_V2) live in
+        # config/settings.py.
         kwargs = _clean_kwargs(
             {
                 "aws_access_key": access_key,
@@ -137,7 +117,9 @@ class ProviderBackendResolver:
                 "aws_session_token": config.get("aws_session_token"),
                 "aws_session_profile": config.get("aws_session_profile"),
                 "aws_region_name": region,
-                "aws_region_endpoint": region_endpoint,
+                # Pass the fully resolved URL so the backend never falls back
+                # to the global AWS_SES_REGION_ENDPOINT_URL.
+                "aws_region_endpoint": resolved_endpoint_url,
                 "aws_auto_throttle": auto_throttle,
                 "aws_config": config.get("aws_config"),
                 "ses_source_arn": config.get("ses_source_arn"),
@@ -148,7 +130,8 @@ class ProviderBackendResolver:
             }
         )
 
-        # Optionally prime runtime settings used by django-ses if values are provided per provider.
+        # Returned as metadata so the caller can stamp them on the message
+        # itself rather than via process-wide settings.
         from_email = (
             config.get("from_email")
             or config.get("default_from_email")
@@ -156,12 +139,10 @@ class ProviderBackendResolver:
         )
         return_path = config.get("return_path") or config.get("bounce_email")
 
-        if from_email:
-            setattr(settings, "AWS_SES_FROM_EMAIL", from_email)
-        if return_path:
-            setattr(settings, "AWS_SES_RETURN_PATH", return_path)
-
-        return "django_ses.SESBackend", kwargs, {"from_email": from_email}
+        return "django_ses.SESBackend", kwargs, {
+            "from_email": from_email,
+            "return_path": return_path,
+        }
 
     @staticmethod
     def _build_smtp_backend(config: Dict[str, Any]) -> Tuple[str, Dict[str, Any], Dict[str, Any]]:
