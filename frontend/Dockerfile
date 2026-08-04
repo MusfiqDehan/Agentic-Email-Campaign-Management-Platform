@@ -1,4 +1,7 @@
-FROM node:25-alpine AS base
+# Node 24 LTS — matches NODE_VERSION in .github/workflows/deploy.yml so the
+# image runs the same major the CI build/type-check validates. (Node 25 is an
+# odd-numbered, non-LTS line.)
+FROM node:24-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
