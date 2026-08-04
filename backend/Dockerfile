@@ -1,5 +1,8 @@
 # Use the official Python image from Docker Hub
-FROM python:3.12-slim
+# Python 3.13 — matches PYTHON_VERSION in .github/workflows/deploy.yml.
+# Django 6.0 requires >= 3.12; keeping this aligned with CI means the test
+# suite runs on the same interpreter the image ships.
+FROM python:3.13-slim
 
 # Set environment variables to avoid buffering and to set the working directory inside the container
 ENV PYTHONDONTWRITEBYTECODE 1
