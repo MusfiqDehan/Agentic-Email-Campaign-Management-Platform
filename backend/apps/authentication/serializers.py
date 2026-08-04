@@ -32,7 +32,6 @@ class SignupSerializer(serializers.Serializer):
     organization_name = serializers.CharField(max_length=120)
     first_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
     last_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
-    is_platform_admin = serializers.BooleanField(required=False, default=False)
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
@@ -42,15 +41,17 @@ class SignupSerializer(serializers.Serializer):
     def create(self, validated_data):
         org_name = validated_data.pop("organization_name")
         password = validated_data.pop("password")
-        is_platform_admin = validated_data.pop("is_platform_admin", False)
-        
+        # Platform admin can only be granted via the create_platform_admin
+        # management command — never from client-supplied signup data.
+        validated_data.pop("is_platform_admin", None)
+
         if "username" not in validated_data:
             validated_data["username"] = validated_data["email"]
-            
+
         user = User(**validated_data)
         user.set_password(password)
         user.is_active = False  # Require email verification
-        user.is_platform_admin = is_platform_admin
+        user.is_platform_admin = False
         user.save()
         slug = slugify(org_name)
         i = 1
