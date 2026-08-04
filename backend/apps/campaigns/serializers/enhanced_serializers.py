@@ -7,7 +7,7 @@ from ..models import (
     EmailValidation, EmailQueue, EmailDeliveryLog, EmailAction,
     AutomationRule
 )
-from ..utils.tenant_service import TenantServiceAPI
+from apps.authentication.models import Organization
 from ..utils.email_providers import EmailProviderFactory
 import logging
 
@@ -43,6 +43,10 @@ class OrganizationEmailConfigurationSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'organization', 'emails_sent_today', 'emails_sent_this_month', 'last_email_sent_at',
             'last_daily_reset', 'last_monthly_reset', 'domain_verification_token',
+            # Plan/suspension are platform-admin controlled — org admins must
+            # not be able to self-upgrade or self-unsuspend via this endpoint.
+            'plan_type', 'emails_per_day', 'emails_per_month', 'emails_per_minute',
+            'is_suspended', 'suspension_reason', 'custom_domain_verified',
             'bounce_rate', 'complaint_rate', 'reputation_score'
         ]
     
@@ -651,24 +655,15 @@ class EnhancedAutomationRuleSerializer(serializers.ModelSerializer):
         # Call parent validation
         data = super().validate(data) if hasattr(super(), 'validate') else data
         
-        # Validate tenant exists and is active (lenient for service unavailability)
-        tenant_id = data.get('tenant_id')
-        if tenant_id:
-            try:
-                tenant_active = TenantServiceAPI.is_tenant_active(str(tenant_id))
-                # Only fail if tenant is explicitly inactive (False)
-                # If None (service unavailable), allow it to proceed
-                if tenant_active is False:
-                    raise serializers.ValidationError("Tenant is inactive or not found")
-                elif tenant_active is None:
-                    logger.warning(f"Tenant service unavailable for {tenant_id}, allowing creation to proceed")
-            except serializers.ValidationError:
-                # Re-raise validation errors
-                raise
-            except Exception as e:
-                # For other errors, log and allow
-                logger.warning(f"Error validating tenant {tenant_id}: {e}. Allowing creation to proceed.")
-        
+        # Validate the organization exists and is active
+        organization_id = data.get('organization_id') or data.get('tenant_id')
+        if organization_id:
+            organization = Organization.objects.filter(id=organization_id).first()
+            if organization is None:
+                raise serializers.ValidationError("Organization not found")
+            if not organization.is_active:
+                raise serializers.ValidationError("Organization is inactive")
+
         # Validate trigger configuration
         trigger_type = data.get('trigger_type')
         
@@ -742,15 +737,12 @@ class TriggerEmailEnhancedSerializer(serializers.Serializer):
         if not any(identifiers):
             raise serializers.ValidationError("Provide rule_id, automation_name, or reason_name")
         
-        # Validate tenant if provided
-        tenant_id = attrs.get('tenant_id')
-        if tenant_id:
-            try:
-                if not TenantServiceAPI.is_tenant_active(str(tenant_id)):
-                    raise serializers.ValidationError("Tenant is inactive")
-            except Exception as e:
-                raise serializers.ValidationError(f"Error validating tenant: {str(e)}")
-        
+        # Validate the organization if provided
+        organization_id = attrs.get('organization_id') or attrs.get('tenant_id')
+        if organization_id:
+            if not Organization.objects.filter(id=organization_id, is_active=True).exists():
+                raise serializers.ValidationError("Organization is inactive or not found")
+
         # Validate recipient limit based on tenant plan
         recipient_count = len(attrs.get('recipient_emails', []))
         if recipient_count > 1000:  # Basic limit, can be made tenant-specific
