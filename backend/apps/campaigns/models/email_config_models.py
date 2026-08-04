@@ -171,7 +171,7 @@ class EmailTemplate(BaseModel):
             ),
             # Global templates must not have an organization
             models.CheckConstraint(
-                check=models.Q(is_global=False) | models.Q(organization__isnull=True),
+                condition=models.Q(is_global=False) | models.Q(organization__isnull=True),
                 name='global_templates_no_org'
             ),
         ]
