@@ -317,6 +317,10 @@ class OrganizationEmailConfigurationSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'organization_id', 'organization_name',
+            # Plan/suspension are platform-admin controlled — org admins must
+            # not be able to self-upgrade or self-unsuspend via this endpoint.
+            'plan_type', 'plan_limits', 'is_suspended', 'suspension_reason',
+            'custom_domain_verified',
             'emails_sent_today', 'emails_sent_this_month', 'last_email_sent_at',
             'bounce_rate', 'complaint_rate', 'reputation_score',
             'created_at', 'updated_at'
