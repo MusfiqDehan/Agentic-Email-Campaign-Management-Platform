@@ -21,7 +21,11 @@ import {
   UsersRound,
   CheckSquare,
   ScrollText,
-  Inbox
+  Inbox,
+  Globe,
+  AtSign,
+  Package,
+  BookOpen
 } from 'lucide-react';
 import { useAuth, usePlatformAdmin, useOrgAdmin } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -64,6 +68,18 @@ const sidebarItems = [
     icon: ScrollText,
     color: 'text-cyan-500'
   },
+  {
+    title: 'Domains',
+    href: '/dashboard/domains',
+    icon: Globe,
+    color: 'text-emerald-500'
+  },
+  {
+    title: 'Sender Emails',
+    href: '/dashboard/sender-emails',
+    icon: AtSign,
+    color: 'text-pink-500'
+  },
 ];
 
 const platformAdminItems = [
@@ -90,6 +106,18 @@ const platformAdminItems = [
     href: '/dashboard/admin/approvals',
     icon: CheckSquare,
     color: 'text-amber-500'
+  },
+  {
+    title: 'Packages',
+    href: '/dashboard/admin/packages',
+    icon: Package,
+    color: 'text-violet-500'
+  },
+  {
+    title: 'All Domains',
+    href: '/dashboard/admin/domains',
+    icon: Globe,
+    color: 'text-emerald-500'
   },
 ];
 
@@ -369,9 +397,27 @@ export function Sidebar({ isOpen = true, onClose, isCollapsed = false, onToggleC
             </div>
           )}
           
+          {/* Documentation link */}
+          <Link
+            href="/docs"
+            target="_blank"
+            className={cn(
+              "group relative mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+              isCollapsed && "justify-center px-2"
+            )}
+          >
+            <BookOpen className="h-5 w-5 shrink-0 text-amber-500" />
+            {!isCollapsed && <span className="truncate">Documentation</span>}
+            {isCollapsed && (
+              <div className="absolute left-full ml-2 hidden rounded-lg bg-popover px-3 py-2 text-sm font-medium text-popover-foreground shadow-lg group-hover:block">
+                Documentation
+              </div>
+            )}
+          </Link>
+
           {/* Logout button */}
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className={cn(
               "w-full justify-start gap-3 text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive",
               isCollapsed && "justify-center px-2"
