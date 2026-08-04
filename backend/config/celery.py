@@ -41,4 +41,8 @@ app.conf.beat_schedule = {
         'task': 'apps.campaigns.tasks.sync_all_mailbox_accounts',
         'schedule': crontab(minute='*/5'),
     },
+    'poll-domain-verification-every-10-minutes': {
+        'task': 'apps.campaigns.tasks.poll_domain_verification',
+        'schedule': crontab(minute='*/10'),
+    },
 }
