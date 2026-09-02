@@ -149,7 +149,7 @@ class SyncUtilsSchemaTests(TestCase):
 
     def setUp(self):
         self.organization = make_organization('Acme')
-        self.config = OrganizationEmailConfiguration.objects.create(
+        self.config = OrganizationEmailConfiguration.objects.get(
             organization=self.organization
         )
 
@@ -280,7 +280,7 @@ class HierarchicalResolverTests(TestCase):
         )
 
     def test_email_service_active_respects_suspension(self):
-        config = OrganizationEmailConfiguration.objects.create(
+        config = OrganizationEmailConfiguration.objects.get(
             organization=self.organization
         )
         self.assertTrue(is_email_service_active(organization_id=self.organization.id))

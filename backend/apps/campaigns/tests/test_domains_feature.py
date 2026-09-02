@@ -47,7 +47,9 @@ def make_org(name, plan_kwargs=None):
         emails_per_minute=10,
         **(plan_kwargs or {}),
     )
-    config = OrganizationEmailConfiguration.objects.create(organization=org, package=package)
+    config = OrganizationEmailConfiguration.objects.get(organization=org)
+    config.package = package
+    config.save()
     return org, owner, config
 
 

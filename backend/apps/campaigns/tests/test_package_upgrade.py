@@ -33,6 +33,16 @@ def make_org(name, email=None, role='owner'):
     return org, owner
 
 
+def org_config(org, **fields):
+    """Return the config created by the Organization post_save signal, applying updates."""
+    config = OrganizationEmailConfiguration.objects.get(organization=org)
+    if fields:
+        for key, value in fields.items():
+            setattr(config, key, value)
+        config.save()
+    return config
+
+
 def make_package(name, sort_order, **kwargs):
     defaults = {
         'display_name': name.title(),
@@ -56,9 +66,7 @@ class PackageUpgradeLogicTests(TestCase):
         self.pro = make_package('professional', 2)
         self.ent = make_package('enterprise', 3)
         self.org, self.owner = make_org('Acme')
-        self.config = OrganizationEmailConfiguration.objects.create(
-            organization=self.org, package=self.free
-        )
+        self.config = org_config(self.org, package=self.free)
 
     def test_starter_detection(self):
         self.assertTrue(is_starter_plan(package=self.free))
@@ -136,9 +144,7 @@ class PackageCatalogApiTests(TestCase):
         self.basic = make_package('basic', 1)
         self.pro = make_package('professional', 2)
         self.org, self.owner = make_org('Acme')
-        OrganizationEmailConfiguration.objects.create(
-            organization=self.org, package=self.free
-        )
+        org_config(self.org, package=self.free)
         self.client = APIClient()
         self.client.force_authenticate(user=self.owner)
 
@@ -202,8 +208,8 @@ class PackageCatalogApiTests(TestCase):
 class UsageCounterRaceTests(TestCase):
     def setUp(self):
         self.org, self.owner = make_org('Acme')
-        self.config = OrganizationEmailConfiguration.objects.create(
-            organization=self.org,
+        self.config = org_config(
+            self.org,
             emails_per_day=100,
             emails_per_month=1000,
         )
