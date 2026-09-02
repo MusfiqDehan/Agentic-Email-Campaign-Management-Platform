@@ -117,20 +117,24 @@ class AdminOrganizationAssignPackageView(APIView):
             return error(message='package_id is required')
         package = get_object_or_404(Package, pk=package_id, is_active=True)
 
-        config = domain_service.get_org_config(organization)
-        old = config.package.name if config.package else config.plan_type
-        config.package = package
-        config.save()
+        from ..services.package_service import assign_package
+        try:
+            config, changed = assign_package(
+                organization, package, actor=request.user, allow_downgrade=True
+            )
+        except ValidationError as exc:
+            return error(message='; '.join(exc.messages))
 
-        DomainAuditLog.log(
-            config, 'package_assigned', actor=request.user, organization=organization,
-            details={'from': old, 'to': package.name},
-        )
         return success(
-            message=f"{organization.name} assigned to package '{package.name}'",
+            message=(
+                f"{organization.name} is already on package '{package.name}'"
+                if not changed
+                else f"{organization.name} assigned to package '{package.name}'"
+            ),
             data={
                 'package': PackageSerializer(package).data,
                 'effective_limits': config.get_effective_limits(),
+                'changed': changed,
             },
         )
 

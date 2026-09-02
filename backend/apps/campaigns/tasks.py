@@ -579,10 +579,10 @@ def dispatch_enhanced_email_task(self, rule_id, recipient_emails, email_variable
             result = process_email_queue_item(queue_item, correlation_id)
             results.append(result)
         
-        # Update organization usage
+        # Update organization usage in a single atomic bump
         successful_sends = sum(1 for r in results if r.get('success'))
-        for _ in range(successful_sends):
-            org_config.increment_email_usage()
+        if successful_sends:
+            org_config.increment_email_usage(count=successful_sends)
         
         return {
             'success': True,

@@ -133,6 +133,10 @@ from .views.admin_package_views import (
     AdminSenderEmailSuspendView,
     AdminSenderEmailReactivateView,
 )
+from .views.package_views import (
+    PackageCatalogView,
+    PackageUpgradeView,
+)
 from .views.mailbox_views import (
     EmailAccountListCreateView,
     EmailAccountDetailView,
@@ -276,6 +280,10 @@ urlpatterns = [
     path('config/<uuid:pk>/reset-usage/', OrganizationEmailConfigurationResetUsageView.as_view(), name='org-email-config-reset-usage'),
     path('config/<uuid:pk>/verify-domain/', OrganizationEmailConfigurationVerifyDomainView.as_view(), name='org-email-config-verify-domain'),
     path('config/usage-stats/', OrganizationEmailConfigurationUsageStatsView.as_view(), name='org-email-config-usage-stats'),
+
+    # Self-service package catalog / upgrade (sidebar "Upgrade to Pro")
+    path('packages/catalog/', PackageCatalogView.as_view(), name='package-catalog'),
+    path('packages/upgrade/', PackageUpgradeView.as_view(), name='package-upgrade'),
     
     # Organization Email Providers (links org to shared/platform providers)
     path('providers/', OrganizationEmailProviderListCreateView.as_view(), name='org-email-provider-list-create'),

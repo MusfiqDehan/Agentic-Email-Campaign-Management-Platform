@@ -32,6 +32,12 @@ PACKAGE_FLAG_FIELDS = [
     'org_owned_ses_allowed',
 ]
 
+# Slugs treated as starter tiers. The sidebar "Upgrade to Pro" CTA and
+# self-service upgrade endpoint are limited to these (plus legacy FREE/TRIAL
+# plan_type values when no package is assigned).
+STARTER_PACKAGE_SLUGS = frozenset({'free', 'trial'})
+STARTER_PLAN_TYPES = frozenset({'FREE', 'TRIAL'})
+
 
 class Package(BaseModel):
     """
@@ -84,15 +90,36 @@ class Package(BaseModel):
         verbose_name = "Package"
         verbose_name_plural = "Packages"
         ordering = ['sort_order', 'name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['is_default'],
+                condition=models.Q(is_default=True, is_deleted=False),
+                name='uniq_one_default_active_package',
+            ),
+        ]
 
     def __str__(self):
         return self.display_name or self.name
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        # Enforce a single default package
-        if self.is_default:
-            Package.objects.filter(is_default=True).exclude(pk=self.pk).update(is_default=False)
+        from django.db import transaction
+
+        # Unset other defaults *before* inserting this row so the partial
+        # unique constraint cannot be violated by a concurrent default save.
+        with transaction.atomic():
+            if self.is_default:
+                others = Package.objects.select_for_update().filter(
+                    is_default=True, is_deleted=False
+                )
+                if self.pk:
+                    others = others.exclude(pk=self.pk)
+                others.update(is_default=False)
+            super().save(*args, **kwargs)
+
+    @property
+    def is_starter(self):
+        """True for free/trial slugs that may self-service upgrade."""
+        return (self.name or '').lower() in STARTER_PACKAGE_SLUGS
 
     def get_limits_dict(self):
         """Return limits + flags in the legacy PLAN_LIMITS key shape."""

@@ -321,8 +321,7 @@ class RateLimitChecker:
     def increment_usage_counters(organization_id: str = None, provider=None, tenant_provider=None):
         """Increment usage counters across all applicable levels."""
         from ..models import TenantEmailConfiguration
-
-        now = timezone.now()
+        from .atomic_counters import increment_provider_send_counters
 
         if organization_id:
             try:
@@ -331,17 +330,9 @@ class RateLimitChecker:
             except TenantEmailConfiguration.DoesNotExist:
                 logger.warning(f"Cannot increment usage for organization {organization_id}: config not found")
 
-        if provider:
-            provider.emails_sent_today += 1
-            provider.emails_sent_this_hour += 1
-            provider.last_used_at = now
-            provider.save(update_fields=['emails_sent_today', 'emails_sent_this_hour', 'last_used_at'])
-
-        if tenant_provider:
-            tenant_provider.emails_sent_today += 1
-            tenant_provider.emails_sent_this_hour += 1
-            tenant_provider.last_used_at = now
-            tenant_provider.save(update_fields=['emails_sent_today', 'emails_sent_this_hour', 'last_used_at'])
+        increment_provider_send_counters(
+            provider=provider, organization_provider=tenant_provider
+        )
 
 
 class ConfigurationValidator:

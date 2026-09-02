@@ -5,13 +5,14 @@ import uuid
 import threading
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from datetime import timezone as dt_timezone
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from apps.utils.base_models import BaseModel
 from apps.authentication.models import Organization
 from decouple import config
 from ..constants import get_plan_limits, get_default_plan_limits_json, COMMON_TIMEZONE_CHOICES
+from .package_models import STARTER_PACKAGE_SLUGS, STARTER_PLAN_TYPES
 
 
 # Thread-local storage to prevent recursion
@@ -45,10 +46,17 @@ class OrganizationEmailConfiguration(BaseModel):
     
     PLAN_TYPES = [
         ('FREE', 'Free'),
+        ('TRIAL', 'Trial'),
         ('BASIC', 'Basic'),
         ('PROFESSIONAL', 'Professional'),
         ('ENTERPRISE', 'Enterprise'),
     ]
+
+    _USAGE_FIELDS = (
+        'emails_sent_today', 'emails_sent_this_month', 'api_requests_today',
+        'last_daily_reset', 'last_monthly_reset',
+        'last_email_sent_at', 'last_api_request_at',
+    )
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organization = models.OneToOneField(
@@ -197,86 +205,113 @@ class OrganizationEmailConfiguration(BaseModel):
         self.emails_per_month = _num(limits.get('emails_per_month', 1000))
         self.emails_per_minute = _num(limits.get('emails_per_minute', 10))
     
-    def _ensure_counters_current(self):
+    def _period_changed(self, today=None):
+        """Whether daily and/or monthly counters need a calendar reset."""
+        today = today or timezone.now().date()
+        daily = self.last_daily_reset != today
+        monthly = (
+            not self.last_monthly_reset
+            or self.last_monthly_reset.month != today.month
+            or self.last_monthly_reset.year != today.year
+        )
+        return today, daily, monthly
+
+    def _apply_counter_resets(self, today=None):
         """
-        Ensure daily/monthly counters are reset if date has changed.
-        This prevents stale counter checks.
+        Mutate in-memory counters if the calendar period changed.
+
+        Caller MUST hold a row lock (select_for_update) so a concurrent
+        increment cannot be clobbered by a stale reset.
         """
-        # Prevent recursion using thread-local guard
-        guard_key = f'updating_counters_{self.organization_id}'
-        if _get_recursion_guard(guard_key):
-            return
-        
-        today = timezone.now().date()
-        needs_save = False
-        
-        # Reset daily counter if needed
-        if self.last_daily_reset != today:
+        today, daily, monthly = self._period_changed(today)
+        if daily:
             self.emails_sent_today = 0
             self.api_requests_today = 0
             self.last_daily_reset = today
-            needs_save = True
-            
-        # Reset monthly counter if needed  
-        if not self.last_monthly_reset or self.last_monthly_reset.month != today.month:
+        if monthly:
             self.emails_sent_this_month = 0
             self.last_monthly_reset = today
-            needs_save = True
-        
-        if needs_save:
-            try:
-                _set_recursion_guard(guard_key, True)
-                self.save(update_fields=[
-                    'emails_sent_today', 'emails_sent_this_month', 
-                    'api_requests_today', 'last_daily_reset', 'last_monthly_reset'
-                ])
-            finally:
-                _set_recursion_guard(guard_key, False)
-    
+        return daily or monthly
+
+    def _persist_usage_fields(self, extra_fields=()):
+        """Write usage columns via QuerySet.update to skip save() hooks."""
+        fields = set(self._USAGE_FIELDS) | set(extra_fields)
+        payload = {field: getattr(self, field) for field in fields}
+        payload['updated_at'] = timezone.now()
+        type(self).objects.filter(pk=self.pk).update(**payload)
+
+    def _lock_self(self):
+        return type(self).objects.select_for_update().get(pk=self.pk)
+
+    def _copy_usage_from(self, locked):
+        for field in self._USAGE_FIELDS:
+            setattr(self, field, getattr(locked, field))
+
+    def _ensure_counters_current(self):
+        """
+        Ensure daily/monthly counters are reset if date has changed.
+
+        Takes a row lock so a concurrent increment cannot be wiped by a
+        late reset, and so two workers cannot both reset-and-write 0.
+        """
+        guard_key = f'updating_counters_{self.organization_id}'
+        if _get_recursion_guard(guard_key):
+            return
+
+        if not self.pk:
+            self._apply_counter_resets()
+            return
+
+        try:
+            _set_recursion_guard(guard_key, True)
+            with transaction.atomic():
+                locked = self._lock_self()
+                if locked._apply_counter_resets():
+                    locked._persist_usage_fields()
+                self._copy_usage_from(locked)
+        finally:
+            _set_recursion_guard(guard_key, False)
+
     def can_send_email(self, check_provider_limits=True, provider=None):
         """
         Check if organization can send email based on limits and status.
-        
+
         Args:
             check_provider_limits: If True, also check provider-level rate limits
             provider: OrganizationEmailProvider instance (for checking provider limits)
-            
+
         Returns:
             Tuple of (can_send: bool, reason: str)
         """
-        # Prevent recursion using thread-local guard
         guard_key = f'checking_send_{self.organization_id}'
         if _get_recursion_guard(guard_key):
             return True, "OK (recursion guard)"
-        
+
         try:
             _set_recursion_guard(guard_key, True)
-            
-            # Ensure counters are current before checking limits
+
             self._ensure_counters_current()
-            
+
             if not self.is_active or self.is_suspended:
                 return False, "Organization email service is not active or suspended"
-                
+
             if self.emails_sent_today >= self.emails_per_day:
                 return False, "Daily email limit exceeded"
-                
+
             if self.emails_sent_this_month >= self.emails_per_month:
                 return False, "Monthly email limit exceeded"
-                
-            # Check reputation thresholds
-            if self.bounce_rate > 10.0:  # 10% bounce rate threshold
+
+            if self.bounce_rate > 10.0:
                 return False, "High bounce rate detected"
-                
-            if self.complaint_rate > 0.5:  # 0.5% complaint rate threshold
+
+            if self.complaint_rate > 0.5:
                 return False, "High complaint rate detected"
-            
-            # Check provider-level limits if requested
+
             if check_provider_limits and provider:
                 can_send, reason = provider.can_send_email()
                 if not can_send:
                     return False, reason
-                
+
             return True, "OK"
         finally:
             _set_recursion_guard(guard_key, False)
@@ -300,22 +335,45 @@ class OrganizationEmailConfiguration(BaseModel):
         
         return True, "OK"
     
-    def increment_email_usage(self):
-        """Increment email usage counters."""
-        self._ensure_counters_current()
-        
-        self.emails_sent_today += 1
-        self.emails_sent_this_month += 1
-        self.last_email_sent_at = timezone.now()
-        self.save(update_fields=['emails_sent_today', 'emails_sent_this_month', 'last_email_sent_at'])
-    
-    def increment_api_usage(self):
-        """Increment API usage counter."""
-        self._ensure_counters_current()
-        
-        self.api_requests_today += 1
-        self.last_api_request_at = timezone.now()
-        self.save(update_fields=['api_requests_today', 'last_api_request_at'])
+    def increment_email_usage(self, count=1):
+        """
+        Atomically increment email usage counters.
+
+        Resets and the increment happen under one row lock so concurrent
+        workers cannot lose updates or wipe a just-incremented daily count
+        with a stale period reset.
+        """
+        if count <= 0 or not self.pk:
+            return
+
+        with transaction.atomic():
+            locked = self._lock_self()
+            locked._apply_counter_resets()
+            locked.emails_sent_today += count
+            locked.emails_sent_this_month += count
+            locked.last_email_sent_at = timezone.now()
+            locked._persist_usage_fields()
+            self._copy_usage_from(locked)
+
+    def increment_api_usage(self, count=1):
+        """Atomically increment the API usage counter under a row lock."""
+        if count <= 0 or not self.pk:
+            return
+
+        with transaction.atomic():
+            locked = self._lock_self()
+            locked._apply_counter_resets()
+            locked.api_requests_today += count
+            locked.last_api_request_at = timezone.now()
+            locked._persist_usage_fields()
+            self._copy_usage_from(locked)
+
+    @property
+    def is_starter_plan(self):
+        """True when this org is on a free/trial package (or legacy FREE/TRIAL)."""
+        if self.package_id:
+            return (self.package.name or '').lower() in STARTER_PACKAGE_SLUGS
+        return (self.plan_type or 'FREE').upper() in STARTER_PLAN_TYPES
     
     def get_effective_from_domain(self):
         """Get the effective from domain (custom or default)."""

@@ -24,18 +24,20 @@ def on_organization_created(sender, instance, created, **kwargs):
     
     # Import here to avoid circular imports
     try:
-        from campaigns.models import (
+        from apps.campaigns.models import (
             OrganizationEmailConfiguration,
             EmailProvider,
             OrganizationEmailProvider,
+            Package,
         )
-        
-        # Create default email configuration
+
+        default_package = Package.objects.filter(is_default=True, is_active=True).first()
         OrganizationEmailConfiguration.objects.get_or_create(
             organization=instance,
             defaults={
                 'plan_type': 'FREE',
                 'timezone': 'UTC',
+                'package': default_package,
             }
         )
         

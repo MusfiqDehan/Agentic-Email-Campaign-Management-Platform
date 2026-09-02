@@ -2,7 +2,7 @@
 Campaign model for email campaign management.
 """
 import uuid
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django_celery_beat.models import PeriodicTask, CrontabSchedule
@@ -311,47 +311,62 @@ class Campaign(BaseModel):
     def launch(self):
         """
         Launch the campaign (change status and start sending).
+
+        Status transition is row-locked so two concurrent /launch/ calls
+        cannot both queue a send task.
         """
-        if self.status not in ['DRAFT', 'SCHEDULED', 'PAUSED']:
-            raise ValidationError(f"Cannot launch campaign with status {self.status}")
-        
-        self.status = 'SENDING'
-        self.started_at = timezone.now()
-        self.calculate_total_recipients()
-        self.save(update_fields=['status', 'started_at', 'stats_total_recipients'])
-        
-        # Trigger async sending task
+        with transaction.atomic():
+            locked = type(self).objects.select_for_update().get(pk=self.pk)
+            if locked.status not in ['DRAFT', 'SCHEDULED', 'PAUSED']:
+                raise ValidationError(f"Cannot launch campaign with status {locked.status}")
+
+            locked.status = 'SENDING'
+            locked.started_at = timezone.now()
+            locked.calculate_total_recipients()
+            locked.save(update_fields=['status', 'started_at', 'stats_total_recipients'])
+            self.status = locked.status
+            self.started_at = locked.started_at
+            self.stats_total_recipients = locked.stats_total_recipients
+
         from ..tasks import launch_campaign_task
         launch_campaign_task.delay(str(self.id))
-    
+
     def pause(self):
         """Pause a running campaign."""
-        if self.status != 'SENDING':
-            raise ValidationError("Can only pause a sending campaign")
-        
-        self.status = 'PAUSED'
-        self.save(update_fields=['status'])
-    
+        with transaction.atomic():
+            locked = type(self).objects.select_for_update().get(pk=self.pk)
+            if locked.status != 'SENDING':
+                raise ValidationError("Can only pause a sending campaign")
+
+            locked.status = 'PAUSED'
+            locked.save(update_fields=['status'])
+            self.status = locked.status
+
     def resume(self):
         """Resume a paused campaign."""
-        if self.status != 'PAUSED':
-            raise ValidationError("Can only resume a paused campaign")
-        
-        self.status = 'SENDING'
-        self.save(update_fields=['status'])
-        
-        # Trigger async sending task to continue
+        with transaction.atomic():
+            locked = type(self).objects.select_for_update().get(pk=self.pk)
+            if locked.status != 'PAUSED':
+                raise ValidationError("Can only resume a paused campaign")
+
+            locked.status = 'SENDING'
+            locked.save(update_fields=['status'])
+            self.status = locked.status
+
         from ..tasks import launch_campaign_task
         launch_campaign_task.delay(str(self.id))
-    
+
     def cancel(self):
         """Cancel a campaign."""
-        if self.status in ['SENT', 'CANCELLED']:
-            raise ValidationError(f"Cannot cancel campaign with status {self.status}")
-        
-        self.status = 'CANCELLED'
-        self._cleanup_periodic_task()
-        self.save(update_fields=['status'])
+        with transaction.atomic():
+            locked = type(self).objects.select_for_update().get(pk=self.pk)
+            if locked.status in ['SENT', 'CANCELLED']:
+                raise ValidationError(f"Cannot cancel campaign with status {locked.status}")
+
+            locked.status = 'CANCELLED'
+            locked._cleanup_periodic_task()
+            locked.save(update_fields=['status'])
+            self.status = locked.status
     
     def mark_completed(self):
         """Mark campaign as completed."""
