@@ -66,6 +66,16 @@ class Command(BaseCommand):
         # Assign organization to user
         user.organization = org
         user.save(update_fields=['organization'])
+
+        if getattr(user, 'is_platform_admin', False):
+            try:
+                from apps.campaigns.services.domain_service import unlock_organization_for_platform_admin
+                unlock_organization_for_platform_admin(org, actor=user)
+                self.stdout.write(self.style.SUCCESS(
+                    f'✓ Unlocked all package features for platform admin org "{org.name}"'
+                ))
+            except Exception as exc:  # noqa: BLE001
+                self.stdout.write(self.style.WARNING(f'Could not unlock org features: {exc}'))
         
         self.stdout.write(
             self.style.SUCCESS(

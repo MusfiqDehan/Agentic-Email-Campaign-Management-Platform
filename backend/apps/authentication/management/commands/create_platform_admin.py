@@ -15,6 +15,22 @@ from django.core.management.base import BaseCommand, CommandError
 from apps.authentication.models import User
 
 
+def _unlock_platform_admin_org(user, stdout=None, style=None):
+    """Ensure the platform admin's organization has all package features unlocked."""
+    if not user.organization_id:
+        return
+    try:
+        from apps.campaigns.services.domain_service import unlock_organization_for_platform_admin
+        unlock_organization_for_platform_admin(user.organization, actor=user)
+        if stdout and style:
+            stdout.write(style.SUCCESS(
+                f'✓ Unlocked all package features for organization: {user.organization.name}'
+            ))
+    except Exception as exc:  # noqa: BLE001 - bootstrap path should not fail admin creation
+        if stdout and style:
+            stdout.write(style.WARNING(f'Could not unlock org features: {exc}'))
+
+
 class Command(BaseCommand):
     help = 'Create or promote a user to platform admin'
 
@@ -76,7 +92,8 @@ class Command(BaseCommand):
                     self.stdout.write(
                         self.style.SUCCESS(f'✓ User {email} is now a platform admin')
                     )
-                    
+                _unlock_platform_admin_org(user, self.stdout, self.style)
+
         except User.DoesNotExist:
             if options['create']:
                 password = options.get('password')
@@ -107,6 +124,7 @@ class Command(BaseCommand):
                         f'  is_staff: {user.is_staff}'
                     )
                 )
+                _unlock_platform_admin_org(user, self.stdout, self.style)
             else:
                 raise CommandError(
                     f'User with email {email} not found. '
