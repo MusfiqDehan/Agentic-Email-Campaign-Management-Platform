@@ -12,7 +12,7 @@ from ..models import EmailProvider, Package, SenderEmail, SendingDomain
 class PackageSerializer(serializers.ModelSerializer):
     """Full package representation (platform admin CRUD + org-facing read)."""
 
-    organization_count = serializers.IntegerField(read_only=True, required=False)
+    organization_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Package
@@ -26,7 +26,10 @@ class PackageSerializer(serializers.ModelSerializer):
             'bulk_email_allowed', 'ab_testing_allowed', 'org_owned_ses_allowed',
             'organization_count', 'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'organization_count']
+
+    def get_organization_count(self, obj):
+        return getattr(obj, 'organization_count', None)
 
 
 class SendingDomainSerializer(serializers.ModelSerializer):

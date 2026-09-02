@@ -11,6 +11,7 @@ import logging
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.utils import timezone
 
 from ..models import (
@@ -18,6 +19,7 @@ from ..models import (
     EmailAccount,
     Notification,
     OrganizationEmailConfiguration,
+    Package,
     SenderEmail,
     SendingDomain,
 )
@@ -27,8 +29,24 @@ logger = logging.getLogger(__name__)
 
 
 def get_org_config(organization):
-    """Get (or lazily create) the org's email configuration."""
-    config, _ = OrganizationEmailConfiguration.objects.get_or_create(organization=organization)
+    """Get (or lazily create) the org's email configuration.
+
+    get_or_create races when two requests insert the OneToOne at once;
+    IntegrityError falls through to the winner's row. New configs are
+    pinned to the default package so the upgrade catalog has a current tier.
+    """
+    try:
+        config, created = OrganizationEmailConfiguration.objects.get_or_create(
+            organization=organization
+        )
+    except IntegrityError:
+        return OrganizationEmailConfiguration.objects.get(organization=organization)
+
+    if created and not config.package_id:
+        default = Package.objects.filter(is_default=True, is_active=True).first()
+        if default:
+            config.package = default
+            config.save()
     return config
 
 

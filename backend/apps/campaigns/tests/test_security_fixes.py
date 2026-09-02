@@ -47,7 +47,7 @@ class ThrottleImportTests(TestCase):
         from apps.utils.throttles import OrganizationRateThrottle
 
         org, owner = make_org()
-        config = OrganizationEmailConfiguration.objects.create(organization=org)
+        config = OrganizationEmailConfiguration.objects.get(organization=org)
         config.limit_overrides = {'api_requests_per_minute': 123}
         config.save()
 
@@ -62,9 +62,9 @@ class ThrottleImportTests(TestCase):
 class VerifyDomainStubTests(TestCase):
     def test_old_verify_domain_endpoint_is_gone(self):
         org, owner = make_org()
-        config = OrganizationEmailConfiguration.objects.create(
-            organization=org, custom_domain='spoofed.example.com'
-        )
+        config = OrganizationEmailConfiguration.objects.get(organization=org)
+        config.custom_domain = 'spoofed.example.com'
+        config.save()
         client = APIClient()
         client.force_authenticate(user=owner)
         response = client.post(f'/api/v1/campaigns/config/{config.pk}/verify-domain/')
@@ -93,7 +93,7 @@ class AdminProviderPermissionTests(TestCase):
 class ConfigSerializerLockdownTests(TestCase):
     def test_org_admin_cannot_self_upgrade_plan(self):
         org, owner = make_org()
-        config = OrganizationEmailConfiguration.objects.create(organization=org)
+        config = OrganizationEmailConfiguration.objects.get(organization=org)
         client = APIClient()
         client.force_authenticate(user=owner)
         response = client.patch(

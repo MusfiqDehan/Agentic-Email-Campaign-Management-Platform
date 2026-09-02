@@ -1131,12 +1131,8 @@ class EmailProviderManager:
                         headers=headers
                     )
                     if success:
-                        preferred.emails_sent_today += 1
-                        preferred.emails_sent_this_hour += 1
-                        preferred.last_used_at = timezone.now()
-                        preferred.save(update_fields=[
-                            'emails_sent_today', 'emails_sent_this_hour', 'last_used_at'
-                        ])
+                        from .atomic_counters import increment_provider_send_counters
+                        increment_provider_send_counters(provider=preferred)
                         response_data['provider_name'] = preferred.name
                         response_data['provider_id'] = str(preferred.id)
                         response_data['provider_type'] = preferred.provider_type
@@ -1186,19 +1182,12 @@ class EmailProviderManager:
                 )
                 
                 if success:
-                    # Update usage counters
-                    tenant_provider.emails_sent_today += 1
-                    tenant_provider.emails_sent_this_hour += 1
-                    tenant_provider.last_used_at = timezone.now()
-                    tenant_provider.save()
-                    
-                    # Update provider usage
-                    provider_obj = tenant_provider.provider
-                    provider_obj.emails_sent_today += 1
-                    provider_obj.emails_sent_this_hour += 1
-                    provider_obj.last_used_at = timezone.now()
-                    provider_obj.save()
-                    
+                    from .atomic_counters import increment_provider_send_counters
+                    increment_provider_send_counters(
+                        provider=tenant_provider.provider,
+                        organization_provider=tenant_provider,
+                    )
+
                     logger.info(f"Email sent successfully via {tenant_provider.provider.name}")
                     response_data['provider_name'] = tenant_provider.provider.name
                     response_data['provider_id'] = str(tenant_provider.provider.id)
@@ -1238,10 +1227,8 @@ class EmailProviderManager:
                 )
 
                 if success:
-                    default_provider.emails_sent_today += 1
-                    default_provider.emails_sent_this_hour += 1
-                    default_provider.last_used_at = timezone.now()
-                    default_provider.save()
+                    from .atomic_counters import increment_provider_send_counters
+                    increment_provider_send_counters(provider=default_provider)
 
                     response_data['provider_name'] = default_provider.name
                     response_data['provider_id'] = str(default_provider.id)

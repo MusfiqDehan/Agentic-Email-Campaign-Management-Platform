@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/config/utils';
@@ -30,6 +31,8 @@ import {
 import { useAuth, usePlatformAdmin, useOrgAdmin } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { BrandLogo } from '@/components/brand-logo';
+import { UpgradeDialog } from '@/components/dashboard/upgrade-dialog';
+import { fetchPackageCatalog, type PackageCatalog } from '@/services/packages';
 
 const sidebarItems = [
   {
@@ -142,6 +145,24 @@ export function Sidebar({ isOpen = true, onClose, isCollapsed = false, onToggleC
   const { logout, user } = useAuth();
   const isPlatformAdmin = usePlatformAdmin();
   const isOrgAdmin = useOrgAdmin();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [catalog, setCatalog] = useState<PackageCatalog | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPackageCatalog()
+      .then((data) => {
+        if (!cancelled) setCatalog(data);
+      })
+      .catch(() => {
+        if (!cancelled) setCatalog(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const showUpgradeCta = catalog?.can_upgrade === true;
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -367,9 +388,12 @@ export function Sidebar({ isOpen = true, onClose, isCollapsed = false, onToggleC
         
         {/* User section */}
         <div className="border-t border-sidebar-border p-3">
-          {/* Pro upgrade banner */}
-          {!isCollapsed && (
-            <div className="mb-3 rounded-xl bg-gradient-to-br from-primary/10 to-purple-500/10 p-3">
+          {showUpgradeCta && !isCollapsed && (
+            <button
+              type="button"
+              onClick={() => setUpgradeOpen(true)}
+              className="mb-3 w-full rounded-xl bg-gradient-to-br from-primary/10 to-purple-500/10 p-3 text-left transition-colors hover:from-primary/15 hover:to-purple-500/15"
+            >
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="text-xs font-medium">Upgrade to Pro</span>
@@ -377,7 +401,18 @@ export function Sidebar({ isOpen = true, onClose, isCollapsed = false, onToggleC
               <p className="mt-1 text-xs text-muted-foreground">
                 Get advanced features
               </p>
-            </div>
+            </button>
+          )}
+          {showUpgradeCta && isCollapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mb-3 w-full"
+              onClick={() => setUpgradeOpen(true)}
+              title="Upgrade to Pro"
+            >
+              <Sparkles className="h-4 w-4 text-primary" />
+            </Button>
           )}
           
           {/* User info */}
@@ -441,6 +476,12 @@ export function Sidebar({ isOpen = true, onClose, isCollapsed = false, onToggleC
           )}
         </div>
       </aside>
+      <UpgradeDialog
+        open={upgradeOpen}
+        onOpenChange={setUpgradeOpen}
+        catalog={catalog}
+        onCatalogChange={setCatalog}
+      />
     </>
   );
 }

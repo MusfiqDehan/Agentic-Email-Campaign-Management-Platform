@@ -48,8 +48,11 @@ export default function LoginPage() {
     setEmailNotVerified(false);
     try {
       const response = await api.post('/auth/login/', data);
-      const { access, refresh, user } = response.data.data;
-      login(access, refresh, user);
+      const { access, refresh, user, organization } = response.data.data;
+      login(access, refresh, {
+        ...user,
+        organization: organization ?? user.organization,
+      });
       toast.success('Logged in successfully');
     } catch (error: unknown) {
       console.error(error);

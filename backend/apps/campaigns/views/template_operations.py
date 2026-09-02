@@ -2,6 +2,7 @@
 Template operations views for duplication, versioning, approval, and testing.
 """
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
@@ -93,9 +94,10 @@ class EmailTemplateUseView(CustomResponseMixin, APIView):
                 template_version_at_duplication=source_template.version,
             )
             
-            # Increment usage count
-            source_template.usage_count += 1
-            source_template.save(update_fields=['usage_count'])
+            # Increment usage count atomically (avoids lost updates on concurrent duplicates)
+            EmailTemplate.objects.filter(pk=source_template.pk).update(
+                usage_count=F('usage_count') + 1
+            )
         
         serializer = EmailTemplateSerializer(new_template)
         return Response({
@@ -166,8 +168,9 @@ class EmailTemplateBulkUseView(CustomResponseMixin, APIView):
                         template_version_at_duplication=source_template.version,
                     )
                     
-                    source_template.usage_count += 1
-                    source_template.save(update_fields=['usage_count'])
+                    EmailTemplate.objects.filter(pk=source_template.pk).update(
+                        usage_count=F('usage_count') + 1
+                    )
                     
                     created_templates.append(EmailTemplateSerializer(new_template).data)
             

@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Sum, Avg
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 from ..models import EmailProvider, OrganizationEmailConfiguration
 from ..serializers import EmailProviderSerializer
@@ -301,17 +302,12 @@ Sent at: {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
             
             # Send the email
             email.send()
-            
-            # Update provider stats
-            provider.last_used_at = timezone.now()
-            provider.emails_sent_today += 1
-            provider.emails_sent_this_hour += 1
+
+            from ..utils.atomic_counters import increment_provider_send_counters
+            increment_provider_send_counters(provider=provider)
             provider.health_status = 'HEALTHY'
             provider.last_health_check = timezone.now()
             provider.save(update_fields=[
-                'last_used_at', 
-                'emails_sent_today', 
-                'emails_sent_this_hour',
                 'health_status',
                 'last_health_check'
             ])
@@ -506,12 +502,9 @@ class AdminOrganizationUpgradePlanView(APIView):
     def post(self, request, pk):
         """Upgrade an organization's plan (delegates to the Package catalog)."""
         from ..models import Package
+        from ..services.package_service import assign_package
 
-        config, created = OrganizationEmailConfiguration.objects.get_or_create(
-            organization_id=pk,
-            defaults={'is_deleted': False}
-        )
-
+        organization = get_object_or_404(Organization, pk=pk)
         new_plan = request.data.get('plan_type')
         if not new_plan:
             return error(message='plan_type is required')
@@ -521,13 +514,20 @@ class AdminOrganizationUpgradePlanView(APIView):
             valid = list(Package.objects.filter(is_active=True).values_list('name', flat=True))
             return error(message=f'Invalid plan. Must be one of: {valid}')
 
-        old_plan = config.package.name if config.package else config.plan_type
-        config.package = package
-        config.save()  # Syncs denormalized limits from the package + overrides
+        try:
+            config, changed = assign_package(
+                organization, package, actor=request.user, allow_downgrade=True
+            )
+        except ValidationError as exc:
+            return error(message='; '.join(exc.messages))
 
         return success(
-            message=f'Organization {config.organization.name} upgraded from {old_plan} to {package.name}',
-            data={'new_limits': config.get_effective_limits()}
+            message=(
+                f'Organization {organization.name} is already on {package.name}'
+                if not changed
+                else f'Organization {organization.name} upgraded to {package.name}'
+            ),
+            data={'new_limits': config.get_effective_limits(), 'changed': changed}
         )
 
 
