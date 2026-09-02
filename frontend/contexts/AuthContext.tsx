@@ -63,8 +63,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = (token: string, refreshToken: string, userData: User) => {
     Cookies.set('access_token', token, { expires: 1 }); // 1 day
     Cookies.set('refresh_token', refreshToken, { expires: 7 }); // 7 days
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
+    const alignedUser: User = {
+      ...userData,
+      organization: userData.organization
+        ? {
+            ...userData.organization,
+            is_owner: userData.organization.is_owner ?? Boolean(userData.is_org_admin),
+            is_admin: userData.organization.is_admin ?? Boolean(userData.is_org_admin),
+          }
+        : userData.organization,
+    };
+    localStorage.setItem('user', JSON.stringify(alignedUser));
+    setUser(alignedUser);
     router.push('/dashboard');
   };
 
@@ -127,5 +137,7 @@ export function usePlatformAdmin(): boolean {
  */
 export function useOrgAdmin(): boolean {
   const { user } = useAuth();
-  return user?.organization?.is_owner || user?.organization?.is_admin || false;
+  return Boolean(
+    user?.is_org_admin || user?.organization?.is_owner || user?.organization?.is_admin
+  );
 }
