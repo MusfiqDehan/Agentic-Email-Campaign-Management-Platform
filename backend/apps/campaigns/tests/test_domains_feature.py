@@ -149,6 +149,20 @@ class DomainLifecycleTests(TestCase):
         with self.assertRaises(ValidationError):
             domain_service.register_domain(self.org, 'nope.com')
 
+    def test_platform_admin_bypasses_package_domain_gate(self, service_cls):
+        service_cls.return_value = mock_ses_service()
+        self.config.package.custom_domain_allowed = False
+        self.config.package.max_domains = 0
+        self.config.package.save()
+        self.owner.is_platform_admin = True
+        self.owner.save(update_fields=['is_platform_admin'])
+        domain = domain_service.register_domain(self.org, 'admin-ok.com', actor=self.owner)
+        self.assertEqual(domain.domain, 'admin-ok.com')
+        payload = domain_service.get_domain_limits_payload(self.config, user=self.owner)
+        self.assertTrue(payload['custom_domain_allowed'])
+        self.assertTrue(payload['feature_enabled'])
+        self.assertIsNone(payload['max_domains'])
+
     def test_sender_email_requires_verified_domain(self, service_cls):
         service_cls.return_value = mock_ses_service()
         domain = domain_service.register_domain(self.org, 'pending.com')
