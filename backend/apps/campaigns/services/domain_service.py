@@ -25,6 +25,25 @@ from ..utils.ses_identity_service import SESIdentityError, SESIdentityService
 
 logger = logging.getLogger(__name__)
 
+# Platform admins bypass package gating — every feature unlocked / unlimited.
+PLATFORM_ADMIN_UNLOCKED_LIMITS = {
+    'contacts_limit': None,
+    'campaigns_per_month': None,
+    'emails_per_day': None,
+    'emails_per_month': None,
+    'emails_per_minute': None,
+    'batch_size': 1000,
+    'api_requests_per_minute': None,
+    'max_domains': None,
+    'max_sender_emails': None,
+    'custom_domain_allowed': True,
+    'advanced_analytics': True,
+    'priority_support': True,
+    'bulk_email_allowed': True,
+    'ab_testing_allowed': True,
+    'org_owned_ses_allowed': True,
+}
+
 
 def get_org_config(organization):
     """Get (or lazily create) the org's email configuration."""
@@ -32,7 +51,57 @@ def get_org_config(organization):
     return config
 
 
-def _check_feature_enabled(config):
+def is_platform_admin_actor(actor) -> bool:
+    return bool(actor is not None and getattr(actor, 'is_platform_admin', False))
+
+
+def get_domain_limits_payload(config, user=None):
+    """Limits dict for org-facing domain/sender APIs (platform admin = fully unlocked)."""
+    if is_platform_admin_actor(user):
+        return {
+            'max_domains': None,
+            'feature_enabled': True,
+            'custom_domain_allowed': True,
+            'org_owned_ses_allowed': True,
+            'max_sender_emails': None,
+        }
+    return {
+        'max_domains': config.max_domains,
+        'feature_enabled': config.domain_feature_enabled,
+        'custom_domain_allowed': config.is_custom_domain_allowed,
+        'org_owned_ses_allowed': config.is_org_owned_ses_allowed,
+        'max_sender_emails': config.max_sender_emails,
+    }
+
+
+def unlock_organization_for_platform_admin(organization, actor=None):
+    """
+    Ensure a platform admin's organization has domain features and premium flags
+    enabled via limit_overrides (survives package reassignment of Free/Basic).
+    """
+    if organization is None:
+        return None
+    config = get_org_config(organization)
+    overrides = dict(config.limit_overrides or {})
+    overrides.update(PLATFORM_ADMIN_UNLOCKED_LIMITS)
+    config.limit_overrides = overrides
+    config.domain_feature_enabled = True
+    if not config.is_active:
+        config.is_active = True
+    config.save()
+    DomainAuditLog.log(
+        config,
+        'limits_overridden',
+        actor=actor,
+        organization=organization,
+        details={'reason': 'platform_admin_default_unlock'},
+    )
+    return config
+
+
+def _check_feature_enabled(config, actor=None):
+    if is_platform_admin_actor(actor):
+        return
     if not config.domain_feature_enabled:
         raise ValidationError("The sending-domains feature is disabled for your organization.")
     if not config.is_custom_domain_allowed:
@@ -79,18 +148,23 @@ def register_domain(organization, domain_name, ownership_mode=SendingDomain.OWNE
     SendingDomain in PENDING_VERIFICATION with its DNS records.
     """
     config = get_org_config(organization)
-    _check_feature_enabled(config)
+    _check_feature_enabled(config, actor=actor)
 
-    if ownership_mode == SendingDomain.OWNERSHIP_ORG and not config.is_org_owned_ses_allowed:
+    if (
+        ownership_mode == SendingDomain.OWNERSHIP_ORG
+        and not is_platform_admin_actor(actor)
+        and not config.is_org_owned_ses_allowed
+    ):
         raise ValidationError("Your current package does not allow org-owned SES domains.")
 
-    max_domains = config.max_domains
-    current = SendingDomain.objects.filter(organization=organization).count()
-    if max_domains is not None and current >= max_domains:
-        raise ValidationError(
-            f"Domain limit reached ({current}/{max_domains}). "
-            "Contact support to increase your package limits."
-        )
+    if not is_platform_admin_actor(actor):
+        max_domains = config.max_domains
+        current = SendingDomain.objects.filter(organization=organization).count()
+        if max_domains is not None and current >= max_domains:
+            raise ValidationError(
+                f"Domain limit reached ({current}/{max_domains}). "
+                "Contact support to increase your package limits."
+            )
 
     normalized = (domain_name or '').strip().lower().rstrip('.')
     if SendingDomain.all_objects.filter(domain=normalized, is_deleted=False).exists():
@@ -239,7 +313,7 @@ def create_sender_email(organization, domain, local_part, display_name='', actor
     """Create a sender address under a verified domain, plus its inbox account
     for platform-managed domains."""
     config = get_org_config(organization)
-    _check_feature_enabled(config)
+    _check_feature_enabled(config, actor=actor)
 
     if domain.organization_id != organization.id:
         raise ValidationError("This domain does not belong to your organization.")
@@ -248,13 +322,14 @@ def create_sender_email(organization, domain, local_part, display_name='', actor
             "The domain must be verified (and not suspended) before creating sender emails."
         )
 
-    max_senders = config.max_sender_emails
-    current = SenderEmail.objects.filter(organization=organization).count()
-    if max_senders is not None and current >= max_senders:
-        raise ValidationError(
-            f"Sender email limit reached ({current}/{max_senders}). "
-            "Contact support to increase your package limits."
-        )
+    if not is_platform_admin_actor(actor):
+        max_senders = config.max_sender_emails
+        current = SenderEmail.objects.filter(organization=organization).count()
+        if max_senders is not None and current >= max_senders:
+            raise ValidationError(
+                f"Sender email limit reached ({current}/{max_senders}). "
+                "Contact support to increase your package limits."
+            )
 
     sender = SenderEmail(
         organization=organization,
