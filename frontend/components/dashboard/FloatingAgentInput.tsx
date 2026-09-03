@@ -186,16 +186,17 @@ export function FloatingAgentInput() {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-to-br from-primary to-blue-600 text-white shadow-xl hover:shadow-primary/30 hover:scale-110 transition-all duration-300 flex items-center justify-center z-50 cursor-pointer group"
+                className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-600 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-primary/30 group cursor-pointer lg:bottom-6 lg:right-6"
                 title="Open AI Agent"
+                aria-label="Open AI Agent"
             >
-                <Sparkles className="h-6 w-6 group-hover:rotate-12 transition-transform" />
+                <Sparkles className="h-6 w-6 group-hover:rotate-12 transition-transform" aria-hidden="true" />
             </button>
         );
     }
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-xl px-4 z-50">
+        <div className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 w-full max-w-xl -translate-x-1/2 px-4 lg:bottom-6">
             <div className={cn(
                 "relative group rounded-2xl border border-border/50 bg-background/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-2xl p-1.5 transition-all duration-300",
                 "focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 focus-within:shadow-primary/10"
@@ -211,6 +212,7 @@ export function FloatingAgentInput() {
                         onChange={(e) => setPrompt(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                         placeholder="Ask AI agent to manage contacts... (e.g. 'Add john@gmail.com to vip list')"
+                        aria-label="AI agent prompt"
                         className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground/70 py-3 pr-2"
                         disabled={isLoading}
                     />
@@ -231,6 +233,8 @@ export function FloatingAgentInput() {
                                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                             )}
                             title={isListening ? "Stop listening" : "Start voice input"}
+                            aria-label={isListening ? "Stop listening" : "Start voice input"}
+                            aria-pressed={isListening}
                         >
                             {isListening ? (
                                 <MicOff className="h-4 w-4" />
@@ -246,6 +250,7 @@ export function FloatingAgentInput() {
                                 "h-9 w-9 flex items-center justify-center rounded-xl transition-all cursor-pointer",
                                 prompt.trim() ? "bg-primary text-primary-foreground shadow-lg hover:opacity-90" : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
                             )}
+                            aria-label="Send prompt"
                         >
                             {isLoading ? (
                                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -258,6 +263,7 @@ export function FloatingAgentInput() {
                             type="button"
                             onClick={() => setIsOpen(false)}
                             className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-white/10 text-muted-foreground/50 hover:text-foreground transition-all cursor-pointer"
+                            aria-label="Close AI Agent"
                         >
                             <X className="h-4 w-4" />
                         </button>

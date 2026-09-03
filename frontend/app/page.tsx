@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { BrandLogo } from '@/components/brand-logo';
+import { SiteNav } from '@/components/landing/site-nav';
 import { cn } from '@/config/utils';
 import { HeroIllustration } from '@/components/landing/hero-illustration';
 import { NetworkBackground } from '@/components/landing/network-background';
@@ -221,37 +222,10 @@ const testimonials = [
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Navigation */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="transition-transform hover:scale-105">
-            <BrandLogo size={36} wordmarkClassName="hidden sm:inline-block text-xl" priority />
-          </Link>
-          <nav className="flex items-center gap-2 sm:gap-4">
-            <div className="mr-2 hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
-              <Link href="#how-it-works" className="transition-colors hover:text-foreground">How it works</Link>
-              <Link href="#features" className="transition-colors hover:text-foreground">Features</Link>
-              <Link href="#pricing" className="transition-colors hover:text-foreground">Pricing</Link>
-              <Link href="/docs" className="transition-colors hover:text-foreground">Docs</Link>
-            </div>
-            <ThemeToggle />
-            <Link href="/login">
-              <Button variant="ghost" className="hidden sm:inline-flex">
-                Log in
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button className="gradient-bg border-0 text-white shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 hover:scale-105">
-                Get Started
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
+    <div className="flex min-h-screen flex-col bg-background pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
+      <SiteNav />
 
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
         {/* Hero Section */}
         <section className="relative isolate overflow-hidden py-20 sm:py-28 lg:py-36">
           {/* Background decoration */}
@@ -265,10 +239,10 @@ export default function LandingPage() {
             <div className="grid items-center gap-16 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
               <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
                 {/* Badge */}
-                <div className="animate-fade-in mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-4 py-1.5 text-sm font-medium text-muted-foreground backdrop-blur-sm">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span>Now with AI-Powered Agentic Contact Management System</span>
-                  <ChevronRight className="h-4 w-4" />
+                <div className="animate-fade-in mb-6 inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm sm:px-4 sm:text-sm">
+                  <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                  <span className="text-left">Now with AI-Powered Agentic Contact Management System</span>
+                  <ChevronRight className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden="true" />
                 </div>
 
                 {/* Headline */}
@@ -284,22 +258,22 @@ export default function LandingPage() {
                 </p>
 
                 {/* CTA Buttons */}
-                <div className="animate-slide-up mt-10 flex flex-col gap-4 sm:flex-row sm:gap-6" style={{ animationDelay: '0.2s' }}>
-                  <Link href="/signup">
-                    <Button size="lg" className="h-14 px-8 text-base gradient-bg border-0 text-white shadow-xl shadow-primary/25 transition-all hover:shadow-2xl hover:shadow-primary/30 hover:scale-105">
+                <div className="animate-slide-up mt-10 flex w-full flex-col gap-4 sm:w-auto sm:flex-row sm:gap-6" style={{ animationDelay: '0.2s' }}>
+                  <Link href="/signup" className="w-full sm:w-auto">
+                    <Button size="lg" className="h-14 w-full px-8 text-base gradient-bg border-0 text-white shadow-xl shadow-primary/25 transition-all hover:shadow-2xl hover:shadow-primary/30 hover:scale-105 sm:w-auto">
                       Start for Free
-                      <ArrowRight className="ml-2 h-5 w-5" />
+                      <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                     </Button>
                   </Link>
-                  <Link href="/login">
-                    <Button variant="outline" size="lg" className="h-14 px-8 text-base border-2 bg-background/50 backdrop-blur-sm transition-all hover:bg-accent hover:scale-105">
+                  <Link href="/login" className="w-full sm:w-auto">
+                    <Button variant="outline" size="lg" className="h-14 w-full px-8 text-base border-2 bg-background/50 backdrop-blur-sm transition-all hover:bg-accent hover:scale-105 sm:w-auto">
                       View Demo
                     </Button>
                   </Link>
                 </div>
 
                 {/* Social Proof */}
-                <div className="animate-fade-in mt-12 flex items-center gap-4 text-sm text-muted-foreground" style={{ animationDelay: '0.3s' }}>
+                <div className="animate-fade-in mt-12 flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground lg:justify-start" style={{ animationDelay: '0.3s' }}>
                   <div className="flex -space-x-2">
                     {['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500'].map((bg, i) => (
                       <div key={i} className={`h-8 w-8 rounded-full ${bg} border-2 border-background flex items-center justify-center text-xs font-medium text-white`}>
@@ -380,7 +354,7 @@ export default function LandingPage() {
         </section>
 
         {/* How It Works Section */}
-        <section id="how-it-works" className="border-t border-border bg-muted/20 py-20 sm:py-28">
+        <section id="how-it-works" className="scroll-mt-24 border-t border-border bg-muted/20 py-20 sm:py-28">
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
@@ -415,7 +389,7 @@ export default function LandingPage() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-20 sm:py-28 lg:py-36">
+        <section id="features" className="scroll-mt-24 py-20 sm:py-28 lg:py-36">
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
@@ -448,7 +422,7 @@ export default function LandingPage() {
         </section>
 
         {/* Pricing Section */}
-        <section id="pricing" className="relative isolate overflow-hidden py-20 sm:py-28 lg:py-36">
+        <section id="pricing" className="relative isolate overflow-hidden scroll-mt-24 py-20 sm:py-28 lg:py-36">
           <div className="absolute inset-0 -z-10 opacity-50">
             <NetworkBackground />
           </div>
@@ -563,7 +537,7 @@ export default function LandingPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="relative isolate overflow-hidden py-20 sm:py-28">
+        <section id="contact" className="relative isolate overflow-hidden scroll-mt-24 py-20 sm:py-28">
           <div className="absolute inset-0 -z-10">
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full bg-primary/20 blur-[120px]" />
             <NetworkBackground />

@@ -20,7 +20,7 @@ export function BrandLogo({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/logo.svg"
-        alt="EmailCampaign"
+        alt={showWordmark ? '' : 'EmailCampaign'}
         width={size}
         height={size}
         className="rounded-xl shadow-lg shadow-primary/20"

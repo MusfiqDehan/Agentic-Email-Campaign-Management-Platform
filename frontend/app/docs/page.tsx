@@ -4,6 +4,7 @@ import { ArrowRight, BookOpen, Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { BrandLogo } from '@/components/brand-logo';
+import { SiteNav } from '@/components/landing/site-nav';
 import { DocsMobileNav, DocsSidebar } from '@/components/docs/docs-nav';
 import {
   Bullet,
@@ -41,42 +42,8 @@ export const metadata: Metadata = {
 
 export default function DocsPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Navigation — mirrors the marketing site header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="transition-transform hover:scale-105">
-              <BrandLogo size={36} wordmarkClassName="hidden sm:inline-block text-xl" priority />
-            </Link>
-            <span className="hidden rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary sm:inline-block">
-              Docs
-            </span>
-          </div>
-          <nav className="flex items-center gap-2 sm:gap-4">
-            <div className="mr-2 hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
-              <Link href="/#features" className="transition-colors hover:text-foreground">
-                Features
-              </Link>
-              <Link href="/#pricing" className="transition-colors hover:text-foreground">
-                Pricing
-              </Link>
-            </div>
-            <ThemeToggle />
-            <Link href="/login">
-              <Button variant="ghost" className="hidden sm:inline-flex">
-                Log in
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button className="gradient-bg border-0 text-white shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 hover:scale-105">
-                Get Started
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
+    <div className="flex min-h-screen flex-col bg-background pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
+      <SiteNav variant="docs" />
 
       {/* Hero */}
       <section className="relative isolate overflow-hidden border-b border-border py-14 sm:py-20">
@@ -111,7 +78,7 @@ export default function DocsPage() {
       </section>
 
       {/* Body */}
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
         <div className="container mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:flex lg:gap-12 lg:px-8 lg:py-16">
           <DocsSidebar />
 
