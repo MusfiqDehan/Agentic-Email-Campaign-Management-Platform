@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Allow: /docs
+Allow: /login
+Allow: /signup
+Disallow: /dashboard/
+Disallow: /reset-password/
+Disallow: /verify-email/
+
+Sitemap: https://emailcampaign.musfiqdehan.com/sitemap.xml

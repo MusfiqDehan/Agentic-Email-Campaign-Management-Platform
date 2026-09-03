@@ -1,0 +1,84 @@
+# EmailCampaign — Full System & Product Context for LLMs
+
+> Complete technical architecture, product specifications, domain guide, API structure, and user documentation for EmailCampaign.
+
+## 1. Product Summary
+EmailCampaign is an enterprise-grade multi-tenant email campaign and cold outreach automation platform. It addresses the core problem of email deliverability by integrating DNS configuration verification (DKIM, SPF, DMARC), multi-provider dispatch engines (AWS SES, SMTP, SendGrid, Brevo), AI copywriting assistants, real-time analytics webhooks, and contact segmentation.
+
+## 2. Target Users & Use Cases
+- **Sales & SDR Teams**: Automated outbound outreach, sequence personalization, and primary inbox placement.
+- **Recruiters & Talent Acquisition**: Multi-touch candidate engagement with personal variables and high reply rates.
+- **Startups & Product Teams**: Transactional product announcements, user onboarding sequences, and instant SMTP setup.
+- **Marketing Agencies**: Managing multiple client domains, sender addresses, deliverability reputation logs, and team seats.
+
+## 3. Core Architecture & Stack
+- **Frontend**: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, Radix UI primitives, Lucide icons, Sonner toast notifications, Recharts.
+- **Backend**: Django 5.x with Django REST Framework (DRF) and Django Channels / ASGI (Daphne) for real-time WebSocket updates.
+- **Background Tasks**: Celery with Redis for asynchronous email dispatch, provider event processing, and scheduled campaign deliveries.
+- **Databases**: PostgreSQL 16 for relational organization data; Redis 7 for cache, task queue, and Channels layer.
+- **Ingress & Proxying**: Nginx with SSL/TLS termination, rate limiting, and HTTP/2 proxying to Next.js and Daphne.
+
+## 4. Key Functional Modules
+
+### 4.1 Custom Sending Domains & DNS Verification
+Organizations can register their own domains to send emails as `user@organization.com`.
+The platform generates standard DNS records required for deliverability:
+1. **DKIM**: 3 CNAME records (`<token>._domainkey.<domain>`) for cryptographic signing.
+2. **SPF**: TXT record authorizing sending infrastructure on the MAIL FROM subdomain (`mail.<domain>`).
+3. **MX**: Custom MAIL FROM routing for automated bounce handling (`mail.<domain>`).
+4. **DMARC**: TXT record (`_dmarc.<domain>`) with quarantine/reject/monitoring policies.
+5. **Inbound MX**: MX record on the root domain for organizations receiving replies directly inside the EmailCampaign platform inbox.
+Status stages: `PENDING_DNS`, `PENDING_VERIFICATION`, `VERIFIED`, `FAILED`, `SUSPENDED`, `DISABLED`.
+
+### 4.2 Multi-Provider Email Delivery
+Users configure delivery backends under Settings → Email Providers:
+- **SMTP**: Generic SMTP, Gmail Workspace, Microsoft 365 / Outlook (supports TLS on port 587 or SSL on port 465, with app password support).
+- **Amazon SES**: AWS Access Key ID, Secret Access Key, Region, optional STS Session Token, and SES Configuration Sets for tracking events.
+- **SendGrid & Brevo**: API key-based delivery.
+All credentials are encrypted at rest with AES-256 and never returned in full in API responses.
+
+### 4.3 AI Content Generation & Personalization
+- Integrated AI generation for email subjects, preview text, and HTML template bodies.
+- Dynamic personalization variables replaced during dispatch:
+  - Contact: `{{email}}`, `{{first_name}}`, `{{last_name}}`, `{{full_name}}`, `{{phone}}`
+  - Campaign: `{{campaign_name}}`, `{{campaign_subject}}`, `{{from_name}}`, `{{from_email}}`, `{{organization_name}}`
+  - System: `{{unsubscribe_url}}`, `{{view_in_browser_url}}`, `{{current_date}}`, `{{current_year}}`
+- Fallback placeholders for missing contact fields (e.g. defaulting empty first name to "there").
+
+### 4.4 Campaign Wizard & Scheduling
+- 5-step wizard: Campaign Details -> Select Template -> Select Audience Lists -> Sending Configuration & Tracking -> Review & Launch.
+- Tracking options: Email Opens (transparent pixel), Link Clicks (redirect attribution), Unsubscribe link insertion.
+- Campaign lifecycle: `DRAFT`, `SCHEDULED`, `SENDING`, `SENT`, `PAUSED`, `CANCELLED`.
+- Pause and resume capabilities during active batch delivery.
+
+### 4.5 Delivery Logs & Analytics
+Metrics calculated across campaign dispatches:
+- **Total Emails**: Volume dispatched.
+- **Delivery Rate**: Percentage accepted by receiving MTAs (target >95%).
+- **Open Rate & Unique Opens**: Tracked via transparent 1x1 GIF pixels.
+- **Click Rate**: Tracked via rewritten HTTPS click-redirect endpoints.
+- **Bounce Rate**: Hard bounces vs soft bounces; automated suppression list updates (target <2%).
+- **Complaint Rate**: Spam reports via feedback loops / webhooks (target <0.1%).
+
+### 4.6 Team Collaboration & Role-Based Permissions
+- **Owner**: Full workspace authority, billing, domain settings, member invitations, provider secrets.
+- **Admin**: Campaign management, domain verification, contact lists, templates, team insights.
+- **Member**: Day-to-day campaign drafting, contact imports, delivery monitoring.
+
+## 5. Public URL Structure
+- `https://emailcampaign.musfiqdehan.com/`: Main landing page with hero, features, workflow, customer proof, and pricing.
+- `https://emailcampaign.musfiqdehan.com/docs`: Comprehensive self-onboarding and technical documentation.
+- `https://emailcampaign.musfiqdehan.com/login`: Account authentication.
+- `https://emailcampaign.musfiqdehan.com/signup`: Organization onboarding and registration.
+- `https://emailcampaign.musfiqdehan.com/reset-password/request`: Self-service password recovery.
+- `https://emailcampaign.musfiqdehan.com/unsubscribe`: RFC-compliant recipient email preference center.
+- `https://emailcampaign.musfiqdehan.com/sitemap.xml`: XML sitemap for search engine crawlers.
+- `https://emailcampaign.musfiqdehan.com/robots.txt`: Search crawler directives.
+- `https://emailcampaign.musfiqdehan.com/llms.txt`: Standard LLM context file.
+- `https://emailcampaign.musfiqdehan.com/llms-full.txt`: Detailed LLM context file (this document).
+- `https://emailcampaign-api.musfiqdehan.com/api/v1/schemas/swagger-ui/`: Swagger API documentation.
+
+## 6. Compliance & Privacy
+- **CAN-SPAM**: Requires physical address footer and functional one-click opt-out.
+- **GDPR**: Strict tenant data isolation, zero selling of contact data, complete data export and deletion compliance.
+- **Security**: AES-256 encryption at rest, TLS 1.3 in transit, token-based authentication with permission checks on every API request.
