@@ -323,7 +323,7 @@ export default function CampaignDetailPage() {
                             <Button variant="outline" onClick={handleScheduleClick}>
                                 <Calendar className="mr-2 h-4 w-4" /> Schedule
                             </Button>
-                            <Button onClick={handleLaunchClick} className="bg-gradient-to-r from-primary to-blue-600 hover:opacity-90">
+                            <Button onClick={handleLaunchClick} className="bg-gradient-to-r from-primary to-purple-600 hover:opacity-90">
                                 <Play className="mr-2 h-4 w-4" /> Launch Campaign
                             </Button>
                         </>
@@ -482,7 +482,7 @@ export default function CampaignDetailPage() {
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Open rate</span>
-                                    <span className="font-bold text-blue-600">{analytics?.totals?.open_rate ?? 0}%</span>
+                                    <span className="font-bold text-purple-600 dark:text-purple-400">{analytics?.totals?.open_rate ?? 0}%</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Click rate</span>
@@ -551,7 +551,7 @@ export default function CampaignDetailPage() {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction 
                             onClick={handleLaunchConfirm}
-                            className="bg-gradient-to-r from-primary to-blue-600 hover:opacity-90"
+                            className="bg-gradient-to-r from-primary to-purple-600 hover:opacity-90"
                         >
                             Launch Now
                         </AlertDialogAction>
@@ -597,7 +597,7 @@ export default function CampaignDetailPage() {
                         <Button 
                             onClick={handleDuplicateConfirm}
                             disabled={!duplicateName.trim()}
-                            className="bg-gradient-to-r from-primary to-blue-600 hover:opacity-90"
+                            className="bg-gradient-to-r from-primary to-purple-600 hover:opacity-90"
                         >
                             Duplicate
                         </Button>

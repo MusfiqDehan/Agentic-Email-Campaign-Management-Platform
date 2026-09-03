@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Keep the dev indicator off the mobile bottom nav (default is bottom-left).
+  devIndicators: {
+    position: "top-left",
+  },
   images: {
     remotePatterns: [
       {

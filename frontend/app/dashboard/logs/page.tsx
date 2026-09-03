@@ -353,10 +353,10 @@ export default function DeliveryLogsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Open Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-500" />
+            <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
               {isAnalyticsLoading ? '...' : `${analytics?.engagement_rates?.open_rate || 0}%`}
             </div>
           </CardContent>
@@ -410,10 +410,10 @@ export default function DeliveryLogsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unique Opens</CardTitle>
-            <Eye className="h-4 w-4 text-blue-500" />
+            <Eye className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
               {isAnalyticsLoading ? '...' : (analytics?.engagement_rates?.unique_opens ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -743,12 +743,12 @@ export default function DeliveryLogsPage() {
 
               {/* Engagement Stats */}
               <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-lg bg-blue-50 dark:bg-blue-950 p-4">
-                  <div className="text-2xl font-bold text-blue-600">{selectedLog.open_count}</div>
+                <div className="rounded-lg bg-purple-50 dark:bg-purple-950 p-4">
+                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{selectedLog.open_count}</div>
                   <div className="text-sm text-muted-foreground">Opens</div>
                 </div>
-                <div className="rounded-lg bg-purple-50 dark:bg-purple-950 p-4">
-                  <div className="text-2xl font-bold text-purple-600">{selectedLog.click_count}</div>
+                <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950 p-4">
+                  <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{selectedLog.click_count}</div>
                   <div className="text-sm text-muted-foreground">Clicks</div>
                 </div>
                 <div className="rounded-lg bg-gray-50 dark:bg-gray-900 p-4">

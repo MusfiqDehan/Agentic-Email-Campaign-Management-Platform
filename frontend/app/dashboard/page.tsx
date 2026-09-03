@@ -77,8 +77,8 @@ export default function DashboardPage() {
       title: "Total Campaigns",
       value: stats?.total_campaigns || 0,
       icon: Send,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
+      color: "text-purple-600 dark:text-purple-400",
+      bgColor: "bg-purple-500/10",
       change: "+0%",
       changeType: "positive"
     },
@@ -86,8 +86,8 @@ export default function DashboardPage() {
       title: "Total Contacts",
       value: stats?.total_contacts?.toLocaleString() || 0,
       icon: Users,
-      color: "text-blue-500",
-      bgColor: "bg-blue-500/10",
+      color: "text-indigo-600 dark:text-indigo-400",
+      bgColor: "bg-indigo-500/10",
       change: "+0%",
       changeType: "positive"
     },

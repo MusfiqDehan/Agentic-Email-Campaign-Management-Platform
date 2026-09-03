@@ -41,7 +41,7 @@ function useActiveSection() {
 
 function NavLinks({ activeId, onNavigate }: { activeId: string; onNavigate?: () => void }) {
   return (
-    <nav className="space-y-6">
+    <nav className="space-y-6" aria-label="On this page">
       {DOC_GROUPS.map((group) => (
         <div key={group.group}>
           <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -56,11 +56,12 @@ function NavLinks({ activeId, onNavigate }: { activeId: string; onNavigate?: () 
                     href={`#${section.id}`}
                     onClick={onNavigate}
                     className={cn(
-                      'relative block rounded-lg px-3 py-1.5 text-sm transition-colors',
+                      'relative block rounded-lg px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       active
                         ? 'bg-primary/10 font-medium text-primary'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     )}
+                    aria-current={active ? 'location' : undefined}
                   >
                     {active && (
                       <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-primary" />
@@ -99,8 +100,10 @@ export function DocsMobileNav() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium"
+        className="flex min-h-11 w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-expanded={open}
+        aria-controls="docs-mobile-toc"
+        aria-label="Table of contents"
       >
         <span className="flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-primary" />
@@ -110,7 +113,7 @@ export function DocsMobileNav() {
       </button>
 
       {open && (
-        <div className="mt-2 max-h-[60vh] overflow-y-auto rounded-xl border border-border bg-card p-3 shadow-lg">
+        <div id="docs-mobile-toc" className="mt-2 max-h-[60vh] overflow-y-auto rounded-xl border border-border bg-card p-3 shadow-lg">
           <NavLinks activeId={activeId} onNavigate={() => setOpen(false)} />
         </div>
       )}

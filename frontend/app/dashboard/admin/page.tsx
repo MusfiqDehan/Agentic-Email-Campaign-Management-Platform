@@ -42,8 +42,8 @@ export default function AdminDashboardPage() {
       title: 'Organizations',
       value: stats.total_organizations,
       icon: Building2,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100 dark:bg-purple-950/40',
     },
     {
       title: 'Global Templates',

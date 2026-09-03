@@ -177,7 +177,7 @@ export default function NewCampaignPage() {
       <div className="flex justify-between items-center px-10 py-4 bg-card rounded-xl border shadow-sm">
         {[1, 2, 3, 4, 5, 6].map((s) => (
           <div key={s} className="flex flex-col items-center gap-2">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${step >= s ? 'bg-gradient-to-br from-primary to-blue-600 text-white shadow-lg shadow-primary/30' : 'bg-muted text-muted-foreground'
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${step >= s ? 'bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg shadow-primary/30' : 'bg-muted text-muted-foreground'
               }`}>
               {step > s ? <Check className="h-4 w-4" /> : s}
             </div>
@@ -413,11 +413,11 @@ export default function NewCampaignPage() {
           </Button>
 
           {step < 6 ? (
-            <Button onClick={nextStep} disabled={isLoading} className="bg-gradient-to-r from-primary to-blue-600 hover:opacity-90">
+            <Button onClick={nextStep} disabled={isLoading} className="bg-gradient-to-r from-primary to-purple-600 hover:opacity-90">
               Next <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleCreate} disabled={isLoading} className="px-8 bg-gradient-to-r from-primary to-blue-600 hover:opacity-90">
+            <Button onClick={handleCreate} disabled={isLoading} className="px-8 bg-gradient-to-r from-primary to-purple-600 hover:opacity-90">
               {isLoading ? 'Creating...' : 'Create Campaign'}
             </Button>
           )}

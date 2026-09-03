@@ -140,7 +140,7 @@ function UnsubscribeContent() {
           >
             {state === 'loading' && (
               <div className="flex flex-col items-center gap-4 py-10 text-slate-600">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
                 <p className="text-sm">Checking your subscription…</p>
               </div>
             )}
@@ -148,7 +148,7 @@ function UnsubscribeContent() {
             {(state === 'confirm') && info && (
               <div className="space-y-6">
                 <div className="space-y-3">
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
                     <MailX className="h-6 w-6" />
                   </div>
                   <p className="text-sm font-medium text-slate-500">{greeting}</p>

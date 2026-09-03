@@ -66,8 +66,8 @@ export function Bullet({ children }: { children: ReactNode }) {
 const CALLOUT_STYLES = {
   note: {
     icon: Info,
-    wrapper: 'border-blue-500/30 bg-blue-500/5',
-    iconColor: 'text-blue-500',
+    wrapper: 'border-purple-500/30 bg-purple-500/5',
+    iconColor: 'text-purple-600 dark:text-purple-400',
   },
   tip: {
     icon: Lightbulb,
@@ -154,11 +154,12 @@ export function DataTable({ headers, rows }: { headers: string[]; rows: ReactNod
   );
 }
 
-export function StatusPill({ tone, children }: { tone: 'green' | 'amber' | 'blue' | 'red' | 'gray'; children: ReactNode }) {
+export function StatusPill({ tone, children }: { tone: 'green' | 'amber' | 'blue' | 'red' | 'purple' | 'gray'; children: ReactNode }) {
   const tones = {
     green: 'bg-green-500/10 text-green-600 dark:text-green-400',
     amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    blue: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    blue: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+    purple: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
     red: 'bg-red-500/10 text-red-600 dark:text-red-400',
     gray: 'bg-muted text-muted-foreground',
   } as const;

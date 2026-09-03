@@ -21,7 +21,7 @@ export default function NotificationsPage() {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'CAMPAIGN_SENT':
-        return <Mail className="h-5 w-5 text-blue-500" />;
+        return <Mail className="h-5 w-5 text-purple-600 dark:text-purple-400" />;
       case 'CONTACT_ADDED':
         return <UserPlus className="h-5 w-5 text-green-500" />;
       default:
@@ -33,7 +33,7 @@ export default function NotificationsPage() {
   const getNotificationIconBg = (type: string) => {
     switch (type) {
       case 'CAMPAIGN_SENT':
-        return 'bg-blue-500/10';
+        return 'bg-purple-500/10';
       case 'CONTACT_ADDED':
         return 'bg-green-500/10';
       default:

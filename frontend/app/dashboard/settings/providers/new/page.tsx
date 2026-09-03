@@ -315,7 +315,7 @@ export default function NewProviderPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-gradient-to-r from-primary to-blue-600 hover:opacity-90" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90" disabled={isLoading}>
               {isLoading ? 'Saving...' : 'Save Provider'}
             </Button>
           </form>

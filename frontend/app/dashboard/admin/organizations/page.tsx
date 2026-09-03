@@ -132,7 +132,7 @@ export default function OrganizationsPage() {
                   {organizations.length}
                 </h3>
               </div>
-              <Building2 className="h-8 w-8 text-blue-600" />
+              <Building2 className="h-8 w-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>

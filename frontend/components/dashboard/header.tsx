@@ -12,25 +12,21 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { Bell, Search, Menu, Settings, User, LogOut, HelpCircle, KeyRound, Mail, UserPlus, AlertCircle } from 'lucide-react';
+import { Bell, Search, Settings, User, LogOut, HelpCircle, KeyRound, Mail, UserPlus, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 
-interface HeaderProps {
-  onMenuClick?: () => void;
-}
-
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header() {
   const { user, logout } = useAuth();
-  const { notifications, unreadCount, markAsRead, isConnected } = useNotifications();
+  const { notifications, unreadCount, markAsRead } = useNotifications();
 
   // Get notification icon based on type
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'CAMPAIGN_SENT':
-        return <Mail className="h-4 w-4 text-blue-500" />;
+        return <Mail className="h-4 w-4 text-purple-600 dark:text-purple-400" />;
       case 'CONTACT_ADDED':
         return <UserPlus className="h-4 w-4 text-green-500" />;
       default:
@@ -42,7 +38,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const getNotificationIconBg = (type: string) => {
     switch (type) {
       case 'CAMPAIGN_SENT':
-        return 'bg-blue-500/10';
+        return 'bg-purple-500/10';
       case 'CONTACT_ADDED':
         return 'bg-green-500/10';
       default:
@@ -59,22 +55,9 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/80 px-4 backdrop-blur-xl sm:px-6">
-      {/* Mobile menu button */}
-      {onMenuClick && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 shrink-0 lg:hidden"
-          onClick={onMenuClick}
-        >
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Toggle menu</span>
-        </Button>
-      )}
-      
       {/* Page title / Breadcrumb */}
-      <div className="flex-1">
-        <h1 className="text-lg font-semibold text-foreground sm:text-xl">
+      <div className="min-w-0 flex-1">
+        <h1 className="truncate text-lg font-semibold text-foreground sm:text-xl">
           {user?.organization?.name ? (
             <span className="flex items-center gap-2">
               <span className="hidden sm:inline text-muted-foreground font-normal">
@@ -89,30 +72,31 @@ export function Header({ onMenuClick }: HeaderProps) {
         </h1>
       </div>
       
-      {/* Search bar - hidden on mobile */}
-      <div className="hidden md:flex relative max-w-sm flex-1">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      {/* Search bar - hidden on small screens where it crowds the header */}
+      <div className="relative hidden max-w-sm flex-1 md:flex">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
         <Input 
           type="search"
           placeholder="Search campaigns, contacts..."
-          className="h-9 w-full pl-9 bg-muted/50 border-0 focus-visible:ring-1"
+          aria-label="Search campaigns and contacts"
+          className="h-9 w-full border-0 bg-muted/50 pl-9 focus-visible:ring-1"
         />
       </div>
       
       {/* Actions */}
       <div className="flex items-center gap-1 sm:gap-2">
-        {/* Mobile search button */}
-        <Button variant="ghost" size="icon" className="h-9 w-9 md:hidden">
-          <Search className="h-5 w-5" />
-        </Button>
-        
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative h-9 w-9">
-              <Bell className="h-5 w-5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative h-9 w-9"
+              aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+            >
+              <Bell className="h-5 w-5" aria-hidden="true" />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground" aria-hidden="true">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -175,6 +159,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             <Button 
               variant="ghost" 
               className="relative h-9 w-9 rounded-full ring-2 ring-transparent transition-all hover:ring-primary/20"
+              aria-label="Account menu"
             >
               <Avatar className="h-9 w-9">
                 <AvatarImage

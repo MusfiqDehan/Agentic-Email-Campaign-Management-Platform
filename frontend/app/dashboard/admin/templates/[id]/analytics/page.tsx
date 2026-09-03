@@ -324,8 +324,8 @@ export default function TemplateAnalyticsPage() {
                   className="flex items-center justify-between p-3 rounded-lg border"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10">
-                      <FileText className="h-5 w-5 text-blue-500" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/10">
+                      <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div>
                       <p className="font-medium">
