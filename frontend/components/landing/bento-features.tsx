@@ -18,9 +18,9 @@ export function BentoFeatures() {
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       {/* 1. AI-Powered Lead Finder */}
-      <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all duration-300 hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-500/5 sm:p-8">
+      <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all duration-300 hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/5 sm:p-8">
         <div>
-          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 ring-8 ring-rose-50/50 dark:bg-rose-950/40 dark:text-rose-400 dark:ring-rose-950/30">
+          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 ring-8 ring-purple-50/50 dark:bg-purple-950/40 dark:text-purple-400 dark:ring-purple-950/30">
             <Search className="h-6 w-6" />
           </div>
           <h3 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
@@ -38,13 +38,13 @@ export function BentoFeatures() {
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
               <span className="text-xs font-semibold text-foreground">Enriched Lead Profile</span>
             </div>
-            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">
               99.8% Confidence
             </span>
           </div>
 
           <div className="mt-3 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-tr from-rose-500 to-pink-500 text-sm font-bold text-white shadow-md">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 text-sm font-bold text-white shadow-md">
               JD
             </div>
             <div className="flex-1 overflow-hidden">
@@ -70,9 +70,9 @@ export function BentoFeatures() {
       </div>
 
       {/* 2. Built-in Email Copywriting */}
-      <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all duration-300 hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-500/5 sm:p-8">
+      <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all duration-300 hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/5 sm:p-8">
         <div>
-          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 ring-8 ring-rose-50/50 dark:bg-rose-950/40 dark:text-rose-400 dark:ring-rose-950/30">
+          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 ring-8 ring-purple-50/50 dark:bg-purple-950/40 dark:text-purple-400 dark:ring-purple-950/30">
             <Bot className="h-6 w-6" />
           </div>
           <h3 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
@@ -87,15 +87,15 @@ export function BentoFeatures() {
         <div className="mt-8 rounded-2xl border border-border/70 bg-background/80 p-4 shadow-inner">
           <div className="flex items-center justify-between border-b border-border/50 pb-2.5 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5 font-medium text-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-rose-500" /> AI Suggestions: Subject Line
+              <Sparkles className="h-3.5 w-3.5 text-purple-600" /> AI Suggestions: Subject Line
             </span>
-            <span className="text-[10px] text-rose-600 dark:text-rose-400">High Open Rate Prediction</span>
+            <span className="text-[10px] text-purple-600 dark:text-purple-400">High Open Rate Prediction</span>
           </div>
 
           <div className="mt-3 space-y-2">
-            <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50/50 p-2.5 text-xs text-foreground dark:border-rose-900/60 dark:bg-rose-950/30">
+            <div className="flex items-center justify-between rounded-xl border border-purple-200 bg-purple-50/50 p-2.5 text-xs text-foreground dark:border-purple-900/60 dark:bg-purple-950/30">
               <span className="font-medium">&ldquo;Quick idea for scaling &#123;&#123;company&#125;&#125;&rsquo;s outbound outreach&rdquo;</span>
-              <span className="rounded bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">68% open</span>
+              <span className="rounded bg-purple-600 px-1.5 py-0.5 text-[10px] font-bold text-white">68% open</span>
             </div>
             <div className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/20 p-2.5 text-xs text-muted-foreground">
               <span>&ldquo;Hey &#123;&#123;first_name&#125;&#125;, saw your latest campaign release&rdquo;</span>
@@ -107,7 +107,7 @@ export function BentoFeatures() {
             <span>Tone: Conversational, executive</span>
             <button
               type="button"
-              className="inline-flex items-center gap-1 font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400"
+              className="inline-flex items-center gap-1 font-semibold text-purple-600 hover:text-purple-700 dark:text-purple-400"
             >
               Insert into campaign <ChevronRight className="h-3 w-3" />
             </button>
@@ -116,9 +116,9 @@ export function BentoFeatures() {
       </div>
 
       {/* 3. Smart Scheduling */}
-      <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all duration-300 hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-500/5 sm:p-8">
+      <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all duration-300 hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/5 sm:p-8">
         <div>
-          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 ring-8 ring-rose-50/50 dark:bg-rose-950/40 dark:text-rose-400 dark:ring-rose-950/30">
+          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 ring-8 ring-purple-50/50 dark:bg-purple-950/40 dark:text-purple-400 dark:ring-purple-950/30">
             <Calendar className="h-6 w-6" />
           </div>
           <h3 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
@@ -133,7 +133,7 @@ export function BentoFeatures() {
         <div className="mt-8 rounded-2xl border border-border/70 bg-background/80 p-4 shadow-inner">
           <div className="flex items-center justify-between border-b border-border/50 pb-3">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-rose-500" />
+              <Clock className="h-4 w-4 text-purple-600" />
               <span className="text-xs font-semibold text-foreground">Timezone Optimization Engine</span>
             </div>
             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
@@ -155,7 +155,7 @@ export function BentoFeatures() {
                 onClick={() => setScheduleTime(slot)}
                 className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
                   scheduleTime === slot
-                    ? 'bg-rose-500 text-white shadow-sm'
+                    ? 'bg-purple-600 text-white shadow-sm'
                     : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
@@ -177,7 +177,7 @@ export function BentoFeatures() {
                 <div
                   key={i}
                   className={`flex-1 rounded-t transition-all ${
-                    i === 2 ? 'bg-rose-500 shadow-md shadow-rose-500/30' : 'bg-muted'
+                    i === 2 ? 'bg-purple-600 shadow-md shadow-purple-500/30' : 'bg-muted'
                   }`}
                   style={{ height: `${val}%` }}
                 />
@@ -188,9 +188,9 @@ export function BentoFeatures() {
       </div>
 
       {/* 4. Real-time Data Updates */}
-      <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all duration-300 hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-500/5 sm:p-8">
+      <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all duration-300 hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/5 sm:p-8">
         <div>
-          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 ring-8 ring-rose-50/50 dark:bg-rose-950/40 dark:text-rose-400 dark:ring-rose-950/30">
+          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 ring-8 ring-purple-50/50 dark:bg-purple-950/40 dark:text-purple-400 dark:ring-purple-950/30">
             <TrendingUp className="h-6 w-6" />
           </div>
           <h3 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
@@ -233,7 +233,7 @@ export function BentoFeatures() {
                 <tr>
                   <td className="py-2 font-medium text-foreground">Weekly Digest #42</td>
                   <td className="py-2">
-                    <span className="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
+                    <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-600 dark:bg-purple-950/50 dark:text-purple-400">
                       Sending
                     </span>
                   </td>

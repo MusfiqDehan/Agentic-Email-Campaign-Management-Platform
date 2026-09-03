@@ -70,7 +70,7 @@ export function PricingSection() {
     <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="text-center">
-        <span className="inline-block rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
+        <span className="inline-block rounded-full bg-purple-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-purple-600 dark:bg-purple-950/50 dark:text-purple-400">
           Pricing Plans
         </span>
         <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
@@ -100,12 +100,12 @@ export function PricingSection() {
             className={cn(
               'flex items-center gap-1.5 rounded-full px-4 py-1.5 transition-all',
               billingCycle === 'yearly'
-                ? 'bg-rose-500 text-white shadow-sm'
+                ? 'bg-purple-600 text-white shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
             <span>Billed Yearly</span>
-            <span className="rounded-full bg-rose-100 px-1.5 py-0.2 text-[10px] font-bold text-rose-700 dark:bg-rose-900 dark:text-rose-200">
+            <span className="rounded-full bg-purple-100 px-1.5 py-0.2 text-[10px] font-bold text-purple-700 dark:bg-purple-900 dark:text-purple-200">
               Save 20%
             </span>
           </button>
@@ -122,12 +122,12 @@ export function PricingSection() {
               className={cn(
                 'relative flex flex-col justify-between rounded-3xl border bg-card p-6 transition-all duration-300 hover:shadow-xl sm:p-8',
                 plan.highlighted
-                  ? 'border-rose-500 shadow-2xl shadow-rose-500/10 ring-2 ring-rose-500/40 lg:-translate-y-2'
+                  ? 'border-purple-500 shadow-2xl shadow-purple-500/10 ring-2 ring-purple-500/40 lg:-translate-y-2'
                   : 'border-border/80 hover:border-border'
               )}
             >
               {plan.badge && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-3.5 py-1 text-xs font-bold text-white shadow-md">
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 px-3.5 py-1 text-xs font-bold text-white shadow-md">
                   {plan.badge}
                 </div>
               )}
@@ -152,7 +152,7 @@ export function PricingSection() {
                   <ul className="mt-3 space-y-3 text-xs sm:text-sm">
                     {plan.features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-2.5">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-purple-600" />
                         <span className="text-muted-foreground">{feature}</span>
                       </li>
                     ))}
@@ -166,7 +166,7 @@ export function PricingSection() {
                     className={cn(
                       'w-full rounded-xl py-6 font-semibold transition-all',
                       plan.highlighted
-                        ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/25 hover:bg-rose-600 hover:shadow-xl'
+                        ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25 hover:bg-purple-700 hover:shadow-xl'
                         : 'border-2 border-border/80 bg-background hover:bg-muted'
                     )}
                     variant={plan.highlighted ? 'default' : 'outline'}

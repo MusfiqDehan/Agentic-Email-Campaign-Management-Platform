@@ -4,12 +4,12 @@ import { TrendingUp, Users, Send, CheckCircle2, MoreHorizontal, ArrowUpRight } f
 
 export function DashboardPreview() {
   return (
-    <div className="relative mx-auto w-full max-w-5xl rounded-2xl border border-border/80 bg-card p-3 shadow-2xl shadow-rose-500/10 sm:p-5 lg:p-6 dark:border-border dark:shadow-none">
+    <div className="relative mx-auto w-full max-w-5xl rounded-2xl border border-border/80 bg-card p-3 shadow-2xl shadow-purple-500/10 sm:p-5 lg:p-6 dark:border-border dark:shadow-none">
       {/* Window Mockup Header */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div className="flex items-center gap-2">
           <div className="flex gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-rose-400" />
+            <span className="h-3 w-3 rounded-full bg-purple-400" />
             <span className="h-3 w-3 rounded-full bg-amber-400" />
             <span className="h-3 w-3 rounded-full bg-emerald-400" />
           </div>
@@ -18,8 +18,8 @@ export function DashboardPreview() {
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 font-medium text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-2.5 py-1 font-medium text-purple-600 dark:bg-purple-950/40 dark:text-purple-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-purple-500 animate-pulse" />
             Live Syncing
           </span>
           <span className="hidden text-muted-foreground md:inline">Last updated 2m ago</span>
@@ -32,7 +32,7 @@ export function DashboardPreview() {
         <div className="rounded-xl border border-border/60 bg-background/60 p-3 sm:p-4">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Total Contacts</span>
-            <Users className="h-4 w-4 text-rose-500" />
+            <Users className="h-4 w-4 text-purple-600" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">42,850</span>
@@ -45,7 +45,7 @@ export function DashboardPreview() {
             {[35, 45, 40, 60, 55, 70, 65, 80, 75, 95].map((val, idx) => (
               <span
                 key={idx}
-                className="flex-1 rounded-t bg-rose-100 transition-all dark:bg-rose-950/60"
+                className="flex-1 rounded-t bg-purple-100 transition-all dark:bg-purple-950/60"
                 style={{ height: `${val}%` }}
               />
             ))}
@@ -56,7 +56,7 @@ export function DashboardPreview() {
         <div className="rounded-xl border border-border/60 bg-background/60 p-3 sm:p-4">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Emails Delivered</span>
-            <Send className="h-4 w-4 text-rose-500" />
+            <Send className="h-4 w-4 text-purple-600" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">294.1k</span>
@@ -69,7 +69,7 @@ export function DashboardPreview() {
             {[40, 50, 48, 65, 72, 80, 85, 92, 88, 98].map((val, idx) => (
               <span
                 key={idx}
-                className="flex-1 rounded-t bg-rose-500/80 transition-all"
+                className="flex-1 rounded-t bg-purple-500/80 transition-all"
                 style={{ height: `${val}%` }}
               />
             ))}
@@ -80,18 +80,18 @@ export function DashboardPreview() {
         <div className="rounded-xl border border-border/60 bg-background/60 p-3 sm:p-4">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Avg. Open Rate</span>
-            <TrendingUp className="h-4 w-4 text-rose-500" />
+            <TrendingUp className="h-4 w-4 text-purple-600" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">58.4%</span>
-            <span className="inline-flex items-center text-xs font-semibold text-rose-500">
+            <span className="inline-flex items-center text-xs font-semibold text-purple-600 dark:text-purple-400">
               Industry: 21%
             </span>
           </div>
           {/* Progress bar */}
           <div className="mt-4">
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full w-[58.4%] rounded-full bg-gradient-to-r from-rose-500 to-pink-500" />
+              <div className="h-full w-[58.4%] rounded-full bg-gradient-to-r from-purple-600 to-indigo-500" />
             </div>
             <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
               <span>Bounce: 0.4%</span>
@@ -129,13 +129,13 @@ export function DashboardPreview() {
                 <div className="relative flex h-32 w-full items-end justify-center gap-0.5 sm:gap-1 sm:w-10">
                   <div
                     className={`w-2.5 sm:w-4 rounded-t transition-all ${
-                      col.highlight ? 'bg-rose-500 shadow-md shadow-rose-500/30' : 'bg-rose-200 dark:bg-rose-950/60'
+                      col.highlight ? 'bg-purple-600 shadow-md shadow-purple-500/30' : 'bg-purple-200 dark:bg-purple-950/60'
                     }`}
                     style={{ height: `${col.sends}%` }}
                   />
                   <div
                     className={`w-2.5 sm:w-4 rounded-t transition-all ${
-                      col.highlight ? 'bg-pink-600' : 'bg-pink-300 dark:bg-pink-900/50'
+                      col.highlight ? 'bg-indigo-600' : 'bg-indigo-300 dark:bg-indigo-900/50'
                     }`}
                     style={{ height: `${col.clicks}%` }}
                   />
@@ -147,10 +147,10 @@ export function DashboardPreview() {
 
           <div className="mt-3 flex items-center justify-center gap-6 border-t border-border/40 pt-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-sm bg-rose-500" /> Opens
+              <span className="h-2.5 w-2.5 rounded-sm bg-purple-600" /> Opens
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-sm bg-pink-300 dark:bg-pink-900/50" /> Clicks
+              <span className="h-2.5 w-2.5 rounded-sm bg-indigo-300 dark:bg-indigo-900/50" /> Clicks
             </span>
           </div>
         </div>
@@ -178,16 +178,16 @@ export function DashboardPreview() {
               <path
                 d="M20,100 A80,80 0 0,1 180,100"
                 fill="none"
-                stroke="url(#roseGaugeGrad)"
+                stroke="url(#purpleGaugeGrad)"
                 strokeWidth="16"
                 strokeDasharray="251.2"
                 strokeDashoffset="26"
                 strokeLinecap="round"
               />
               <defs>
-                <linearGradient id="roseGaugeGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#f43f5e" />
-                  <stop offset="100%" stopColor="#e11d48" />
+                <linearGradient id="purpleGaugeGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#9333EA" />
+                  <stop offset="100%" stopColor="#7E22CE" />
                 </linearGradient>
               </defs>
             </svg>

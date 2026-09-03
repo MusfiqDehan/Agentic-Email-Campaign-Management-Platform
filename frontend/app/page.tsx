@@ -112,27 +112,27 @@ export default function LandingPage() {
         {/* 1. HERO SECTION                                                   */}
         {/* ================================================================= */}
         <section className="relative isolate overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24 lg:pt-24 lg:pb-28">
-          {/* Subtle warm pink ambient glow background */}
+          {/* Subtle warm purple ambient glow background */}
           <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-            <div className="absolute left-1/2 top-0 h-[500px] w-[800px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-rose-500/10 blur-[130px] dark:bg-rose-950/20" />
-            <div className="absolute right-0 top-1/3 h-[350px] w-[350px] rounded-full bg-pink-500/10 blur-[100px] dark:bg-pink-950/20" />
+            <div className="absolute left-1/2 top-0 h-[500px] w-[800px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-purple-500/10 blur-[130px] dark:bg-purple-950/20" />
+            <div className="absolute right-0 top-1/3 h-[350px] w-[350px] rounded-full bg-indigo-500/10 blur-[100px] dark:bg-indigo-950/20" />
           </div>
 
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col items-center text-center">
               {/* Badge */}
-              <div className="animate-fade-in mb-6 inline-flex items-center gap-2 rounded-full border border-rose-200/60 bg-rose-50/80 px-4 py-1.5 text-xs font-semibold text-rose-700 backdrop-blur-sm sm:text-sm dark:border-rose-900/60 dark:bg-rose-950/50 dark:text-rose-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
+              <div className="animate-fade-in mb-6 inline-flex items-center gap-2 rounded-full border border-purple-200/60 bg-purple-50/80 px-4 py-1.5 text-xs font-semibold text-purple-700 backdrop-blur-sm sm:text-sm dark:border-purple-900/60 dark:bg-purple-950/50 dark:text-purple-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-500 animate-pulse" />
                 <span>v1.0.0 is now live</span>
                 <span className="text-muted-foreground">•</span>
                 <span className="font-normal text-muted-foreground">AI-Powered Outreach Platform</span>
-                <ChevronRight className="h-3.5 w-3.5 text-rose-500" />
+                <ChevronRight className="h-3.5 w-3.5 text-purple-600" />
               </div>
 
               {/* Main Headline */}
               <h1 className="animate-slide-up max-w-4xl text-4xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
                 Deliver smarter emails with{' '}
-                <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 bg-clip-text text-transparent">
                   AI precision
                 </span>
               </h1>
@@ -166,7 +166,7 @@ export default function LandingPage() {
                     className="h-13 rounded-full px-6 text-base font-semibold text-foreground hover:bg-muted/60"
                   >
                     <span>View Pricing &amp; Plans</span>
-                    <ArrowRight className="ml-2 h-4 w-4 text-rose-500" />
+                    <ArrowRight className="ml-2 h-4 w-4 text-purple-600" />
                   </Button>
                 </Link>
               </div>
@@ -202,7 +202,7 @@ export default function LandingPage() {
         <section className="border-t border-border/60 bg-muted/20 py-20 sm:py-24">
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <span className="inline-block rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
+              <span className="inline-block rounded-full bg-purple-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-purple-600 dark:bg-purple-950/50 dark:text-purple-400">
                 Features
               </span>
               <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
@@ -217,13 +217,13 @@ export default function LandingPage() {
               {highlightPillars.map((pillar) => (
                 <div
                   key={pillar.title}
-                  className="group relative flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-rose-500/50 hover:shadow-xl sm:p-8"
+                  className="group relative flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-purple-500/50 hover:shadow-xl sm:p-8"
                 >
                   <div>
-                    <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 shadow-sm ring-8 ring-rose-50/60 dark:bg-rose-950/50 dark:text-rose-400 dark:ring-rose-950/30">
+                    <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 shadow-sm ring-8 ring-purple-50/60 dark:bg-purple-950/50 dark:text-purple-400 dark:ring-purple-950/30">
                       <pillar.icon className="h-7 w-7" />
                     </div>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400">
                       {pillar.tag}
                     </span>
                     <h3 className="mt-2 text-xl font-bold text-foreground">{pillar.title}</h3>
@@ -241,7 +241,7 @@ export default function LandingPage() {
         <section id="features" className="scroll-mt-20 py-20 sm:py-28">
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <span className="inline-block rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
+              <span className="inline-block rounded-full bg-purple-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-purple-600 dark:bg-purple-950/50 dark:text-purple-400">
                 Core Capabilities
               </span>
               <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
@@ -264,7 +264,7 @@ export default function LandingPage() {
         <section id="growth" className="scroll-mt-20 border-t border-border/60 bg-muted/15 py-20 sm:py-28">
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <span className="inline-block rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
+              <span className="inline-block rounded-full bg-purple-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-purple-600 dark:bg-purple-950/50 dark:text-purple-400">
                 Audience &amp; Scale
               </span>
               <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
@@ -280,9 +280,9 @@ export default function LandingPage() {
               {targetSegments.map((segment) => (
                 <div
                   key={segment.title}
-                  className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm transition-all hover:border-rose-500/40 hover:shadow-lg"
+                  className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm transition-all hover:border-purple-500/40 hover:shadow-lg"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/50 dark:text-purple-400">
                     <segment.icon className="h-5 w-5" />
                   </div>
                   <h3 className="mt-4 text-lg font-bold text-foreground">{segment.title}</h3>
@@ -299,7 +299,7 @@ export default function LandingPage() {
                   className="flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-5 sm:p-7 shadow-sm"
                 >
                   <div>
-                    <span className="text-3xl font-extrabold tracking-tight text-rose-600 sm:text-4xl lg:text-5xl dark:text-rose-400">
+                    <span className="text-3xl font-extrabold tracking-tight text-purple-600 sm:text-4xl lg:text-5xl dark:text-purple-400">
                       {stat.value}
                     </span>
                     <h4 className="mt-2 text-sm sm:text-base font-bold text-foreground">{stat.label}</h4>
@@ -313,8 +313,8 @@ export default function LandingPage() {
                         key={idx}
                         className={`flex-1 rounded-t transition-all ${
                           idx === stat.sparkline.length - 1
-                            ? 'bg-rose-500 shadow-sm shadow-rose-500/50'
-                            : 'bg-rose-200 dark:bg-rose-950/60'
+                            ? 'bg-purple-600 shadow-sm shadow-purple-500/50'
+                            : 'bg-purple-200 dark:bg-purple-950/60'
                         }`}
                         style={{ height: `${val}%` }}
                       />
@@ -332,7 +332,7 @@ export default function LandingPage() {
         <section id="how-it-works" className="scroll-mt-20 py-20 sm:py-24">
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <span className="inline-block rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
+              <span className="inline-block rounded-full bg-purple-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-purple-600 dark:bg-purple-950/50 dark:text-purple-400">
                 Setup Workflow
               </span>
               <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
@@ -365,7 +365,7 @@ export default function LandingPage() {
                 },
               ].map((item) => (
                 <div key={item.step} className="relative rounded-2xl border border-border/80 bg-card p-6 sm:p-8">
-                  <span className="text-4xl font-black text-rose-200 sm:text-5xl dark:text-rose-950">
+                  <span className="text-4xl font-black text-purple-200 sm:text-5xl dark:text-purple-950">
                     {item.step}
                   </span>
                   <h3 className="mt-3 text-lg font-bold text-foreground sm:text-xl">{item.title}</h3>
@@ -384,7 +384,7 @@ export default function LandingPage() {
         <section className="border-t border-border/60 bg-muted/20 py-20 sm:py-28">
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-12 text-center">
-              <span className="inline-block rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
+              <span className="inline-block rounded-full bg-purple-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-purple-600 dark:bg-purple-950/50 dark:text-purple-400">
                 Customer Stories
               </span>
               <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
@@ -412,7 +412,7 @@ export default function LandingPage() {
         <section id="faq" className="scroll-mt-20 border-t border-border/60 bg-muted/20 py-20 sm:py-28">
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-12 text-center">
-              <span className="inline-block rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
+              <span className="inline-block rounded-full bg-purple-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-purple-600 dark:bg-purple-950/50 dark:text-purple-400">
                 Common Questions
               </span>
               <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
@@ -442,7 +442,7 @@ export default function LandingPage() {
               <Link href="/signup">
                 <Button
                   size="lg"
-                  className="h-13 rounded-full bg-rose-500 px-8 text-base font-semibold text-white shadow-xl shadow-rose-500/25 transition-all hover:bg-rose-600 hover:scale-105"
+                  className="h-13 rounded-full bg-purple-600 px-8 text-base font-semibold text-white shadow-xl shadow-purple-500/25 transition-all hover:bg-purple-700 hover:scale-105"
                 >
                   Start Your Free Trial
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -468,7 +468,7 @@ export default function LandingPage() {
             {/* Col 1: Brand & Bio */}
             <div className="lg:col-span-2">
               <Link href="/" className="inline-flex items-center gap-2.5 transition-transform hover:scale-105">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-white shadow-md shadow-rose-600/30 font-bold">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-600 text-white shadow-md shadow-purple-600/30 font-bold">
                   EC
                 </div>
                 <span className="text-xl font-bold tracking-tight text-white">EmailCampaign</span>
@@ -547,22 +547,22 @@ export default function LandingPage() {
               <ul className="mt-4 space-y-2.5 text-sm text-zinc-400">
                 <li>
                   <span className="inline-flex items-center gap-1.5 text-zinc-400">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-rose-500" /> GDPR Ready
+                    <CheckCircle2 className="h-3.5 w-3.5 text-purple-500" /> GDPR Ready
                   </span>
                 </li>
                 <li>
                   <span className="inline-flex items-center gap-1.5 text-zinc-400">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-rose-500" /> CAN-SPAM Certified
+                    <CheckCircle2 className="h-3.5 w-3.5 text-purple-500" /> CAN-SPAM Certified
                   </span>
                 </li>
                 <li>
                   <span className="inline-flex items-center gap-1.5 text-zinc-400">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-rose-500" /> AES-256 Encrypted
+                    <CheckCircle2 className="h-3.5 w-3.5 text-purple-500" /> AES-256 Encrypted
                   </span>
                 </li>
                 <li>
                   <span className="inline-flex items-center gap-1.5 text-zinc-400">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-rose-500" /> DKIM &amp; SPF Auto
+                    <CheckCircle2 className="h-3.5 w-3.5 text-purple-500" /> DKIM &amp; SPF Auto
                   </span>
                 </li>
               </ul>

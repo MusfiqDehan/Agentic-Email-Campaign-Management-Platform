@@ -47,7 +47,7 @@ export function TestimonialSlider() {
   const active = testimonials[currentIdx];
 
   return (
-    <div className="mx-auto max-w-5xl rounded-3xl border border-border/80 bg-card p-6 shadow-xl shadow-rose-500/5 sm:p-10 lg:p-12">
+    <div className="mx-auto max-w-5xl rounded-3xl border border-border/80 bg-card p-6 shadow-xl shadow-purple-500/5 sm:p-10 lg:p-12">
       <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12">
         {/* Left: Quote text + Author + Controls */}
         <div className="flex flex-col justify-between space-y-6 lg:col-span-8">
@@ -56,7 +56,7 @@ export function TestimonialSlider() {
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
               ))}
-              <span className="ml-2 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
+              <span className="ml-2 rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-bold text-purple-600 dark:bg-purple-950/60 dark:text-purple-400">
                 {active.stats}
               </span>
             </div>
@@ -80,7 +80,7 @@ export function TestimonialSlider() {
                 type="button"
                 onClick={prev}
                 aria-label="Previous testimonial"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-background text-muted-foreground transition-all hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-background text-muted-foreground transition-all hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
@@ -91,7 +91,7 @@ export function TestimonialSlider() {
                 type="button"
                 onClick={next}
                 aria-label="Next testimonial"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-background text-muted-foreground transition-all hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-background text-muted-foreground transition-all hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -101,7 +101,7 @@ export function TestimonialSlider() {
 
         {/* Right: Headshot visual */}
         <div className="flex justify-center lg:col-span-4">
-          <div className="relative h-60 w-60 overflow-hidden rounded-2xl shadow-xl ring-4 ring-rose-100 sm:h-72 sm:w-72 lg:h-80 lg:w-80 dark:ring-rose-950/40">
+          <div className="relative h-60 w-60 overflow-hidden rounded-2xl shadow-xl ring-4 ring-purple-100 sm:h-72 sm:w-72 lg:h-80 lg:w-80 dark:ring-purple-950/40">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={active.image}

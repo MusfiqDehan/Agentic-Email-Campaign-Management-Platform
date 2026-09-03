@@ -93,7 +93,7 @@ export function SiteNav({ variant = 'home' }: SiteNavProps) {
               </Button>
             </Link>
             <Link href="/signup">
-              <Button className="rounded-full bg-rose-500 h-9 border-0 px-4 text-white shadow-lg shadow-rose-500/25 transition-all hover:bg-rose-600 hover:shadow-xl hover:shadow-rose-500/30 hover:scale-105 sm:h-10 sm:px-5">
+              <Button className="rounded-full bg-purple-600 h-9 border-0 px-4 text-white shadow-lg shadow-purple-500/25 transition-all hover:bg-purple-700 hover:shadow-xl hover:shadow-purple-500/30 hover:scale-105 sm:h-10 sm:px-5">
                 Sign up
                 <ArrowRight className="ml-1.5 hidden h-4 w-4 sm:inline" aria-hidden="true" />
               </Button>

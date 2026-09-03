@@ -82,7 +82,7 @@ export const platformAdminItems: NavItem[] = [
     title: 'Admin Panel',
     href: '/dashboard/admin',
     icon: Shield,
-    color: 'text-red-500',
+    color: 'text-purple-600',
     shortTitle: 'Admin',
   },
   {

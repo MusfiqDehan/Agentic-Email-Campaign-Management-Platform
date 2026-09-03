@@ -166,8 +166,8 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
                   item={item}
                   collapsed={isCollapsed}
                   active={isNavItemActive(pathname, item.href)}
-                  activeClassName="bg-red-500/10 text-red-600 shadow-sm"
-                  indicatorClassName="bg-red-500"
+                  activeClassName="bg-purple-500/10 text-purple-600 shadow-sm"
+                  indicatorClassName="bg-purple-600"
                 />
               ))}
             </>

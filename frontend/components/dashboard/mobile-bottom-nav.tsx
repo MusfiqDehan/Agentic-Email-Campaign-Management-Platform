@@ -40,7 +40,7 @@ function MoreSheetItem({
 }) {
   const activeClass =
     variant === 'admin'
-      ? 'bg-red-500/10 text-red-600'
+      ? 'bg-purple-500/10 text-purple-600'
       : variant === 'org'
         ? 'bg-teal-500/10 text-teal-600'
         : 'bg-primary/10 text-primary';

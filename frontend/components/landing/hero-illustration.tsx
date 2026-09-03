@@ -5,7 +5,7 @@ import { Mail, BarChart3, Shield, Users, Sparkles } from 'lucide-react';
 
 const nodes = [
   { icon: Mail, label: 'Delivered', color: 'from-blue-500 to-cyan-500', left: '14%', top: '16%', path: 'M90,90 Q170,150 250,250', delay: '0s' },
-  { icon: BarChart3, label: 'Opened', color: 'from-purple-500 to-pink-500', left: '84%', top: '20%', path: 'M420,100 Q330,160 250,250', delay: '0.75s' },
+  { icon: BarChart3, label: 'Opened', color: 'from-purple-500 to-indigo-500', left: '84%', top: '20%', path: 'M420,100 Q330,160 250,250', delay: '0.75s' },
   { icon: Shield, label: 'Secure', color: 'from-green-500 to-emerald-500', left: '16%', top: '82%', path: 'M100,410 Q170,340 250,250', delay: '1.5s' },
   { icon: Users, label: 'Engaged', color: 'from-orange-500 to-amber-500', left: '86%', top: '84%', path: 'M420,410 Q340,340 250,250', delay: '2.25s' },
 ];

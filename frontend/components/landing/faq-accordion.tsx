@@ -55,13 +55,13 @@ export function FaqAccordion() {
               onClick={() => toggle(faq.id)}
               aria-expanded={isOpen}
               aria-controls={`faq-answer-${faq.id}`}
-              className="flex w-full items-center justify-between p-5 text-left text-base font-semibold text-foreground hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 sm:p-6"
+              className="flex w-full items-center justify-between p-5 text-left text-base font-semibold text-foreground hover:text-purple-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 sm:p-6"
             >
               <span>{faq.question}</span>
               <span
                 className={cn(
                   'ml-4 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted/60 text-muted-foreground transition-transform duration-200',
-                  isOpen && 'rotate-180 bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
+                  isOpen && 'rotate-180 bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400'
                 )}
               >
                 <ChevronDown className="h-4 w-4" />
