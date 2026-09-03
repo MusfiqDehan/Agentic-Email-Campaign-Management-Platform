@@ -115,7 +115,7 @@ export function DashboardPreview() {
             </span>
           </div>
 
-          <div className="mt-6 flex h-40 items-end justify-between gap-2 sm:gap-4">
+          <div className="mt-6 flex h-40 items-end justify-between gap-1.5 sm:gap-4 overflow-x-auto pb-1">
             {[
               { day: 'Mon', sends: 45, clicks: 28 },
               { day: 'Tue', sends: 60, clicks: 42 },
@@ -125,22 +125,22 @@ export function DashboardPreview() {
               { day: 'Sat', sends: 40, clicks: 25 },
               { day: 'Sun', sends: 35, clicks: 22 },
             ].map((col) => (
-              <div key={col.day} className="flex flex-1 flex-col items-center gap-1.5">
-                <div className="relative flex h-32 w-full items-end justify-center gap-1 sm:w-10">
+              <div key={col.day} className="flex flex-1 min-w-[28px] sm:min-w-0 flex-col items-center gap-1.5">
+                <div className="relative flex h-32 w-full items-end justify-center gap-0.5 sm:gap-1 sm:w-10">
                   <div
-                    className={`w-3 sm:w-4 rounded-t transition-all ${
+                    className={`w-2.5 sm:w-4 rounded-t transition-all ${
                       col.highlight ? 'bg-rose-500 shadow-md shadow-rose-500/30' : 'bg-rose-200 dark:bg-rose-950/60'
                     }`}
                     style={{ height: `${col.sends}%` }}
                   />
                   <div
-                    className={`w-3 sm:w-4 rounded-t transition-all ${
+                    className={`w-2.5 sm:w-4 rounded-t transition-all ${
                       col.highlight ? 'bg-pink-600' : 'bg-pink-300 dark:bg-pink-900/50'
                     }`}
                     style={{ height: `${col.clicks}%` }}
                   />
                 </div>
-                <span className="text-[11px] font-medium text-muted-foreground">{col.day}</span>
+                <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground">{col.day}</span>
               </div>
             ))}
           </div>

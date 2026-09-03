@@ -292,22 +292,22 @@ export default function LandingPage() {
             </div>
 
             {/* 3 Large Stat Metrics with Sparkline Curves */}
-            <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {growthStats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-6 shadow-sm sm:p-8"
+                  className="flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-5 sm:p-7 shadow-sm"
                 >
                   <div>
-                    <span className="text-4xl font-extrabold tracking-tight text-rose-600 sm:text-5xl dark:text-rose-400">
+                    <span className="text-3xl font-extrabold tracking-tight text-rose-600 sm:text-4xl lg:text-5xl dark:text-rose-400">
                       {stat.value}
                     </span>
-                    <h4 className="mt-2 text-base font-bold text-foreground">{stat.label}</h4>
+                    <h4 className="mt-2 text-sm sm:text-base font-bold text-foreground">{stat.label}</h4>
                     <p className="mt-1 text-xs text-muted-foreground">{stat.sublabel}</p>
                   </div>
 
                   {/* Sparkline curve visual */}
-                  <div className="mt-6 flex h-14 items-end gap-1.5 border-t border-border/40 pt-4">
+                  <div className="mt-5 flex h-12 sm:h-14 items-end gap-1 sm:gap-1.5 border-t border-border/40 pt-3">
                     {stat.sparkline.map((val, idx) => (
                       <div
                         key={idx}
