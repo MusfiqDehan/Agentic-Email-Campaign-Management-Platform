@@ -8,6 +8,7 @@ import {
   BookOpen,
   CreditCard,
   Sparkles,
+  Target,
   UserRound,
   Workflow,
 } from 'lucide-react';
@@ -19,8 +20,9 @@ import { SkipLink } from '@/components/skip-link';
 import { cn } from '@/config/utils';
 
 const marketingLinks = [
-  { href: '/#how-it-works', hash: '#how-it-works', label: 'How it works', icon: Workflow },
   { href: '/#features', hash: '#features', label: 'Features', icon: Sparkles },
+  { href: '/#how-it-works', hash: '#how-it-works', label: 'How it works', icon: Workflow },
+  { href: '/#growth', hash: '#growth', label: 'Solutions', icon: Target },
   { href: '/#pricing', hash: '#pricing', label: 'Pricing', icon: CreditCard },
   { href: '/docs', hash: null, label: 'Docs', icon: BookOpen },
 ] as const;
@@ -86,12 +88,14 @@ export function SiteNav({ variant = 'home' }: SiteNavProps) {
             </nav>
             <ThemeToggle />
             <Link href="/login" className="hidden lg:inline-flex">
-              <Button variant="ghost">Log in</Button>
+              <Button variant="ghost" className="font-semibold text-foreground/80 hover:text-foreground">
+                Log in
+              </Button>
             </Link>
             <Link href="/signup">
-              <Button className="gradient-bg h-9 border-0 px-3 text-white shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 hover:scale-105 sm:h-10 sm:px-5">
-                Get Started
-                <ArrowRight className="ml-2 hidden h-4 w-4 sm:inline" aria-hidden="true" />
+              <Button className="rounded-full bg-rose-500 h-9 border-0 px-4 text-white shadow-lg shadow-rose-500/25 transition-all hover:bg-rose-600 hover:shadow-xl hover:shadow-rose-500/30 hover:scale-105 sm:h-10 sm:px-5">
+                Sign up
+                <ArrowRight className="ml-1.5 hidden h-4 w-4 sm:inline" aria-hidden="true" />
               </Button>
             </Link>
           </div>
