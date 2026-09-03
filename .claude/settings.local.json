@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import django\")",
+      "Bash(../.venv/bin/python -c \"import django; print\\(django.get_version\\(\\)\\)\")",
+      "Bash(../.venv/bin/python manage.py makemigrations campaigns)",
+      "Bash(ls /home/musfiqdehan/Products/Email-Campaign-Management-Platform/.venv/lib/ 2>/dev/null; ls /home/musfiqdehan/Products/Email-Campaign-Management-Platform/backend/ | head -20; ls ~/.virtualenvs 2>/dev/null; find /home/musfiqdehan/Products/Email-Campaign-Management-Platform -maxdepth 2 -name \"pyvenv.cfg\" 2>/dev/null)",
+      "Read(//home/musfiqdehan/**)",
+      "Bash(/home/musfiqdehan/Products/Email-Campaign-Management-Platform/.venv/bin/python -c \"import django, boto3, rest_framework; print\\('ok', django.get_version\\(\\)\\)\")"
+    ]
+  }
+}
