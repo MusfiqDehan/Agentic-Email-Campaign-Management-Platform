@@ -1,0 +1,33 @@
+# EmailCampaign
+
+> EmailCampaign is a modern, AI-powered multi-tenant email marketing and campaign outreach platform built for high deliverability, automated DNS verification, custom sending domains, and real-time analytics.
+
+EmailCampaign equips marketing teams, sales development representatives, recruiters, agencies, and fast-growing startups with a reliable infrastructure to create, personalize, dispatch, and monitor outbound email campaigns without landing in spam folders.
+
+## Core Capabilities
+
+- **AI-Powered Outreach & Copywriting**: Built-in AI assistants for generating high-converting email drafts, subject line open-rate prediction, dynamic tone adjustment, and personalized outreach sequences.
+- **Custom Sending Domains & Dedicated DNS**: Automated setup and verification for SPF, DKIM (CNAME), DMARC, and custom MAIL FROM return-path subdomains with platform-managed or organization-owned AWS SES identities.
+- **Multi-Provider Delivery Backbone**: Seamless integration with Amazon SES, Google Workspace / Gmail SMTP, Microsoft 365 / Outlook SMTP, SendGrid, and Brevo with encrypted credential storage and automatic health checks.
+- **Real-Time Deliverability & Analytics**: Live tracking of email dispatch, inbox delivery rate, opens (tracking pixel), click attribution, bounce classifications (soft/hard), spam complaints, and real-time WebSocket progress updates.
+- **Contact & List Management**: High-throughput contact imports via CSV/Excel, smart segmentation, deduplication, custom tags, and dynamic template variables (`{{first_name}}`, `{{company}}`, `{{unsubscribe_url}}`).
+- **Two-Way Inbox & Reply Handling**: Integrated webmail inbox for receiving recipient responses, managing conversations, and handling sender replies directly within the platform.
+- **Compliance & Unsubscribe Management**: RFC-compliant one-click unsubscribe headers, hosted branded unsubscribe landing pages, automated suppression lists, CAN-SPAM, and GDPR compliance guaranteed.
+- **Multi-Tenant Organizations & Role-Based Access**: Complete workspace isolation per organization, team member invites, role permissions (Owner, Admin, Member), and granular tenant quota limits.
+
+## Key Links & Documentation
+
+- [Homepage](https://emailcampaign.musfiqdehan.com/): Product overview, key features, audience segments, and transparent pricing.
+- [Documentation & Onboarding Guide](https://emailcampaign.musfiqdehan.com/docs): Full self-onboarding guide covering provider connection, custom DNS records, contacts, template design, campaign launch, and troubleshooting.
+- [Quick Start Guide](https://emailcampaign.musfiqdehan.com/docs#quick-start): Step-by-step roadmap to send your first campaign within minutes.
+- [Email Providers Guide](https://emailcampaign.musfiqdehan.com/docs#providers): Setting up SMTP, Amazon SES, SendGrid, and Brevo.
+- [Custom Domains & DNS](https://emailcampaign.musfiqdehan.com/docs#domains): DKIM tokens, SPF TXT records, DMARC policies, and MX configuration.
+- [Deliverability Best Practices](https://emailcampaign.musfiqdehan.com/docs#deliverability): Reputation protection, IP warmup, list hygiene, and spam filter avoidance.
+- [API Reference](https://emailcampaign-api.musfiqdehan.com/api/v1/schemas/swagger-ui/): Interactive OpenAPI / Swagger UI documentation for backend REST APIs.
+- [Full LLM Context](https://emailcampaign.musfiqdehan.com/llms-full.txt): Comprehensive technical guide, documentation text, and feature architecture for language models.
+
+## Optional & Related Services
+
+- [Customer Login](https://emailcampaign.musfiqdehan.com/login): Access organization dashboard and campaigns.
+- [Account Registration](https://emailcampaign.musfiqdehan.com/signup): Create a free account with 500 emails/month included.
+- [Newsletter Landing Page](https://test-contactlist.musfiqdehan.com/): Public newsletter subscription portal and demo contact collection site.

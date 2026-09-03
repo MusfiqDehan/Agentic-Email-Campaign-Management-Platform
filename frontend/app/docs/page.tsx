@@ -31,12 +31,33 @@ export const metadata: Metadata = {
     'custom sending domain',
     'DKIM SPF DMARC setup',
     'email marketing guide',
+    'AWS SES setup guide',
+    'email deliverability checklist',
   ],
+  alternates: {
+    canonical: '/docs',
+  },
   openGraph: {
     title: 'Documentation — EmailCampaign',
     description:
       'Self-onboarding guide for organizations: providers, custom domains, sender emails, contacts, templates, campaigns and analytics.',
+    url: '/docs',
     type: 'article',
+    images: [
+      {
+        url: '/social-cover.png',
+        width: 1200,
+        height: 630,
+        alt: 'EmailCampaign Documentation & Self-Onboarding Guide',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Documentation — EmailCampaign',
+    description:
+      'Self-onboarding guide for organizations: providers, custom domains, sender emails, contacts, templates, campaigns and analytics.',
+    images: ['/social-cover.png'],
   },
 };
 
