@@ -48,14 +48,15 @@ class SendingDomainListCreateView(OrganizationScopedView):
     def get(self, request):
         domains = SendingDomain.objects.filter(organization=self.organization)
         config = domain_service.get_org_config(self.organization)
+        limits = domain_service.get_domain_limits_payload(config, user=request.user)
         return self.success(data={
             'domains': SendingDomainSerializer(domains, many=True).data,
             'limits': {
-                'max_domains': config.max_domains,
+                'max_domains': limits['max_domains'],
                 'used': domains.count(),
-                'feature_enabled': config.domain_feature_enabled,
-                'custom_domain_allowed': config.is_custom_domain_allowed,
-                'org_owned_ses_allowed': config.is_org_owned_ses_allowed,
+                'feature_enabled': limits['feature_enabled'],
+                'custom_domain_allowed': limits['custom_domain_allowed'],
+                'org_owned_ses_allowed': limits['org_owned_ses_allowed'],
             },
         })
 
@@ -151,10 +152,11 @@ class SenderEmailListCreateView(OrganizationScopedView):
         if domain_id:
             senders = senders.filter(domain_id=domain_id)
         config = domain_service.get_org_config(self.organization)
+        limits = domain_service.get_domain_limits_payload(config, user=request.user)
         return self.success(data={
             'sender_emails': SenderEmailSerializer(senders, many=True).data,
             'limits': {
-                'max_sender_emails': config.max_sender_emails,
+                'max_sender_emails': limits['max_sender_emails'],
                 'used': SenderEmail.objects.filter(organization=self.organization).count(),
             },
         })
