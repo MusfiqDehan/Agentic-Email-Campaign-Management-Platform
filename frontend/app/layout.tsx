@@ -19,10 +19,11 @@ export const metadata: Metadata = {
   keywords: ["email marketing", "campaign management", "email automation", "newsletter"],
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "any" },
       { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/logo.svg", type: "image/svg+xml" },
     ],
-    shortcut: "/favicon.svg",
+    shortcut: "/favicon.ico",
     apple: "/logo.svg",
   },
 };

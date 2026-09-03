@@ -20,6 +20,6 @@
   <!-- Paper plane tip -->
   <path d="M46.8 13.2 55 18.4l-8.6 1.6 2.4-6.8z" fill="url(#ecmp-accent)"/>
   <!-- AI spark -->
-  <circle cx="20.5" cy="41.5" r="1.6" fill="#93C5FD"/>
-  <circle cx="25" cy="44.5" r="1.1" fill="#BFDBFE"/>
+  <circle cx="20.5" cy="41.5" r="1.6" fill="#D8B4FE"/>
+  <circle cx="25" cy="44.5" r="1.1" fill="#E9D5FF"/>
 </svg>

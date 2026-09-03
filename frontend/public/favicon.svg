@@ -15,6 +15,6 @@
   <path d="M16.2 22.2 32 33.4 47.8 22.2" stroke="#7E22CE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M39 14.5c4.2-1.8 9.1-.4 11.8 3.2" stroke="url(#f-accent)" stroke-width="2.2" stroke-linecap="round"/>
   <path d="M46.8 13.2 55 18.4l-8.6 1.6 2.4-6.8z" fill="url(#f-accent)"/>
-  <circle cx="20.5" cy="41.5" r="1.6" fill="#93C5FD"/>
-  <circle cx="25" cy="44.5" r="1.1" fill="#BFDBFE"/>
+  <circle cx="20.5" cy="41.5" r="1.6" fill="#D8B4FE"/>
+  <circle cx="25" cy="44.5" r="1.1" fill="#E9D5FF"/>
 </svg>
