@@ -7,8 +7,8 @@ import {
   ArrowRight,
   BookOpen,
   CreditCard,
-  LogIn,
   Sparkles,
+  UserRound,
   Workflow,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
@@ -108,7 +108,7 @@ export function SiteNav({ variant = 'home' }: SiteNavProps) {
             active={isLinkActive(link.href, link.hash)}
           />
         ))}
-        <BottomNavItem href="/login" icon={LogIn} label="Log in" />
+        <BottomNavItem href="/login" icon={UserRound} label="Log in" />
       </BottomNavBar>
     </>
   );

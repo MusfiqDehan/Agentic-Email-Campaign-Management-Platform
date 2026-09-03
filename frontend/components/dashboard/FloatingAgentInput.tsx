@@ -186,7 +186,7 @@ export function FloatingAgentInput() {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-600 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-primary/30 group cursor-pointer lg:bottom-6 lg:right-6"
+            className="fixed bottom-[calc(6.5rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-600 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-primary/30 group cursor-pointer lg:bottom-6 lg:right-6"
                 title="Open AI Agent"
                 aria-label="Open AI Agent"
             >
@@ -196,7 +196,7 @@ export function FloatingAgentInput() {
     }
 
     return (
-        <div className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 w-full max-w-xl -translate-x-1/2 px-4 lg:bottom-6">
+        <div className="fixed bottom-[calc(6.5rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 w-full max-w-xl -translate-x-1/2 px-4 lg:bottom-6">
             <div className={cn(
                 "relative group rounded-2xl border border-border/50 bg-background/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-2xl p-1.5 transition-all duration-300",
                 "focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 focus-within:shadow-primary/10"

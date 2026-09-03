@@ -49,15 +49,15 @@ export function BottomNavItem({
   ariaControls,
 }: BottomNavItemProps) {
   const className = cn(
-    'flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-center text-[10px] font-medium leading-tight touch-manipulation sm:text-[11px]',
+    'flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-1.5 text-center text-xs font-medium leading-tight touch-manipulation',
     'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
     active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
   );
 
   const content = (
     <>
-      <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-      <span className="line-clamp-2 max-w-full">{label}</span>
+      <Icon className={cn('h-5 w-5 shrink-0', active && 'stroke-[2.25]')} aria-hidden="true" />
+      <span className={cn('line-clamp-2 max-w-full', active && 'font-semibold')}>{label}</span>
     </>
   );
 
