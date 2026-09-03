@@ -214,8 +214,8 @@ export default function ContactsPage() {
                     className="flex items-center gap-3 flex-1 cursor-pointer"
                     onClick={() => handleViewList(list)}
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 transition-transform group-hover:scale-110">
-                      <Users className="h-5 w-5 text-blue-500" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 transition-transform group-hover:scale-110">
+                      <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div>
                       <CardTitle className="text-base font-semibold group-hover:text-primary transition-colors">

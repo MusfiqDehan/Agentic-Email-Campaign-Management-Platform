@@ -177,10 +177,10 @@ export default function TemplatesPage() {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${
-                isGlobal ? 'bg-blue-500/10' : 'bg-orange-500/10'
+                isGlobal ? 'bg-purple-500/10' : 'bg-orange-500/10'
               }`}>
                 {isGlobal ? (
-                  <Globe className="h-5 w-5 text-blue-500" />
+                  <Globe className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 ) : (
                   <FileText className="h-5 w-5 text-orange-500" />
                 )}
@@ -191,7 +191,7 @@ export default function TemplatesPage() {
                     {template.template_name}
                   </CardTitle>
                   {isGlobal && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 text-xs">
                       Global
                     </Badge>
                   )}
@@ -384,10 +384,10 @@ export default function TemplatesPage() {
 
         {/* Global Templates */}
         <TabsContent value="global-templates" className="space-y-4">
-          <Card className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+          <Card className="bg-purple-50/50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800">
             <CardContent className="py-4">
               <div className="flex items-center gap-3">
-                <Globe className="h-5 w-5 text-blue-600" />
+                <Globe className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 <div>
                   <p className="text-sm font-medium">Global Templates Library</p>
                   <p className="text-xs text-muted-foreground">
@@ -577,11 +577,11 @@ export default function TemplatesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/40">
                 {templateToDuplicate?.is_global ? (
-                  <Download className="h-6 w-6 text-blue-600" />
+                  <Download className="h-6 w-6 text-purple-600" />
                 ) : (
-                  <Copy className="h-6 w-6 text-blue-600" />
+                  <Copy className="h-6 w-6 text-purple-600" />
                 )}
               </div>
               <div>

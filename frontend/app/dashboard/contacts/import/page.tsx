@@ -319,8 +319,8 @@ export default function ImportContactsPage() {
                   <div className="text-2xl font-bold text-green-600 dark:text-green-400">{importResult.created || 0}</div>
                   <div className="text-xs text-muted-foreground uppercase">Created</div>
                 </div>
-                <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-md text-center">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{importResult.updated || 0}</div>
+                <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-md text-center">
+                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{importResult.updated || 0}</div>
                   <div className="text-xs text-muted-foreground uppercase">Updated</div>
                 </div>
                 <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-md text-center">

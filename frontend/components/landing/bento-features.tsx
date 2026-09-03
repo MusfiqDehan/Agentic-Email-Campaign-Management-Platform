@@ -50,7 +50,7 @@ export function BentoFeatures() {
             <div className="flex-1 overflow-hidden">
               <div className="flex items-center gap-1.5">
                 <span className="truncate text-sm font-bold text-foreground">Jordan Diaz</span>
-                <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
               </div>
               <p className="truncate text-xs text-muted-foreground">VP of Growth at SaaSify</p>
             </div>
@@ -242,7 +242,7 @@ export function BentoFeatures() {
                 <tr>
                   <td className="py-2 font-medium text-foreground">Re-engagement Run</td>
                   <td className="py-2">
-                    <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+                    <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
                       Queued
                     </span>
                   </td>

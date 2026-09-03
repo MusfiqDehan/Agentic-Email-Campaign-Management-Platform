@@ -343,7 +343,7 @@ export default function EditProviderPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-gradient-to-r from-primary to-blue-600 hover:opacity-90" disabled={isSaving}>
+            <Button type="submit" className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90" disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Update Provider'}
             </Button>
           </form>

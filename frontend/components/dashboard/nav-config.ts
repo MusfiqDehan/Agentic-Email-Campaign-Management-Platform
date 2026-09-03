@@ -28,7 +28,7 @@ export const sidebarItems: NavItem[] = [
     title: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
-    color: 'text-blue-500',
+    color: 'text-purple-600 dark:text-purple-400',
     shortTitle: 'Home',
   },
   {

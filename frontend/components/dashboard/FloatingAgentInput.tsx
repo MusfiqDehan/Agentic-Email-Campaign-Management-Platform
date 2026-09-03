@@ -186,7 +186,7 @@ export function FloatingAgentInput() {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-            className="fixed bottom-[calc(6.5rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-600 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-primary/30 group cursor-pointer lg:bottom-6 lg:right-6"
+            className="fixed bottom-[calc(6.5rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-purple-600 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-primary/30 group cursor-pointer lg:bottom-6 lg:right-6"
                 title="Open AI Agent"
                 aria-label="Open AI Agent"
             >
@@ -202,7 +202,7 @@ export function FloatingAgentInput() {
                 "focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 focus-within:shadow-primary/10"
             )}>
                 <form onSubmit={handleSubmit} className="flex items-center gap-2">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 text-white shrink-0">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-purple-600 text-white shrink-0">
                         <Sparkles className={cn("h-5 w-5", isLoading && "animate-pulse")} />
                     </div>
 
@@ -271,7 +271,7 @@ export function FloatingAgentInput() {
                 </form>
 
                 {/* Subtle glow effect */}
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-blue-500/20 to-purple-500/20 rounded-3xl blur-lg opacity-0 group-focus-within:opacity-100 transition duration-500 -z-10"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-indigo-500/20 rounded-3xl blur-lg opacity-0 group-focus-within:opacity-100 transition duration-500 -z-10"></div>
             </div>
             
             {/* Hint text */}
