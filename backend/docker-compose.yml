@@ -48,11 +48,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8001/api/v1/healthz/" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/v1/live/')" ]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 180s
     logging:
       driver: "json-file"
       options:

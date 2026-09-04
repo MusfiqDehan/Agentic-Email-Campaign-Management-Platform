@@ -14,8 +14,14 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from health_check.views import HealthCheckView
+
+
+def liveness(request):
+    """Fast liveness probe for Docker/Traefik — no DB/cache/storage checks."""
+    return JsonResponse({"status": "ok"})
 
 # django-health-check 4.x dropped `health_check.urls`; checks are now chosen
 # per-view. Keep the same three checks the per-backend apps used to provide.
@@ -42,7 +48,9 @@ urlpatterns = [
     path(f"api/v1/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui-legacy"),
     path(f"api/v1/schemas/redoc", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 
-    # Health check endpoint (used by Docker health checks and monitoring)
+    # Liveness probe (Docker/Traefik — must respond quickly, no dependency checks)
+    path('api/v1/live/', liveness, name='liveness'),
+    # Full health check endpoint (monitoring — DB, cache, storage)
     path('api/v1/healthz/', health_check_view, name='health-check'),
 ]
 

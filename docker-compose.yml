@@ -87,11 +87,11 @@ services:
       - traefik_proxy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/v1/healthz/')"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/live/', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 420s
     logging:
       driver: "json-file"
       options:
