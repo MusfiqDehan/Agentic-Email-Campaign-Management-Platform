@@ -125,6 +125,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --font-brand: var(--font-plus-jakarta), var(--font-geist-sans), system-ui, sans-serif;
+  --font-brand-by: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
 }
 
 * {
