@@ -128,7 +128,7 @@ function UnsubscribeContent() {
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-lg flex-col px-4 py-10 sm:py-16">
         <header className="mb-10 flex items-center justify-between animate-[fadeIn_0.6s_ease-out]">
-          <BrandLogo className="h-8 w-auto" />
+          <BrandLogo size={32} wordmarkClassName="text-base text-slate-900" />
           <span className="text-xs font-medium tracking-wide text-slate-500 uppercase">
             Email preferences
           </span>
