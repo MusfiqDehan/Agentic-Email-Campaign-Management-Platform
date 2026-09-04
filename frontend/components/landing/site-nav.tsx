@@ -59,7 +59,7 @@ export function SiteNav({ variant = 'home' }: SiteNavProps) {
         <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <Link href="/" className="transition-transform hover:scale-105">
-              <BrandLogo size={36} wordmarkClassName="sr-only sm:not-sr-only text-xl" priority />
+              <BrandLogo size={36} wordmarkClassName="sr-only sm:not-sr-only sm:flex text-xl" priority />
             </Link>
             {variant === 'docs' && (
               <span className="hidden rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary sm:inline-block">
