@@ -21,6 +21,7 @@ import { PricingSection } from '@/components/landing/pricing-section';
 import { TestimonialSlider } from '@/components/landing/testimonial-slider';
 import { FaqAccordion } from '@/components/landing/faq-accordion';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { BrandLogo } from '@/components/brand-logo';
 
 // Client logos mimicking the social proof row
 const clientLogos = [
@@ -467,11 +468,8 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
             {/* Col 1: Brand & Bio */}
             <div className="lg:col-span-2">
-              <Link href="/" className="inline-flex items-center gap-2.5 transition-transform hover:scale-105">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-600 text-white shadow-md shadow-purple-600/30 font-bold">
-                  EC
-                </div>
-                <span className="text-xl font-bold tracking-tight text-white">EmailCampaign</span>
+              <Link href="/" className="inline-flex transition-transform hover:scale-105">
+                <BrandLogo size={36} wordmarkClassName="text-xl text-white" />
               </Link>
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-zinc-400">
                 Deliver smarter emails with AI precision. Next-generation email campaign management, automated DNS deliverability, and verified sender workflows for modern revenue teams.
