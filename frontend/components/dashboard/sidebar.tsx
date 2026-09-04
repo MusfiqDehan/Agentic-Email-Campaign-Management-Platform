@@ -116,9 +116,9 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
         >
           <Link href="/dashboard" className="transition-transform hover:scale-105">
             <BrandLogo
-              size={36}
+              size={32}
               showWordmark={!isCollapsed}
-              wordmarkClassName="text-lg text-sidebar-foreground"
+              wordmarkClassName="text-[15px] text-sidebar-foreground"
             />
           </Link>
 
