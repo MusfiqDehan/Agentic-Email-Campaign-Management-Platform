@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>EmailCampaign — Intro</title>
+<link rel="stylesheet" href="fonts.css" />
+<style>
+  :root {
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #e7e2f0;
+    --card: #ffffff;
+    --purple: #9333ea;
+    --purple-700: #7e22ce;
+    --purple-50: #faf5ff;
+    --purple-100: #f3e8ff;
+    --indigo: #4f46e5;
+    --green: #059669;
+    --bg: #f6f3fb;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+    background: var(--bg); color: var(--ink);
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+  .bg, .orb, .grid {
+    position: absolute; inset: 0; pointer-events: none;
+  }
+  .bg {
+    background:
+      radial-gradient(900px 520px at 72% -8%, rgba(147,51,234,0.20), transparent 62%),
+      radial-gradient(680px 480px at -4% 92%, rgba(79,70,229,0.12), transparent 60%),
+      radial-gradient(520px 380px at 100% 78%, rgba(147,51,234,0.10), transparent 55%),
+      var(--bg);
+  }
+  .grid {
+    background-image: radial-gradient(rgba(126,34,206,0.16) 1.1px, transparent 1.1px);
+    background-size: 26px 26px;
+    -webkit-mask-image: radial-gradient(ellipse at 50% 42%, #000 18%, transparent 72%);
+    mask-image: radial-gradient(ellipse at 50% 42%, #000 18%, transparent 72%);
+    opacity: 0.7;
+  }
+  .orb { inset: auto; border-radius: 50%; filter: blur(30px); }
+  .o1 { width: 560px; height: 560px; background: rgba(147,51,234,0.16); }
+  .o2 { width: 420px; height: 420px; background: rgba(99,102,241,0.13); }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .pad { position: absolute; left: 88px; right: 88px; top: 118px; bottom: 156px; }
+  #scene-audiences .pad, #scene-steps .pad { display: flex; flex-direction: column; justify-content: center; }
+
+  .logo-lock { display: flex; align-items: center; gap: 14px; }
+  .logo-lock .name { font-weight: 800; font-size: 22px; letter-spacing: -0.03em; line-height: 1; }
+  .logo-lock .by {
+    margin-top: 5px; font-family: "Instrument Serif", Georgia, serif;
+    font-style: italic; font-size: 15px; color: rgba(15,23,42,0.62); letter-spacing: 0.01em;
+  }
+  #topbar {
+    position: absolute; top: 36px; left: 88px; right: 88px; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between; opacity: 0;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid #eadcff; background: rgba(250,245,255,0.9);
+    color: #7e22ce; font-weight: 700; font-size: 14px;
+    border-radius: 999px; padding: 8px 14px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #9333ea; box-shadow: 0 0 0 4px rgba(147,51,234,0.15); }
+
+  /* Brand */
+  #scene-brand .center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; padding: 0 160px 40px;
+  }
+  .kicker {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid #eadcff; background: rgba(250,245,255,0.92);
+    color: #7e22ce; font-weight: 700; font-size: 16px;
+    border-radius: 999px; padding: 8px 16px; margin-bottom: 28px;
+  }
+  h1.display {
+    margin: 0; font-size: 84px; line-height: 1.02; letter-spacing: -0.045em; font-weight: 800;
+  }
+  .grad {
+    background: linear-gradient(100deg, #9333ea 0%, #4f46e5 55%, #7e22ce 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub {
+    margin: 26px 0 0; max-width: 860px; font-size: 26px; line-height: 1.45; color: var(--muted); font-weight: 500;
+  }
+  .chips { display: flex; gap: 12px; margin-top: 34px; }
+  .chip {
+    background: #fff; border: 1px solid var(--line); color: var(--ink);
+    border-radius: 999px; padding: 12px 18px; font-weight: 650; font-size: 16px;
+    box-shadow: 0 8px 24px rgba(88,28,135,0.06);
+  }
+
+  /* Shared tour layout */
+  .eyebrow { font-size: 14px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #7e22ce; }
+  h2 {
+    margin: 10px 0 0; font-size: 54px; line-height: 1.05; letter-spacing: -0.04em; font-weight: 800;
+  }
+  .lede { margin: 16px 0 0; font-size: 22px; line-height: 1.45; color: var(--muted); font-weight: 500; max-width: 520px; }
+  .split { display: grid; grid-template-columns: 560px 1fr; gap: 48px; height: 100%; align-items: center; }
+  .panel {
+    background: #fff; border: 1px solid #ece7f4; border-radius: 28px;
+    box-shadow: 0 30px 70px rgba(88,28,135,0.10);
+    padding: 28px;
+  }
+
+  /* Dashboard */
+  .window { padding: 22px 24px 24px; }
+  .winbar { display: flex; align-items: center; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid #f1eef6; margin-bottom: 16px; }
+  .traffic { display: flex; gap: 7px; align-items: center; }
+  .traffic i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+  .url { margin-left: 12px; color: var(--muted); font-size: 13px; font-weight: 600; }
+  .live {
+    display: inline-flex; align-items: center; gap: 7px; background: #faf5ff; color: #7e22ce;
+    font-size: 13px; font-weight: 700; border-radius: 999px; padding: 6px 10px;
+  }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .kpi { border: 1px solid #f0ecf6; background: #fcfbfe; border-radius: 16px; padding: 14px 14px 12px; }
+  .kpi .lbl { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; font-weight: 600; }
+  .kpi .val { margin-top: 6px; font-size: 32px; font-weight: 800; letter-spacing: -0.04em; display: flex; align-items: baseline; gap: 8px; }
+  .up { color: var(--green); font-size: 13px; font-weight: 800; }
+  .ind { color: #7e22ce; font-size: 13px; font-weight: 700; }
+  .spark { display: flex; align-items: flex-end; gap: 4px; height: 32px; margin-top: 10px; }
+  .spark i { flex: 1; border-radius: 3px 3px 0 0; background: #f3e8ff; display: block; height: 10%; }
+  .spark.solid i { background: rgba(147,51,234,0.85); }
+  .meter { margin-top: 12px; height: 8px; background: #efeaf6; border-radius: 99px; overflow: hidden; }
+  .meter span { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #9333ea, #4f46e5); }
+  .fine { display: flex; justify-content: space-between; margin-top: 6px; color: var(--muted); font-size: 11px; font-weight: 600; }
+  .mid { display: grid; grid-template-columns: 1.7fr 0.9fr; gap: 12px; margin-top: 12px; }
+  .block { border: 1px solid #f0ecf6; background: #fcfbfe; border-radius: 16px; padding: 14px; }
+  .block h4 { margin: 0; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .block p { margin: 3px 0 0; font-weight: 750; font-size: 15px; }
+  .bars { display: flex; align-items: flex-end; justify-content: space-between; height: 128px; margin-top: 16px; gap: 10px; }
+  .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+  .pair { display: flex; align-items: flex-end; gap: 4px; height: 104px; width: 100%; justify-content: center; }
+  .pair b { width: 14px; border-radius: 4px 4px 0 0; display: block; height: 0; }
+  .pair b.open { background: #e9d5ff; }
+  .pair b.click { background: #c7d2fe; }
+  .pair b.open.on { background: #9333ea; }
+  .pair b.click.on { background: #4f46e5; }
+  .col em { font-style: normal; font-size: 11px; color: var(--muted); font-weight: 700; }
+  .legend { display: flex; gap: 16px; justify-content: center; margin-top: 8px; color: var(--muted); font-size: 12px; font-weight: 650; }
+  .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+  .gauge-wrap { position: relative; height: 126px; display: flex; align-items: flex-end; justify-content: center; }
+  .gauge-num { position: absolute; bottom: 6px; text-align: center; }
+  .gauge-num strong { display: block; font-size: 28px; letter-spacing: -0.04em; }
+  .gauge-num span { color: var(--green); font-size: 12px; font-weight: 800; }
+  .checks { margin-top: 8px; background: #f8f6fb; border-radius: 12px; padding: 10px 12px; font-size: 12px; }
+  .checks div { display: flex; justify-content: space-between; padding: 3px 0; color: var(--muted); font-weight: 600; }
+  .checks b { color: var(--green); }
+
+  /* Audiences */
+  .aud-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 34px; }
+  .card {
+    background: #fff; border: 1px solid #ece7f4; border-radius: 24px; padding: 26px 24px 28px;
+    box-shadow: 0 16px 40px rgba(88,28,135,0.06); min-height: 280px;
+  }
+  .card.is-hot, .step.is-hot, .stat.is-hot {
+    border-color: #c084fc; box-shadow: 0 22px 50px rgba(147,51,234,0.16);
+  }
+  .ic {
+    width: 52px; height: 52px; border-radius: 16px; background: #faf5ff; color: #9333ea;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+  }
+  .card h3 { margin: 0; font-size: 24px; letter-spacing: -0.03em; }
+  .card p { margin: 10px 0 0; color: var(--muted); font-size: 16px; line-height: 1.45; font-weight: 500; }
+
+  /* Lead */
+  .lead-top { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 1px solid #f1eef6; }
+  .who { display: flex; gap: 14px; align-items: center; margin-top: 18px; }
+  .ava {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, #9333ea, #4f46e5); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px;
+  }
+  .who strong { font-size: 22px; display: flex; align-items: center; gap: 6px; }
+  .who span { color: var(--muted); font-weight: 600; }
+  .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .meta div { background: #f8f6fb; border-radius: 14px; padding: 12px 14px; }
+  .meta small { color: var(--muted); font-weight: 650; display: block; font-size: 12px; }
+  .meta b { font-size: 15px; }
+  .conf { background: #f3e8ff; color: #7e22ce; font-size: 12px; font-weight: 800; border-radius: 99px; padding: 5px 10px; }
+  .bul { margin: 22px 0 0; padding: 0; list-style: none; }
+  .bul li { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; font-weight: 600; color: #334155; font-size: 17px; }
+  .tick { color: #9333ea; font-weight: 800; }
+
+  /* Copy */
+  .subj {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    border: 1px solid #efeaf6; background: #fafafa; border-radius: 16px; padding: 14px 16px; margin-top: 10px;
+    font-weight: 650; font-size: 16px;
+  }
+  .subj.is-hot { background: #faf5ff; border-color: #e9d5ff; color: var(--ink); }
+  .badge { background: #9333ea; color: #fff; border-radius: 8px; padding: 4px 8px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+  .badge.dim { background: #efeaf6; color: #64748b; }
+  .row-end { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; color: var(--muted); font-size: 14px; font-weight: 650; }
+  .insert {
+    background: transparent; border: 0; color: #7e22ce; font-weight: 800; font-size: 15px; font-family: inherit;
+  }
+  .insert.is-hot { color: #fff; background: #9333ea; border-radius: 10px; padding: 8px 12px; }
+  .toast {
+    margin-top: 14px; background: #ecfdf5; color: #047857; border-radius: 12px; padding: 10px 12px;
+    font-weight: 750; font-size: 14px; opacity: 0;
+  }
+  .typed {
+    margin-top: 12px; background: #0f172a; color: #f8fafc; border-radius: 16px; padding: 16px 18px;
+    font-size: 16px; line-height: 1.45; min-height: 78px; font-weight: 550;
+  }
+  .caret { display: inline-block; width: 2px; height: 16px; background: #e9d5ff; margin-left: 2px; vertical-align: -2px; }
+
+  /* Schedule */
+  .slots { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .slot {
+    border: 0; border-radius: 12px; padding: 10px 12px; font-family: inherit; font-weight: 700; font-size: 14px;
+    background: #f4f1f8; color: #64748b;
+  }
+  .slot.is-hot { background: #9333ea; color: #fff; box-shadow: 0 8px 18px rgba(147,51,234,0.28); }
+  .hours {
+    display: flex; align-items: flex-end; justify-content: center; gap: 16px;
+    height: 148px; margin-top: 26px; padding: 0 12px 0;
+    border-bottom: 2px solid #efeaf6;
+  }
+  .hours i {
+    width: 26px; flex: none; align-self: flex-end; border-radius: 8px 8px 2px 2px;
+    background: #efeaf6; display: block; height: 8px;
+  }
+  .hours i.on { background: #9333ea; box-shadow: 0 10px 18px rgba(147,51,234,0.28); }
+  .scale { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; font-weight: 700; margin-top: 8px; }
+
+  /* Impact */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .stat {
+    background: #fff; border: 1px solid #ece7f4; border-radius: 24px; padding: 28px 28px 24px;
+    box-shadow: 0 18px 44px rgba(88,28,135,0.07);
+  }
+  .stat b { display: block; font-size: 72px; letter-spacing: -0.05em; line-height: 1; color: #7e22ce; }
+  .stat b.idle { color: #ddd6fe; }
+  .stat span { display: block; margin-top: 8px; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+  .stat small { display: block; margin-top: 6px; color: var(--muted); font-size: 15px; font-weight: 600; line-height: 1.4; }
+  .livehead, .lrow {
+    display: grid; grid-template-columns: 1.5fr 0.7fr 0.45fr; align-items: center; gap: 12px;
+  }
+  .livehead { color: var(--muted); font-size: 12px; font-weight: 700; padding: 8px 4px 10px; }
+  .lrow { padding: 12px 4px; border-top: 1px solid #f1eef6; font-weight: 700; font-size: 16px; }
+  .st { font-style: normal; font-size: 12px; font-weight: 800; border-radius: 99px; padding: 4px 8px; }
+  .st.ok { background: #ecfdf5; color: #047857; }
+  .st.send { background: #faf5ff; color: #7e22ce; }
+  .st.wait { background: #f4f1f8; color: #64748b; }
+  .mini-metrics { display: flex; gap: 18px; margin-top: 8px; }
+  .mini-metrics div { background: #f8f6fb; border-radius: 14px; padding: 12px 16px; flex: 1; }
+  .mini-metrics small { color: var(--muted); font-weight: 700; font-size: 12px; }
+  .mini-metrics b { display: block; font-size: 22px; margin-top: 2px; }
+
+  /* Steps */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 28px; }
+  .step { background: #fff; border: 1px solid #ece7f4; border-radius: 24px; padding: 26px; min-height: 250px; box-shadow: 0 16px 40px rgba(88,28,135,0.06); }
+  .step.is-hot { border-color: #c084fc; }
+  .num { font-size: 14px; font-weight: 800; color: #7e22ce; letter-spacing: 0.08em; }
+  .step h3 { margin: 12px 0 0; font-size: 28px; letter-spacing: -0.03em; }
+  .step p { margin: 10px 0 0; color: var(--muted); font-size: 17px; line-height: 1.45; font-weight: 550; }
+  .trust { display: flex; gap: 12px; margin-top: 22px; }
+  .trust span {
+    background: #fff; border: 1px solid #ece7f4; border-radius: 999px; padding: 12px 16px;
+    font-weight: 750; font-size: 15px; box-shadow: 0 8px 20px rgba(88,28,135,0.05);
+  }
+
+  /* CTA */
+  #scene-cta .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .cta-btn {
+    margin-top: 28px; background: linear-gradient(135deg, #9333ea, #7e22ce); color: #fff;
+    font-family: inherit; font-weight: 800; font-size: 26px; border: 0; border-radius: 18px;
+    padding: 20px 36px; box-shadow: 0 18px 40px rgba(147,51,234,0.32);
+  }
+  .cta-btn.is-hot { transform: scale(0.98); }
+  .cta-url {
+    margin-top: 22px; font-size: 28px; font-weight: 800; letter-spacing: -0.03em; color: #6b21a8;
+  }
+  .fine-cta { margin-top: 12px; color: var(--muted); font-weight: 650; font-size: 18px; }
+  .ready {
+    margin-top: 18px; background: #fff; border: 1px solid #e9d5ff; border-radius: 16px;
+    padding: 12px 16px; font-weight: 750; color: #047857; opacity: 0;
+  }
+
+  #cursor {
+    position: absolute; z-index: 40; width: 28px; height: 28px; opacity: 0; pointer-events: none;
+    filter: drop-shadow(0 2px 2px rgba(15,23,42,0.2));
+  }
+  #ripple {
+    position: absolute; z-index: 39; width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid #9333ea; opacity: 0; pointer-events: none;
+  }
+  #caption {
+    position: absolute; left: 88px; right: 88px; bottom: 32px; z-index: 50;
+    display: flex; gap: 14px; align-items: center;
+    background: rgba(24, 12, 42, 0.92); color: #fff;
+    border: 1px solid rgba(216,180,254,0.35); border-radius: 18px;
+    padding: 14px 18px 16px; min-height: 72px; opacity: 0;
+  }
+  .eq { display: flex; align-items: flex-end; gap: 3px; height: 18px; width: 18px; flex: none; }
+  .eq i { width: 3px; background: #e9d5ff; border-radius: 2px; display: block; }
+  #captext { font-size: 22px; line-height: 1.35; font-weight: 650; letter-spacing: -0.02em; }
+  #captext span { margin-right: 0.32em; }
+  #captext .past { color: #fff; }
+  #captext .now { color: #fbbf24; }
+  #captext .next { color: rgba(255,255,255,0.42); }
+  #bar {
+    position: absolute; left: 0; top: 0; height: 5px; width: 0; z-index: 60;
+    background: linear-gradient(90deg, #9333ea, #4f46e5);
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="bg"></div>
+  <div class="grid"></div>
+  <div class="orb o1" id="orb1"></div>
+  <div class="orb o2" id="orb2"></div>
+
+  <header id="topbar">
+    <div class="logo-lock">
+      <svg viewBox="0 0 64 64" width="40" height="40" aria-hidden="true"><use href="#logo-shape"/></svg>
+      <div>
+        <div class="name">EmailCampaign</div>
+        <div class="by">by MusfiqDehan</div>
+      </div>
+    </div>
+    <div class="pill"><span class="dot"></span> AI-Powered Outreach</div>
+  </header>
+
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="ecmp-bg" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#9333EA"/><stop offset="0.55" stop-color="#7E22CE"/><stop offset="1" stop-color="#6B21A8"/>
+      </linearGradient>
+      <linearGradient id="ecmp-accent" x1="38" y1="10" x2="54" y2="28" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#FDE68A"/><stop offset="1" stop-color="#FBBF24"/>
+      </linearGradient>
+      <g id="logo-shape">
+        <rect width="64" height="64" rx="16" fill="url(#ecmp-bg)"/>
+        <path d="M14 24.5c0-1.9 1.5-3.5 3.4-3.5h29.2c1.9 0 3.4 1.6 3.4 3.5v17c0 1.9-1.5 3.5-3.4 3.5H17.4c-1.9 0-3.4-1.6-3.4-3.5v-17z" fill="#fff" fill-opacity=".96"/>
+        <path d="M16.2 22.2 32 33.4 47.8 22.2" stroke="#7E22CE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M39 14.5c4.2-1.8 9.1-.4 11.8 3.2" stroke="url(#ecmp-accent)" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M46.8 13.2 55 18.4l-8.6 1.6 2.4-6.8z" fill="url(#ecmp-accent)"/>
+        <circle cx="20.5" cy="41.5" r="1.6" fill="#D8B4FE"/>
+        <circle cx="25" cy="44.5" r="1.1" fill="#E9D5FF"/>
+      </g>
+      <linearGradient id="gaugeG" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#9333EA"/><stop offset="100%" stop-color="#4F46E5"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- BRAND -->
+  <section class="scene" id="scene-brand">
+    <div class="center">
+      <svg id="hero-logo" viewBox="0 0 64 64" width="108" height="108"><use href="#logo-shape"/></svg>
+      <div class="kicker" id="brand-kicker" style="margin-top:28px"><span class="dot"></span> v1.0.0 is now live · AI-Powered Outreach Platform</div>
+      <h1 class="display" id="brand-title">Deliver smarter emails<br>with <span class="grad">AI precision</span></h1>
+      <p class="sub" id="brand-sub">Reach real inboxes, not spam folders. Personalize every conversation, and track results in real time.</p>
+      <div class="chips" id="brand-chips">
+        <span class="chip">Inbox placement</span>
+        <span class="chip">AI personalization</span>
+        <span class="chip">Live analytics</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROMISE / DASHBOARD -->
+  <section class="scene" id="scene-promise">
+    <div class="pad">
+      <div class="eyebrow" id="p-eye">The product</div>
+      <h2 id="p-title" style="font-size:46px">Reach the inbox.<br>Track every result.</h2>
+      <div class="panel window" id="dash" style="margin-top:18px">
+        <div class="winbar">
+          <div class="traffic">
+            <i style="background:#c084fc"></i><i style="background:#fbbf24"></i><i style="background:#34d399"></i>
+            <span class="url">emailcampaign.musfiqdehan.com/dashboard</span>
+          </div>
+          <div class="live"><span class="dot"></span> Live Syncing</div>
+        </div>
+        <div class="kpis">
+          <div class="kpi" id="kpi-contacts">
+            <div class="lbl">Total Contacts</div>
+            <div class="val"><span id="n-contacts">0</span><span class="up">↑ 18.4%</span></div>
+            <div class="spark" id="spark-a"></div>
+          </div>
+          <div class="kpi">
+            <div class="lbl">Emails Delivered</div>
+            <div class="val"><span id="n-sent">0</span><span class="up">↑ 24.8%</span></div>
+            <div class="spark solid" id="spark-b"></div>
+          </div>
+          <div class="kpi" id="kpi-open">
+            <div class="lbl">Avg. Open Rate</div>
+            <div class="val"><span id="n-open">0%</span><span class="ind">Industry 21%</span></div>
+            <div class="meter"><span id="open-bar"></span></div>
+            <div class="fine"><span>Bounce 0.4%</span><span>Spam 0.01%</span></div>
+          </div>
+        </div>
+        <div class="mid">
+          <div class="block">
+            <h4>Campaign performance</h4>
+            <p>Weekly opens & click-throughs</p>
+            <div class="bars" id="week"></div>
+            <div class="legend"><span><i class="sw" style="background:#9333ea"></i>Opens</span><span><i class="sw" style="background:#4f46e5"></i>Clicks</span></div>
+          </div>
+          <div class="block">
+            <h4>Deliverability health</h4>
+            <p>Inbox placement gauge</p>
+            <div class="gauge-wrap">
+              <svg viewBox="0 0 200 110" width="210" height="116">
+                <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#efeaf6" stroke-width="16" stroke-linecap="round"/>
+                <path id="gauge" d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="url(#gaugeG)" stroke-width="16" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+              </svg>
+              <div class="gauge-num"><strong id="n-gauge">0%</strong><span>Excellent</span></div>
+            </div>
+            <div class="checks">
+              <div><span>SPF & DKIM</span><b>Verified</b></div>
+              <div><span>DMARC policy</span><b>Enforced</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUDIENCES -->
+  <section class="scene" id="scene-audiences">
+    <div class="pad">
+      <div class="eyebrow">Who it's for</div>
+      <h2 id="a-title">Built for growth-focused teams</h2>
+      <p class="lede" id="a-lede" style="max-width:760px">One workspace for the people who live on outbound — from a solo founder to a multi-client agency.</p>
+      <div class="aud-grid">
+        <article class="card" id="aud-sales"><div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></div><h3>Sales teams</h3><p>Personalize cold outreach that bypasses spam filters and lands executive replies.</p></article>
+        <article class="card" id="aud-recruit"><div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><h3>Recruiters</h3><p>Reach high-value talent with multi-touch candidate outreach that feels tailored.</p></article>
+        <article class="card" id="aud-startup"><div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"/></svg></div><h3>Startups</h3><p>Launch product announcements and transactional updates with instant SMTP setup.</p></article>
+        <article class="card" id="aud-agency"><div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div><h3>Agencies</h3><p>Manage client domains, sender identities, and deliverability logs in one place.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEADS -->
+  <section class="scene" id="scene-leads">
+    <div class="pad">
+      <div class="split">
+        <div>
+          <div class="eyebrow" id="l-eye">01 · AI lead finder</div>
+          <h2 id="l-title">Find verified people, fast.</h2>
+          <p class="lede" id="l-lede">Enriched profiles from LinkedIn, company domains, and your CRM — so every send starts with the right person.</p>
+          <ul class="bul" id="l-bul">
+            <li><span class="tick">✓</span> 99.8% confidence scoring</li>
+            <li><span class="tick">✓</span> Work email, role, and tech stack</li>
+            <li><span class="tick">✓</span> Ready to drop into a campaign</li>
+          </ul>
+        </div>
+        <div class="panel" id="lead-card">
+          <div class="lead-top">
+            <strong id="lead-search">Enriched lead profile</strong>
+            <span class="conf" id="conf">0% confidence</span>
+          </div>
+          <div class="who">
+            <div class="ava">JD</div>
+            <div>
+              <strong>Jordan Diaz <svg width="16" height="16" viewBox="0 0 24 24" fill="#9333ea"><path d="M12 2l2.4 4.8L20 8l-4 3.6L17 17l-5-2.8L7 17l1-5.4L4 8l5.6-1.2L12 2z"/></svg></strong>
+              <span>VP of Growth at SaaSify</span>
+            </div>
+          </div>
+          <div class="meta">
+            <div id="lead-email"><small>Work email</small><b>jordan@saasify.co</b></div>
+            <div><small>Tech stack</small><b>SES, Next.js, Stripe</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COPY -->
+  <section class="scene" id="scene-copy">
+    <div class="pad">
+      <div class="split">
+        <div>
+          <div class="eyebrow">02 · AI copywriting</div>
+          <h2>Write the line that gets opened.</h2>
+          <p class="lede">Draft cold pitches, follow-ups, and subject lines. Then ship the one predicted to win.</p>
+          <ul class="bul">
+            <li><span class="tick">✓</span> Open-rate prediction on every option</li>
+            <li><span class="tick">✓</span> Dynamic tags for name and company</li>
+            <li><span class="tick">✓</span> Tone set for executive conversations</li>
+          </ul>
+        </div>
+        <div class="panel" id="copy-panel">
+          <div class="lead-top">
+            <strong>AI suggestions · subject line</strong>
+            <span class="conf">High open-rate prediction</span>
+          </div>
+          <div class="subj" id="subject-a"><span>“Quick idea for scaling SaaSify’s outbound”</span><span class="badge">68% open</span></div>
+          <div class="subj" id="subject-b"><span>“Hey Jordan, saw your latest release”</span><span class="badge dim">54% open</span></div>
+          <div class="row-end">
+            <span>Tone: conversational, executive</span>
+            <button class="insert" id="insert-btn" type="button">Insert into campaign →</button>
+          </div>
+          <div class="toast" id="toast">Inserted into the SaaSify campaign</div>
+          <div class="typed" id="typed"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCHEDULE -->
+  <section class="scene" id="scene-schedule">
+    <div class="pad">
+      <div class="split">
+        <div>
+          <div class="eyebrow">03 · Smart scheduling</div>
+          <h2>Send at the minute they read.</h2>
+          <p class="lede">Each recipient gets the email when their mailbox is active — in their own time zone, automatically.</p>
+          <ul class="bul">
+            <li><span class="tick">✓</span> Local-time delivery, not your clock</li>
+            <li><span class="tick">✓</span> Peak-engagement window highlighted</li>
+            <li><span class="tick">✓</span> Works across global campaigns</li>
+          </ul>
+        </div>
+        <div class="panel" id="sched-panel">
+          <div class="lead-top">
+            <strong>Timezone optimization</strong>
+            <span class="conf">Recipient local time</span>
+          </div>
+          <div class="slots">
+            <button class="slot" id="slot-early" type="button">09:00 AM · Early bird</button>
+            <button class="slot" id="slot-opt" type="button">10:00 AM · Optimal</button>
+            <button class="slot" id="slot-lunch" type="button">02:15 PM · Post-lunch</button>
+            <button class="slot" id="slot-end" type="button">04:30 PM · End of day</button>
+          </div>
+          <div class="hours" id="hours"></div>
+          <div class="scale"><span>8am</span><span>10am · peak</span><span>2pm</span><span>6pm</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IMPACT -->
+  <section class="scene" id="scene-impact">
+    <div class="pad">
+      <div class="eyebrow">Business impact</div>
+      <h2 style="font-size:46px">What changes after you switch</h2>
+      <div class="stats" style="margin-top:22px">
+        <article class="stat" id="stat-inbox"><b id="n-inbox">0%</b><span>Primary inbox placement</span><small>Across Gmail, Outlook, and corporate mail servers.</small></article>
+        <article class="stat" id="stat-reply"><b id="n-reply">0%</b><span>Higher reply rates</span><small>Compared with standard legacy blast tools.</small></article>
+        <article class="stat" id="stat-opens"><b id="n-opens">0×</b><span>More opens per campaign</span><small>From AI send times and personalized subjects.</small></article>
+      </div>
+      <div class="panel" id="live-panel" style="margin-top:18px; padding:18px 22px">
+        <div class="lead-top" style="padding-bottom:8px">
+          <strong id="live-row">WebSocket dispatch · 35 sends/sec</strong>
+          <span class="live"><span class="dot"></span> Streaming</span>
+        </div>
+        <div class="livehead"><span>Campaign</span><span>Status</span><span>Opens</span></div>
+        <div class="lrow" id="row1"><span>Product Launch Q3</span><span><em class="st ok">Delivered</em></span><span>64.2%</span></div>
+        <div class="lrow" id="row2"><span>Weekly Digest #42</span><span><em class="st send">Sending</em></span><span>41.8%</span></div>
+        <div class="lrow" id="row3"><span>Re-engagement Run</span><span><em class="st wait">Queued</em></span><span>—</span></div>
+        <div class="mini-metrics">
+          <div><small>Delivered</small><b>99.8%</b></div>
+          <div><small>Click rate</small><b>22.4%</b></div>
+          <div><small>Bounces</small><b>0.2%</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEPS -->
+  <section class="scene" id="scene-steps">
+    <div class="pad">
+      <div class="eyebrow">Setup</div>
+      <h2>Live in three steps</h2>
+      <div class="steps">
+        <article class="step" id="step1"><div class="num">01</div><h3>Connect</h3><p>Link Gmail, Google Workspace, Outlook, or Amazon SES. Tokens stay encrypted.</p></article>
+        <article class="step" id="step2"><div class="num">02</div><h3>Personalize</h3><p>Draft with AI, merge contact tags, and verify DKIM and SPF on your domain.</p></article>
+        <article class="step" id="step3"><div class="num">03</div><h3>Send & track</h3><p>Schedule for peak hours and watch opens, clicks, and bounces stream in live.</p></article>
+      </div>
+      <div class="trust" id="trust">
+        <span>AES-256 encryption</span>
+        <span>GDPR ready</span>
+        <span>CAN-SPAM compliant</span>
+        <span>Your contacts are never sold</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="scene" id="scene-cta">
+    <div class="center">
+      <svg viewBox="0 0 64 64" width="92" height="92"><use href="#logo-shape"/></svg>
+      <div class="logo-lock" style="margin-top:18px">
+        <div>
+          <div class="name" style="font-size:28px">EmailCampaign</div>
+          <div class="by" style="font-size:18px">by MusfiqDehan</div>
+        </div>
+      </div>
+      <h1 class="display" style="font-size:64px; margin-top:22px">From first send<br>to <span class="grad">pipeline</span></h1>
+      <button class="cta-btn" id="cta-btn" type="button">Start free</button>
+      <div class="cta-url">emailcampaign.musfiqdehan.com</div>
+      <div class="fine-cta">Starter is $0 forever · 500 contacts · Upgrade only when you grow</div>
+      <div class="ready" id="ready">Starter plan unlocked · no credit card</div>
+    </div>
+  </section>
+
+  <div id="cursor">
+    <svg width="28" height="28" viewBox="0 0 24 24">
+      <path d="M5 2.5 19 12.2l-6.2.8L11.2 20z" fill="#0f172a" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div id="ripple"></div>
+  <div id="caption"><div class="eq"><i></i><i></i><i></i></div><div id="captext"></div></div>
+  <div id="bar"></div>
+</div>
+<script src="words.js"></script>
+<script>
+const DURATION = 82.904;
+const AUDIO = {
+  brand:     { s: 1.35,  e: 7.638 },
+  promise:   { s: 8.118, e: 15.390 },
+  audiences: { s: 15.870, e: 21.630 },
+  leads:     { s: 22.110, e: 30.654 },
+  copy:      { s: 31.134, e: 38.910 },
+  schedule:  { s: 39.390, e: 46.086 },
+  impact:    { s: 46.566, e: 58.686 },
+  steps:     { s: 59.166, e: 72.846 },
+  cta:       { s: 73.326, e: 81.054 }
+};
+const WEEK = [
+  { d: "Mon", o: 45, c: 28 },
+  { d: "Tue", o: 60, c: 42 },
+  { d: "Wed", o: 52, c: 36 },
+  { d: "Thu", o: 92, c: 78, on: true },
+  { d: "Fri", o: 74, c: 58 },
+  { d: "Sat", o: 40, c: 25 },
+  { d: "Sun", o: 35, c: 22 }
+];
+const SPARK_A = [35, 45, 40, 60, 55, 70, 65, 80, 75, 95];
+const SPARK_B = [40, 50, 48, 65, 72, 80, 85, 92, 88, 98];
+const HOURS = [25, 45, 95, 80, 60, 50, 75, 40, 20];
+const DRAFT = "Hi Jordan — quick idea for scaling SaaSify’s outbound. Worth a 12-minute look this week?";
+
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function ease(t) { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 3); }
+function easeIO(t) { t = clamp(t, 0, 1); return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+function $(id) { return document.getElementById(id); }
+
+function sceneAlpha(key, t) {
+  const a = AUDIO[key];
+  const inStart = key === "brand" ? 0 : a.s - 0.30;
+  const fullAt = key === "brand" ? 0.45 : a.s;
+  const outEnd = key === "cta" ? DURATION + 1 : a.e + 0.24;
+  if (t <= inStart || t >= outEnd) return 0;
+  if (t < fullAt) return ease((t - inStart) / (fullAt - inStart));
+  if (t > a.e && key !== "cta") return 1 - ease((t - a.e) / 0.24);
+  return 1;
+}
+function enter(lt, delay, dur) {
+  const p = ease(clamp((lt - delay) / dur, 0, 1));
+  return p;
+}
+function visStart(key) { return key === "brand" ? 0 : AUDIO[key].s - 0.30; }
+
+const beats = [
+  { t: 9.4, id: "kpi-open", scene: "promise" },
+  { t: 11.6, id: "kpi-open", scene: "promise", click: true },
+  { t: 16.4, id: "aud-sales", scene: "audiences" },
+  { t: 17.9, id: "aud-recruit", scene: "audiences" },
+  { t: 19.3, id: "aud-startup", scene: "audiences" },
+  { t: 20.6, id: "aud-agency", scene: "audiences", click: true },
+  { t: 23.3, id: "lead-search", scene: "leads", click: true },
+  { t: 26.4, id: "lead-email", scene: "leads" },
+  { t: 35.3, id: "subject-a", scene: "copy", click: true },
+  { t: 36.8, id: "insert-btn", scene: "copy", click: true },
+  { t: 41.0, id: "slot-opt", scene: "schedule", click: true },
+  { t: 43.6, id: "hours", scene: "schedule" },
+  { t: 48.2, id: "live-row", scene: "impact" },
+  { t: 51.5, id: "stat-inbox", scene: "impact" },
+  { t: 54.2, id: "stat-reply", scene: "impact" },
+  { t: 56.6, id: "stat-opens", scene: "impact" },
+  { t: 61.05, id: "step1", scene: "steps", click: true },
+  { t: 64.54, id: "step2", scene: "steps", click: true },
+  { t: 65.90, id: "step3", scene: "steps", click: true },
+  { t: 77.35, id: "cta-btn", scene: "cta", click: true }
+];
+
+function tip(id) {
+  const el = $(id);
+  if (!el) return { x: 960, y: 540 };
+  const r = el.getBoundingClientRect();
+  return { x: r.left + Math.min(r.width * 0.72, r.width - 24), y: r.top + r.height * 0.55 };
+}
+function cursorAt(t) {
+  if (t < 8.6) return { x: 1180, y: 640, o: 0 };
+  let i = 0;
+  for (let k = 0; k < beats.length - 1; k++) if (t >= beats[k].t) i = k;
+  const a = beats[i], b = beats[Math.min(i + 1, beats.length - 1)];
+  const pa = tip(a.id), pb = tip(b.id);
+  const span = Math.max(0.01, b.t - a.t);
+  let u = easeIO(clamp((t - a.t) / Math.min(0.65, span * 0.7), 0, 1));
+  if (b.scene && sceneAlpha(b.scene, t) < 0.2 && t < b.t) u = 0;
+  const o = t > 80.6 ? clamp((81.2 - t) / 0.5, 0, 1) : 1;
+  return { x: lerp(pa.x, pb.x, u), y: lerp(pa.y, pb.y, u), o };
+}
+function lastClick(id, t) {
+  let hit = -1;
+  beats.forEach((b) => { if (b.click && b.id === id && t >= b.t) hit = b.t; });
+  return hit;
+}
+function hot(id, t) {
+  const c = lastClick(id, t);
+  if (c < 0) return false;
+  return t >= c;
+}
+
+function buildBars() {
+  const week = $("week");
+  WEEK.forEach((col) => {
+    const el = document.createElement("div");
+    el.className = "col";
+    el.innerHTML = `<div class="pair"><b class="open${col.on ? " on" : ""}" data-h="${col.o}"></b><b class="click${col.on ? " on" : ""}" data-h="${col.c}"></b></div><em>${col.d}</em>`;
+    week.appendChild(el);
+  });
+  const sa = $("spark-a"), sb = $("spark-b");
+  SPARK_A.forEach((h) => { const i = document.createElement("i"); i.dataset.h = h; sa.appendChild(i); });
+  SPARK_B.forEach((h) => { const i = document.createElement("i"); i.dataset.h = h; sb.appendChild(i); });
+  const hours = $("hours");
+  HOURS.forEach((h, idx) => {
+    const i = document.createElement("i");
+    i.dataset.h = h;
+    if (idx === 2) i.dataset.peak = "1";
+    hours.appendChild(i);
+  });
+}
+buildBars();
+
+function growBars(root, lt, delay) {
+  root.querySelectorAll("b, i").forEach((el, idx) => {
+    const p = enter(lt, delay + idx * 0.04, 0.55);
+    el.style.height = (parseFloat(el.dataset.h) * p) + "%";
+  });
+}
+
+function sentences(words) {
+  const groups = [];
+  let cur = [];
+  words.forEach((w, i) => {
+    if (cur.length && w.s - cur[cur.length - 1].e > 0.32) {
+      groups.push(cur);
+      cur = [];
+    }
+    cur.push(w);
+  });
+  if (cur.length) groups.push(cur);
+  return groups;
+}
+
+function caption(key, t) {
+  const words = (window.WORDS && window.WORDS[key]) || [];
+  if (!words.length) return "";
+  const local = t - AUDIO[key].s;
+  const groups = sentences(words);
+  let g = groups[0];
+  for (const cand of groups) {
+    if (local >= cand[0].s - 0.05) g = cand;
+  }
+  return g.map((w) => {
+    let cls = "next";
+    if (local >= w.e) cls = "past";
+    else if (local >= w.s) cls = "now";
+    const safe = w.t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    return `<span class="${cls}">${safe}</span>`;
+  }).join(" ");
+}
+
+function activeKey(t) {
+  const keys = Object.keys(AUDIO);
+  for (let i = keys.length - 1; i >= 0; i--) {
+    const a = AUDIO[keys[i]];
+    if (t >= a.s - 0.05 && t <= a.e + 0.05) return keys[i];
+  }
+  return null;
+}
+
+const DRAFT_START = 36.95;
+
+function seek(t) {
+  t = clamp(t, 0, DURATION);
+  $("bar").style.width = (t / DURATION * 100) + "%";
+  $("orb1").style.transform = `translate(${lerp(-40, 80, (Math.sin(t * 0.35) + 1) / 2)}px, ${80 + Math.sin(t * 0.4) * 24}px)`;
+  $("orb2").style.transform = `translate(${40 + Math.cos(t * 0.3) * 30}px, ${520 + Math.sin(t * 0.25) * 20}px)`;
+
+  Object.keys(AUDIO).forEach((key) => {
+    $("scene-" + key).style.opacity = sceneAlpha(key, t);
+  });
+
+  const showTop = t > AUDIO.promise.s - 0.2 && t < AUDIO.steps.e + 0.15;
+  $("topbar").style.opacity = showTop ? 1 : 0;
+
+  // Brand internals
+  {
+    const lt = t - visStart("brand");
+    const a = sceneAlpha("brand", t);
+    $("hero-logo").style.opacity = a * enter(lt, 0.05, 0.5);
+    $("hero-logo").style.transform = `scale(${lerp(0.86, 1, enter(lt, 0.05, 0.55))})`;
+    ["brand-kicker", "brand-title", "brand-sub", "brand-chips"].forEach((id, i) => {
+      const p = enter(lt, 0.28 + i * 0.12, 0.5);
+      $(id).style.opacity = p;
+      $(id).style.transform = `translateY(${(1 - p) * 18}px)`;
+    });
+  }
+
+  // Promise dashboard
+  {
+    const lt = t - visStart("promise");
+    const pContacts = enter(lt, 0.15, 0.9);
+    $("n-contacts").textContent = Math.round(42850 * pContacts).toLocaleString("en-US");
+    $("n-sent").textContent = (294.1 * enter(lt, 0.25, 0.9)).toFixed(1) + "k";
+    const openP = enter(lt, 0.35, 0.9);
+    $("n-open").textContent = (58.4 * openP).toFixed(1) + "%";
+    $("open-bar").style.width = (58.4 * openP) + "%";
+    growBars($("spark-a"), lt, 0.2);
+    growBars($("spark-b"), lt, 0.28);
+    growBars($("week"), lt, 0.35);
+    const g = enter(lt, 0.4, 1.0);
+    $("gauge").style.strokeDashoffset = String(lerp(251.2, 26, g));
+    $("n-gauge").textContent = (99.2 * g).toFixed(1) + "%";
+    $("kpi-open").classList.toggle("is-hot", t >= 11.6 && t < AUDIO.promise.e);
+  }
+
+  // Audiences highlight follows the cursor beats
+  ["aud-sales", "aud-recruit", "aud-startup", "aud-agency"].forEach((id) => {
+    const beat = beats.find((b) => b.id === id);
+    const next = beats[beats.indexOf(beat) + 1];
+    const on = beat && t >= beat.t && (!next || t < next.t) && t < AUDIO.audiences.e + 0.2;
+    $(id).classList.toggle("is-hot", !!on);
+  });
+
+  // Leads
+  {
+    const lt = t - AUDIO.leads.s;
+    const revealed = t >= 23.3;
+    const p = revealed ? enter(lt, 1.15, 0.8) : enter(t - visStart("leads"), 0.2, 0.4) * 0.35;
+    $("conf").textContent = (99.8 * (revealed ? enter(lt, 1.15, 0.7) : 0)).toFixed(1) + "% confidence";
+    $("lead-card").style.transform = `translateY(${(1 - enter(t - visStart("leads"), 0.1, 0.5)) * 20}px)`;
+    $("lead-email").style.opacity = revealed ? 1 : 0.35;
+  }
+
+  // Copy
+  {
+    const selected = t >= 35.3;
+    const inserted = t >= 36.8;
+    $("subject-a").classList.toggle("is-hot", selected);
+    $("insert-btn").classList.toggle("is-hot", inserted && t < 37.15);
+    $("toast").style.opacity = inserted ? enter(t - 36.8, 0.05, 0.25) : 0;
+    const typedP = inserted ? clamp((t - DRAFT_START) / 2.4, 0, 1) : 0;
+    const n = Math.round(DRAFT.length * typedP);
+    const showCaret = inserted && typedP < 1 && Math.floor(t * 6) % 2 === 0;
+    $("typed").innerHTML = DRAFT.slice(0, n) + (showCaret ? '<span class="caret"></span>' : "");
+    $("typed").style.opacity = inserted ? 1 : 0.0;
+  }
+
+  // Schedule
+  {
+    const lt = t - visStart("schedule");
+    const picked = t >= 41.0;
+    ["slot-early", "slot-opt", "slot-lunch", "slot-end"].forEach((id) => $(id).classList.remove("is-hot"));
+    if (picked) $("slot-opt").classList.add("is-hot");
+    $("hours").querySelectorAll("i").forEach((el, idx) => {
+      const p = enter(lt, 0.2 + idx * 0.04, 0.5);
+      el.style.height = (parseFloat(el.dataset.h) / 100 * 132 * p) + "px";
+      el.classList.toggle("on", picked && el.dataset.peak === "1");
+    });
+  }
+
+  // Impact
+  {
+    const base = AUDIO.impact.s;
+    const inboxP = ease(clamp((t - (base + 4.7)) / 0.7, 0, 1));
+    const replyP = ease(clamp((t - (base + 7.3)) / 0.7, 0, 1));
+    const openP = ease(clamp((t - (base + 9.7)) / 0.7, 0, 1));
+    $("n-inbox").textContent = Math.round(92 * Math.max(inboxP, 0)) + "%";
+    $("n-reply").textContent = Math.round(30 * Math.max(replyP, 0)) + "%+";
+    $("n-opens").textContent = (3.2 * Math.max(openP, 0)).toFixed(1) + "×";
+    $("n-inbox").style.opacity = inboxP > 0.02 ? 1 : 0;
+    $("n-reply").style.opacity = replyP > 0.02 ? 1 : 0;
+    $("n-opens").style.opacity = openP > 0.02 ? 1 : 0;
+    $("stat-inbox").classList.toggle("is-hot", t >= base + 4.88 && t < base + 7.3);
+    $("stat-reply").classList.toggle("is-hot", t >= base + 7.48 && t < base + 9.7);
+    $("stat-opens").classList.toggle("is-hot", t >= base + 9.87 && t < AUDIO.impact.e);
+    ["row1", "row2", "row3"].forEach((id, i) => {
+      const p = enter(t - visStart("impact"), 0.25 + i * 0.28, 0.4);
+      $(id).style.opacity = p;
+    });
+  }
+
+  // Steps
+  {
+    $("step1").classList.toggle("is-hot", t >= 61.05 && t < 64.54);
+    $("step2").classList.toggle("is-hot", t >= 64.54 && t < 65.9);
+    $("step3").classList.toggle("is-hot", t >= 65.9 && t < 67.9);
+    const trustP = enter(t - AUDIO.steps.s, 6.4, 0.45);
+    $("trust").style.opacity = trustP;
+    $("trust").style.transform = `translateY(${(1 - trustP) * 12}px)`;
+  }
+
+  // CTA
+  {
+    const clicked = t >= 77.35;
+    $("cta-btn").classList.toggle("is-hot", clicked && t < 77.55);
+    $("cta-btn").textContent = clicked ? "Starter plan · $0" : "Start free";
+    const rp = clicked ? enter(t - 77.35, 0.12, 0.35) : 0;
+    $("ready").style.opacity = rp;
+    $("ready").style.transform = `translateY(${(1 - rp) * 10}px)`;
+  }
+
+  // Cursor
+  const c = cursorAt(t);
+  $("cursor").style.opacity = c.o;
+  $("cursor").style.left = c.x + "px";
+  $("cursor").style.top = c.y + "px";
+  let clicking = false;
+  beats.forEach((b) => { if (b.click && t >= b.t && t <= b.t + 0.16) clicking = true; });
+  $("cursor").style.transform = `scale(${clicking ? 0.86 : 1})`;
+  let ripple = 0;
+  beats.forEach((b) => {
+    if (b.click && t >= b.t && t <= b.t + 0.45) ripple = Math.max(ripple, (t - b.t) / 0.45);
+  });
+  $("ripple").style.opacity = ripple > 0 && ripple < 1 ? 1 - ripple : 0;
+  $("ripple").style.left = (c.x - 6) + "px";
+  $("ripple").style.top = (c.y - 4) + "px";
+  $("ripple").style.transform = `scale(${lerp(0.4, 2.4, ripple)})`;
+
+  // Caption
+  const key = activeKey(t);
+  const cap = $("caption");
+  if (!key) {
+    cap.style.opacity = 0;
+  } else {
+    const a = AUDIO[key];
+    const fade = Math.min(clamp((t - a.s) / 0.18, 0, 1), clamp((a.e - t) / 0.18, 0, 1));
+    cap.style.opacity = fade;
+    $("captext").innerHTML = caption(key, t);
+  }
+  document.querySelectorAll(".eq i").forEach((bar, i) => {
+    const h = 6 + Math.abs(Math.sin(t * 8 + i)) * 12;
+    bar.style.height = h + "px";
+  });
+}
+
+window.seek = seek;
+window.DURATION = DURATION;
+seek(0);
+</script>
+</body>
+</html>
