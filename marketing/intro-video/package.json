@@ -1,0 +1,12 @@
+{
+  "name": "emailcampaign-intro-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preview": "node capture.mjs preview",
+    "render": "node capture.mjs full"
+  },
+  "dependencies": {
+    "puppeteer-core": "^24.43.1"
+  }
+}
