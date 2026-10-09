@@ -113,7 +113,7 @@ pydantic==2.13.4
 pydantic-core==2.46.4
 pyflakes==3.4.0
 pygments==2.20.0
-pyjwt==2.13.0
+pyjwt==2.15.0
 pyopenssl==26.4.0
 pytest==9.1.1
 pytest-cov==7.1.0
