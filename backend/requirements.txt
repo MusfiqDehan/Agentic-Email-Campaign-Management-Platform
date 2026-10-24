@@ -55,7 +55,7 @@ et-xmlfile==2.0.0
 executing==2.2.1
 factory-boy==3.3.3
 faker==40.36.0
-filelock==3.32.2
+filelock==4.2.1
 flake8==7.3.0
 frozenlist==1.8.0
 google-auth==2.56.2
